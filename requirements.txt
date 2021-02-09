@@ -1,3 +1,4 @@
 sklearn
 featuretools
 xgboost
+shap
