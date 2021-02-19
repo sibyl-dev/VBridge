@@ -1,0 +1,28 @@
+.panel-wrapper {
+    /* position: absolute; */
+    /* left: 0; */
+    /* border: 1px solid #eee; */
+    border-radius: 5px;
+    background-color: #fff;
+    box-shadow: 0 2px 3px rgba(10, 10, 10, .1), 0 0 0 1px rgba(10, 10, 10, .1);
+    display: block;
+}
+
+.panel-header {
+    height: 30px;
+    background-color: #e8f0fa;
+    cursor: move;
+    line-height: 30px;
+}
+
+.panel-body {
+    height: calc(100% - 38px);
+    margin: 4px;
+    overflow: scroll;
+}
+
+span.panel-title {
+    float: left;
+    margin-left: 10px;
+    font-weight: bold;
+}
