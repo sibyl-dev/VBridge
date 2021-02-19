@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import pickle
 
-ROOT = os.path.abspath('../')
+ROOT = os.path.dirname(os.path.dirname(__file__))
 output_dir = os.path.join(ROOT, 'data/intermediate/')
 
 

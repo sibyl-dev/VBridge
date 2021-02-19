@@ -7,7 +7,7 @@ from model.settings import identifier_variables, RELATIONSHIPS, META_INFO
 from model.utils import remove_nan_entries, save_entityset
 
 
-ROOT = os.path.abspath('../')
+ROOT = os.path.dirname(os.path.dirname(__file__))
 PIC_dir = os.path.join(ROOT, 'data/raw/PIC_mini/')
 output_dir = os.path.join(ROOT, 'data/intermediate/')
 
