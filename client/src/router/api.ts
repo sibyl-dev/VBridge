@@ -1,5 +1,6 @@
 import axios, { AxiosResponse } from "axios";
 import * as d3 from "d3";
+import * as dataForge from "data-forge"
 import { ROOT_URL, DEV_MODE } from "./env";
 
 const API = `${ROOT_URL}/api`;
@@ -17,11 +18,12 @@ function checkResponse<T>(response: AxiosResponse<T>, fallback: T): T {
 export async function getPatientRecords(params: {
     table_name: string,
     subject_id: number
-}): Promise<string[][]> {
+}): Promise<dataForge.DataFrame<number, any>> {
     const url = `${API}/individual_records`;
     const response = await axios.get(url, { params });
     const csvResponse = checkResponse(response, []);
-    const records = d3.csvParseRows(csvResponse);
+    // const records = d3.csvParseRows(csvResponse);
+    const records = dataForge.fromCSV(csvResponse)
     return records;
 }
 
