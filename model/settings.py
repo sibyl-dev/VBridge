@@ -161,7 +161,7 @@ identifier_variables = {
     'SURGERY_VITAL_SIGNS': ['ROW_ID', 'HADM_ID', 'SUBJECT_ID', 'VISIT_ID', 'OPER_ID',
                             'UNI_OPER_ID'],
     'EMR_SYMPTOMS': ['ROW_ID', 'HADM_ID', 'SUBJECT_ID', 'EMR_ID'],
-    'LABEVENTS': ['ROW_ID', 'HADM_ID', 'SUBJECT_ID'],
+    'LABEVENTS': ['ROW_ID', 'HADM_ID', 'SUBJECT_ID', 'VALUENUM'],
     'MICROBIOLOGYEVENTS': ['ROW_ID', 'HADM_ID', 'SUBJECT_ID'],
     'OR_EXAM_REPORTS': ['ROW_ID', 'HADM_ID', 'SUBJECT_ID'],
     'CHARTEVENTS': ['ROW_ID', 'SUBJECT_ID', 'HADM_ID', 'ICUSTAY_ID'],
