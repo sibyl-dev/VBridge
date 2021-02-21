@@ -1,35 +1,31 @@
 import * as React from "react";
 import * as dataForge from "data-forge"
-import { AutoSizer, Grid, GridCellProps, CellMeasurer, CellMeasurerCache, } from "react-virtualized"
+import { AutoSizer, MultiGrid, GridCellProps, CellMeasurer, CellMeasurerCache, Index, } from "react-virtualized"
 import 'react-virtualized/styles.css';
 import './index.css'
+import { Entity } from "data/table";
 
 export interface PureTableProps {
-    dataFrame: dataForge.DataFrame,
+    entity: Entity<number, any>,
     className?: string,
     drawIndex?: boolean,
+    rowWidth?: number | (number | ((params: Index) => number)),
+    rowHeight?: number,
 }
 
-export interface PureTableStates {
-    headerHeight: number,
-    rowHeight: number,
-    rowWidth: number
-}
+export interface PureTableStates {}
 
 export default class PureTable extends React.Component<PureTableProps, PureTableStates>{
     private _cache: CellMeasurerCache
     constructor(props: PureTableProps) {
         super(props);
 
-        this.state = {
-            headerHeight: 30,
-            rowHeight: 30,
-            rowWidth: 80
-        }
+        this.state = {}
+
         this._cache = new CellMeasurerCache({
             defaultWidth: 120,
-            minWidth: 60,
-            fixedHeight: true
+            minHeight: 30,
+            fixedWidth: true
         });
 
         this._cellRenderer = this._cellRenderer.bind(this);
@@ -38,9 +34,7 @@ export default class PureTable extends React.Component<PureTableProps, PureTable
     }
 
     private _cellRenderer(cellProps: GridCellProps) {
-        const { rowIndex, columnIndex, key, style, parent } = cellProps;
-        const { dataFrame, drawIndex } = this.props
-        const columnData = dataFrame.getColumns().toArray();
+        const { rowIndex, columnIndex, key, parent } = cellProps;
         return (
             <CellMeasurer
                 cache={this._cache}
@@ -53,8 +47,6 @@ export default class PureTable extends React.Component<PureTableProps, PureTable
                     (rowIndex === 1) ?
                         this._headerRenderer(cellProps, registerChild as (instance: HTMLDivElement | null) => void) :
                         this._contentRenderer(cellProps, registerChild as (instance: HTMLDivElement | null) => void)
-                        // this._headerRenderer(cellProps) :
-                        // this._contentRenderer(cellProps)
                 )}
             </CellMeasurer>
         );
@@ -62,11 +54,11 @@ export default class PureTable extends React.Component<PureTableProps, PureTable
 
     private _headerRenderer(cellProps: GridCellProps,
         registerChild?: (instance: HTMLDivElement | null) => void) {
-        const { rowIndex, key, style, parent } = cellProps;
-        const { dataFrame, drawIndex } = this.props;
+        const { key, style } = cellProps;
+        const { entity: dataFrame, drawIndex } = this.props;
         const columnIndex = cellProps.columnIndex + (drawIndex ? 0 : 1);
         return <div
-            className={`cell cell-content row-${rowIndex} col-${columnIndex}`}
+            className={`cell cell-content col-${columnIndex}`}
             key={key}
             style={style}
             ref={registerChild as ((instance: HTMLDivElement | null) => void)}
@@ -77,8 +69,8 @@ export default class PureTable extends React.Component<PureTableProps, PureTable
 
     private _contentRenderer(cellProps: GridCellProps,
         registerChild?: (instance: HTMLDivElement | null) => void) {
-        const { key, style, parent } = cellProps;
-        const { dataFrame, drawIndex } = this.props;
+        const { key, style } = cellProps;
+        const { entity: dataFrame, drawIndex } = this.props;
         const columnIndex = cellProps.columnIndex + (drawIndex ? 0 : 1);
         const rowIndex = cellProps.rowIndex - 1;
         return <div
@@ -92,22 +84,23 @@ export default class PureTable extends React.Component<PureTableProps, PureTable
     }
 
     public render() {
-        const { headerHeight, rowHeight, rowWidth } = this.state;
-        const { className, dataFrame, drawIndex } = this.props;
-        const columnCount = dataFrame.getColumns().count() + (drawIndex ? 0 : 1)
+        const { className, entity, drawIndex, rowHeight, rowWidth } = this.props;
+        const columnCount = entity.getColumns().count() - (drawIndex ? 0 : 1);
+        const columnWidth = entity.columnWidth(drawIndex, 150, 60);
         return <div className={"table-container" + (className ? ` ${className}` : "")}>
             <AutoSizer>
                 {({ width, height }) => (
                     <div style={{ overflow: "visible" }}>
-                        <Grid
+                        <MultiGrid
                             height={height}
                             width={width}
-                            rowHeight={rowHeight}
-                            rowCount={dataFrame.count()}
-                            deferredMeasurementCache={this._cache}
+                            rowHeight={rowHeight || this._cache.rowHeight}
+                            rowCount={entity.count()+1}
                             columnCount={columnCount}
-                            columnWidth={this._cache.columnWidth}
+                            columnWidth={columnWidth || this._cache.columnWidth}
                             cellRenderer={this._cellRenderer}
+                            fixedRowCount={2}
+                            fixedColumnCount={drawIndex ? 1 : 0}
                         />
                     </div>
                 )}
