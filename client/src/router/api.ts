@@ -1,6 +1,7 @@
 import axios, { AxiosResponse } from "axios";
-import * as d3 from "d3";
 import * as dataForge from "data-forge"
+import { PatientMeta } from "data/patient";
+import { Entity } from "data/table";
 import { ROOT_URL, DEV_MODE } from "./env";
 
 const API = `${ROOT_URL}/api`;
@@ -18,13 +19,18 @@ function checkResponse<T>(response: AxiosResponse<T>, fallback: T): T {
 export async function getPatientRecords(params: {
     table_name: string,
     subject_id: number
-}): Promise<dataForge.DataFrame<number, any>> {
-    const url = `${API}/individual_records`;
-    const response = await axios.get(url, { params });
-    const csvResponse = checkResponse(response, []);
-    // const records = d3.csvParseRows(csvResponse);
-    const records = dataForge.fromCSV(csvResponse)
-    return records;
+}): Promise<Entity<number, any>> {
+    const recordUrl = `${API}/individual_records`;
+    const recordResponse = await axios.get(recordUrl, { params });
+    const csvResponse = checkResponse(recordResponse, []);
+    const table = new Entity(dataForge.fromCSV(csvResponse));
+
+    const metaUrl = `${API}/record_meta`;
+    const metaResponse = await axios.get(metaUrl, { params });
+    const metaInfo = checkResponse(metaResponse, [])
+    table.setMetaInfo(metaInfo).update();
+
+    return table;
 }
 
 export async function getTableNames(): Promise<string[]>{
@@ -32,4 +38,12 @@ export async function getTableNames(): Promise<string[]>{
     const response = await axios.get(url);
     const tableNames = checkResponse(response, []);
     return tableNames;
+}
+
+export async function getPatientMeta(params: {
+    subject_id: number
+}): Promise<PatientMeta>{
+    const url = `${API}/patient_meta`;
+    const response = await axios.get(url, { params });
+    return checkResponse(response, []);
 }

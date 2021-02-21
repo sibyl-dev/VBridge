@@ -5,16 +5,18 @@ import { Select, Table } from "antd"
 import Panel from "../Panel"
 import PureTable from "../Table"
 import { getPatientRecords } from "../../router/api"
+import { Entity } from "data/table";
+import { PatientMeta } from "data/patient";
 
 const { Option } = Select
 
 export interface TableViewProps {
-    subjectId?: number,
+    patientMeta?: PatientMeta,
     tableNames: string[]
 }
 
 export interface TableViewStates {
-    tableRecords?: dataForge.DataFrame<number, any>
+    tableRecords?: Entity<number, any>
 }
 
 export default class TableView extends React.Component<TableViewProps, TableViewStates> {
@@ -26,9 +28,9 @@ export default class TableView extends React.Component<TableViewProps, TableView
     }
 
     private async loadPatientRecords(tableName: string) {
-        const { subjectId } = this.props;
-        if (subjectId === undefined) return;
-        const records = await getPatientRecords({ table_name: tableName, subject_id: subjectId });
+        const { patientMeta } = this.props;
+        if (patientMeta === undefined) return;
+        const records = await getPatientRecords({ table_name: tableName, subject_id: patientMeta.subjectId });
         this.setState({ tableRecords: records });
     }
 
@@ -42,7 +44,7 @@ export default class TableView extends React.Component<TableViewProps, TableView
                     {tableNames.map((name, i) => (<Option value={name} key={i}>{name}</Option>))}
                 </Select>
                 {tableRecords && <PureTable
-                    dataFrame={tableRecords}
+                    entity={tableRecords}
                     drawIndex={false}
                 />}
 
