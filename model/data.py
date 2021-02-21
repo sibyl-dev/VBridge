@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import featuretools as ft
 
-from model.settings import identifier_variables, RELATIONSHIPS, META_INFO
+from model.settings import interesting_variables, RELATIONSHIPS, META_INFO
 from model.utils import remove_nan_entries, save_entityset
 
 
@@ -68,8 +68,7 @@ def get_patient_records(es, table_name, subject_id, hadm_id=None, cutoff_times=N
         patient_df = patient_df[patient_df['HADM_ID'] == hadm_id]
 
     # remove identifier columns
-    useful_cols = [col for col in target_table.columns
-                   if col not in identifier_variables[table_name]]
+    useful_cols = interesting_variables[table_name]
     patient_df = patient_df.loc[:, useful_cols]
 
     # select records before or at the cutoff_time
