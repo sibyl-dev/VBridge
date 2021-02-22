@@ -40,6 +40,12 @@ export async function getTableNames(): Promise<string[]>{
     return tableNames;
 }
 
+export async function getPatientIds(): Promise<number[]> {
+    const url = `${API}/available_ids`;
+    const response = await axios.get(url);
+    return checkResponse(response, [])
+}
+
 export async function getPatientMeta(params: {
     subject_id: number
 }): Promise<PatientMeta>{
