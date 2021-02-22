@@ -1,3 +1,8 @@
+.timeline-view-content {
+    height: calc(100% - 40px);
+    overflow: scroll;
+}
+
 .timeline {
     height: 40px;
     width: calc(100% - 40px);
@@ -9,13 +14,13 @@
 
 .timeline-title {
     /* height: 100%; */
-    width: 60px;
+    width: 40px;
     float: left;
 }
 
 .timeline-content {
     height: 100%;
-    width: calc(100% - 60px);
+    width: calc(100% - 40px);
     float: left;
     /* position: relative; */
 }
@@ -23,4 +28,8 @@
 .timeline-svg {
     height: 100%;
     width: 100%;
+}
+
+.fix-on-bottom {
+    position: absolute;
 }
