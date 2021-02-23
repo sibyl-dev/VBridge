@@ -61,7 +61,7 @@ META_INFO = {
             'ANES_END_TIME': [],
             'SURGERY_BEGIN_TIME': [],
             'SURGERY_END_TIME': []
-        }
+        },
     },
     'DIAGNOSES_ICD': {
         'foreign_index': ['SUBJECT_ID', 'HADM_ID', 'ICD10_CODE_CN'],
@@ -72,6 +72,8 @@ META_INFO = {
         'types': {'HADM_ID': 'int', 'ITEMID': 'str', 'VISIT_ID': 'int',
                   'OPER_ID': 'int', 'ITEM_NO': 'int'},
         'time_index': 'MONITOR_TIME',
+        'item_index': 'ITEMID',
+        'value_indexes': ['VALUE'],
     },
     'EMR_SYMPTOMS': {
         'foreign_index': ['SUBJECT_ID', 'HADM_ID', 'EMR_ID'],
@@ -81,7 +83,9 @@ META_INFO = {
     'LABEVENTS': {
         'foreign_index': ['SUBJECT_ID', 'HADM_ID', 'ITEMID'],
         'types': {'HADM_ID': 'int', 'ITEMID': 'str'},
-        'time_index': 'CHARTTIME'
+        'time_index': 'CHARTTIME',
+        'item_index': 'ITEMID',
+        'value_indexes': ['VALUE'],
     },
     'MICROBIOLOGYEVENTS': {
         'foreign_index': ['SUBJECT_ID', 'HADM_ID', 'SPEC_ITEMID'],
@@ -97,24 +101,30 @@ META_INFO = {
     'CHARTEVENTS': {
         'foreign_index': ['SUBJECT_ID', 'HADM_ID', 'ITEMID'],
         'types': {'ITEMID': 'str'},
-        'time_index': 'CHARTTIME'
+        'time_index': 'CHARTTIME',
+        'item_index': 'ITEMID',
+        'value_indexes': ['VALUE'],
     },
     'INPUTEVENTS': {
         'foreign_index': ['SUBJECT_ID', 'HADM_ID', 'ICUSTAY_ID'],
         'types': {'ICUSTAY_ID': 'int'},
-        'time_index': 'CHARTTIME'
+        'time_index': 'CHARTTIME',
+        'value_indexes': ['VALUE'],
     },
     'OUTPUTEVENTS': {
         'foreign_index': ['SUBJECT_ID', 'HADM_ID', 'ITEMID'],
         'types': {'ITEMID': 'str'},
-        'time_index': 'CHARTTIME'
+        'time_index': 'CHARTTIME',
+        'item_index': 'ITEMID',
+        'value_indexes': ['VALUE'],
     },
     'PRESCRIPTIONS': {
         'foreign_index': ['SUBJECT_ID', 'HADM_ID'],
         'time_index': 'STARTDATE',
         'secondary_index': {
             'ENDDATE': []
-        }
+        },
+        'item_index': 'DRUG_NAME',
     },
     'D_ITEMS': {
         'index': 'ITEMID',
