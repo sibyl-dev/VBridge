@@ -21,8 +21,8 @@ export interface IMargin {
 
 export type MarginType = number | Partial<IMargin>;
 
-export const defaultMarginLeft = 10,
-  defaultMarginRight = 10,
+export const defaultMarginLeft = 15,
+  defaultMarginRight = 15,
   defaultMarginTop = 2,
   defaultMarginBottom = 2;
 

@@ -24,7 +24,7 @@ export function drawTimeline(params: {
     const width = params.width - margin.left - margin.right;
 
     const base = getChildOrAppend<SVGGElement, SVGElement>(root, "g", "base")
-        .attr("transform", `translate(${margin.left}, ${margin.right})`);
+        .attr("transform", `translate(${margin.left}, ${margin.top})`);
     const axisBase = getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "axis-base")
         .attr("transform", `translate(0, ${height / 2})`);
     const bubbleBase = getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "bubble-base")

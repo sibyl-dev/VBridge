@@ -81,7 +81,11 @@ class App extends React.Component<AppProps, AppStates>{
               patientIds={subjectIds}
               selectPatientId={this.selectPatientId}
             />}
-            <DynamicView />
+            <DynamicView
+              patientMeta={patientMeta}
+              tableNames={tableNames}
+              tableRecords={tableRecords}
+            />
             {tableNames && <TableView
               patientMeta={patientMeta}
               tableNames={tableNames}

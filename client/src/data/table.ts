@@ -9,10 +9,11 @@ export interface TableMeta {
     time_index?: string,
     types?: ('numerical' | 'categorical' | 'timestamp')[],
     item_index?: string,
+    value_indexes?: string[],
 }
 
 export class Entity<IndexT, ValueT> extends dataForge.DataFrame<IndexT, ValueT> {
-    private _metaInfo?: TableMeta;
+    public metaInfo?: TableMeta;
     public name?: string;
     public timeIndex?: string;
 
@@ -24,13 +25,13 @@ export class Entity<IndexT, ValueT> extends dataForge.DataFrame<IndexT, ValueT> 
     }
 
     public setMetaInfo(metaInfo: TableMeta) {
-        this._metaInfo = metaInfo;
+        this.metaInfo = metaInfo;
         return this;
     }
 
     public update() {
-        if (this._metaInfo !== undefined) {
-            const { name, time_index, types } = this._metaInfo;
+        if (this.metaInfo !== undefined) {
+            const { name, time_index, types } = this.metaInfo;
             this.name = name;
             this.timeIndex = time_index;
             

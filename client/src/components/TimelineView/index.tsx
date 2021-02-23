@@ -81,20 +81,20 @@ export class Timeline extends React.PureComponent<TimelineProps>{
     constructor(props: TimelineProps) {
         super(props);
 
-        this._draw = this._draw.bind(this);
+        this.paint = this.paint.bind(this);
     }
 
     componentDidMount() {
-        this._draw();
+        this.paint();
     }
 
     componentDidUpdate(prevProps: TimelineProps) {
         if (prevProps !== this.props) {
-            this._draw();
+            this.paint();
         }
     }
 
-    private _draw() {
+    private paint() {
         const { entity, startTime, endTime } = this.props;
         const style = { ...defaultTimelineStyle, ...this.props.timelineStyle };
         const { width, height, color } = style;
