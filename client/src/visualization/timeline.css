@@ -1,0 +1,8 @@
+.axis-line {
+    stroke: #aaa;
+    stroke-width: 2px;
+}
+
+.bubble {
+    opacity: 50%;
+}

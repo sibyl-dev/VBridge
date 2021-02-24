@@ -1,0 +1,26 @@
+.timeline {
+    height: 40px;
+    width: calc(100% - 40px);
+    position: relative;
+    margin-left: 20px;
+    margin-right: 20px;
+    float: left;
+}
+
+.timeline-title {
+    /* height: 100%; */
+    width: 60px;
+    float: left;
+}
+
+.timeline-content {
+    height: 100%;
+    width: calc(100% - 60px);
+    float: left;
+    /* position: relative; */
+}
+
+.timeline-svg {
+    height: 100%;
+    width: 100%;
+}
