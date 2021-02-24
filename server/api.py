@@ -74,6 +74,7 @@ def get_record_meta():
         info['time_index'] = table_info.get('time_index')
         info['item_index'] = table_info.get('item_index')
         info['value_indexes'] = table_info.get('value_indexes')
+        info['alias'] = table_info.get('alias')
         column_names = interesting_variables[table_name]
         df = current_app.es[table_name].df
         # distinguish "categorical" and "numerical" columns

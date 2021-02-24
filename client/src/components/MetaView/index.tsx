@@ -17,7 +17,7 @@ export default class MetaView extends React.Component<MetaViewProps, MetaViewSta
     public render() {
         const { selectPatientId, patientIds } = this.props
         return (
-            <Panel initialWidth={300} initialHeight={260} x={1110} y={0}>
+            <Panel initialWidth={300} initialHeight={400} x={1110} y={0}>
                 <Row>
                     <Col span={10}><span className="meta-info">PatientId: </span></Col>
                     <Col span={2} />

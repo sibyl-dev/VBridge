@@ -16,6 +16,10 @@ export function drawLineChart(params: {
     margin?: IMargin,
     timeScale?: d3.ScaleTime<number, number>,
     color?: string,
+
+    drawXAxis?: boolean,
+    drawYAxis?: boolean,
+    drawDots?: boolean,
 }) {
     const { color, data, svg, timeScale } = params
     const dates = data.dates.toArray();
@@ -43,13 +47,15 @@ export function drawLineChart(params: {
     const line = d3.line().curve(d3.curveMonotoneX);
     const points: [number, number][] = dates.map((date, i) => [t(date), height - y(values[i])] as [number, number])
         .filter(d => (d[0] === d[0]) && (d[1] === d[1]));
-    
+
     base.selectAll(".point")
         .data(points)
         .join(
             enter => enter
-            .append("circle")
-            .attr("class", "point")
+                .append("circle")
+                .attr("class", "point"),
+            update => update,
+            exit => { exit.remove() }
         )
         .attr("cx", d => d[0])
         .attr("cy", d => d[1])

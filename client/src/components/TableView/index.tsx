@@ -7,6 +7,7 @@ import PureTable from "../Table"
 import { getPatientRecords } from "../../router/api"
 import { Entity } from "data/table";
 import { PatientMeta } from "data/patient";
+import { groupEvents } from "data/event";
 
 const { Option } = Select
 
@@ -45,7 +46,7 @@ export default class TableView extends React.Component<TableViewProps, TableView
         const { tableRecords } = this.state;
 
         return (
-            <Panel initialWidth={400} initialHeight={435} x={1010} y={265}>
+            <Panel initialWidth={400} initialHeight={435} x={1010} y={405}>
                 <Select style={{ width: 240 }} onChange={this.loadPatientRecords}>
                     {tableNames.map((name, i) => (<Option value={name} key={i}>{name}</Option>))}
                 </Select>
