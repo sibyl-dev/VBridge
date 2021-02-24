@@ -1,15 +1,18 @@
 .timeline-view-content {
-    height: calc(100% - 40px);
+    height: calc(100% - 80px);
     overflow: scroll;
 }
 
 .timeline {
-    height: 40px;
+    /* height: 80px; */
     width: calc(100% - 40px);
     position: relative;
     margin-left: 20px;
     margin-right: 20px;
     float: left;
+    border: 2px solid rgba(220, 225, 230, 0.7);
+    max-height: 80;
+    overflow: scroll;
 }
 
 .timeline-title {
