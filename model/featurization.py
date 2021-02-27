@@ -15,9 +15,9 @@ from model.utils import save_fm
 
 def generate_cutoff_times(es):
     target_entity = 'SURGERY_INFO'
-    cutoff_times = es['SURGERY_INFO'].df[['UNI_OPER_ID', 'SURGERY_END_TIME']]
+    cutoff_times = es[target_entity].df[['UNI_OPER_ID', 'SURGERY_END_TIME']]
     cutoff_times.columns = ['instance_id', 'time']
-    df = es['SURGERY_INFO'].df.set_index('UNI_OPER_ID')
+    df = es[target_entity].df.set_index('UNI_OPER_ID')
     cutoff_times['SUBJECT_ID'] = df.loc[cutoff_times['instance_id']]['SUBJECT_ID']
     cutoff_times['HADM_ID'] = df.loc[cutoff_times['instance_id']]['HADM_ID']
     return cutoff_times
@@ -51,8 +51,7 @@ class Featurization:
     def __init__(self, es):
         self.es = es
         self.target_entity = 'SURGERY_INFO'
-        self.label_times = es['SURGERY_INFO'].df[[
-            'UNI_OPER_ID', 'SURGERY_END_TIME']]
+        self.label_times = es['SURGERY_INFO'].df[['UNI_OPER_ID', 'SURGERY_END_TIME']]
         self.label_times.columns = ['instance_id', 'time']
 
     def generate_features(self, forward=True, surgery_vital=True, select=True, save=True):
@@ -62,6 +61,8 @@ class Featurization:
         if surgery_vital:
             features.append(self._surgery_vital_sign_features(select))
         fm, fl = merge_features([f[0] for f in features], [f[1] for f in features])
+        # TODO: this code only works for this case. The formal id should be the surgery id
+        fm = fm.set_index(self.es['SURGERY_INFO'].df['SUBJECT_ID'])
         if save:
             save_fm(fm, fl)
         return fm, fl
