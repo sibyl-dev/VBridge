@@ -46,7 +46,7 @@ export default class TableView extends React.Component<TableViewProps, TableView
         const { tableRecords } = this.state;
 
         return (
-            <Panel initialWidth={400} initialHeight={435} x={1010} y={405}>
+            <div>
                 <Select style={{ width: 240 }} onChange={this.loadPatientRecords}>
                     {tableNames.map((name, i) => (<Option value={name} key={i}>{name}</Option>))}
                 </Select>
@@ -55,7 +55,7 @@ export default class TableView extends React.Component<TableViewProps, TableView
                     drawIndex={false}
                 />}
 
-            </Panel>
+            </div>
         )
     }
 }

@@ -63,7 +63,7 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
         }
 
         return (
-            <Panel initialWidth={700} initialHeight={400} x={405} y={0}>
+            <div>
                 {tableRecords && <div ref={this.ref} className={"timeline-view-content"}>
                     {events?.map((e, i) =>
                     (<Timeline
@@ -89,7 +89,7 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
                     updateTimeScale={this.updateTimeScale}
                 />}
 
-            </Panel>
+            </div>
         )
     }
 }

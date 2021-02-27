@@ -10,6 +10,7 @@ import DynamicView from "./components/DynamicView"
 import { getPatientIds, getPatientMeta, getPatientRecords, getTableNames } from "./router/api"
 import { PatientMeta } from 'data/patient';
 import { Entity } from 'data/table';
+import Panel from 'components/Panel';
 
 const { Header, Content } = Layout
 
@@ -72,24 +73,36 @@ class App extends React.Component<AppProps, AppStates>{
             <p className='system-name'>Bridges</p>
           </Header>
           <Content>
-            <FeatureView />
-            <TimelineView
-              patientMeta={patientMeta}
-              tableRecords={tableRecords}
-            />
-            {tableNames && <MetaView
-              patientIds={subjectIds}
-              selectPatientId={this.selectPatientId}
-            />}
-            <DynamicView
-              patientMeta={patientMeta}
-              tableNames={tableNames}
-              tableRecords={tableRecords}
-            />
-            {tableNames && <TableView
-              patientMeta={patientMeta}
-              tableNames={tableNames}
-            />}
+            <Panel initialWidth={400} initialHeight={840} x={0} y={0}>
+              <FeatureView />
+            </Panel>
+            <Panel initialWidth={700} initialHeight={400} x={405} y={0}>
+              <TimelineView
+                patientMeta={patientMeta}
+                tableRecords={tableRecords}
+              />
+            </Panel>
+            {tableNames && <Panel initialWidth={300} initialHeight={400} x={1110} y={0}>
+              <MetaView
+                patientIds={subjectIds}
+                selectPatientId={this.selectPatientId}
+              />
+            </Panel>
+            }
+            <Panel initialWidth={600} initialHeight={435} x={405} y={405}>
+              <DynamicView
+                patientMeta={patientMeta}
+                tableNames={tableNames}
+                tableRecords={tableRecords}
+              />
+            </Panel>
+            {tableNames && <Panel initialWidth={400} initialHeight={435} x={1010} y={405}>
+              <TableView
+                patientMeta={patientMeta}
+                tableNames={tableNames}
+              />
+            </Panel>
+            }
           </Content>
         </Layout>
       </div>

@@ -87,7 +87,7 @@ export default class DynamicView extends React.Component<DynamicViewProps, Dynam
         const endDate = patientMeta && new Date(patientMeta.endDate);
 
         return (
-            <Panel initialWidth={600} initialHeight={435} x={405} y={405}>
+            <div>
                 <div>
                     <Select style={{ width: 240 }} onChange={this._setTableName}>
                         {tableNames && tableNames.map((name, i) => (<Option value={name} key={i}>{name}</Option>))}
@@ -109,7 +109,7 @@ export default class DynamicView extends React.Component<DynamicViewProps, Dynam
                             }}
                         />)}
                 </div>
-            </Panel>
+            </div>
         )
     }
 }
