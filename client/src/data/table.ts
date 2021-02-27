@@ -1,4 +1,4 @@
-import * as dataForge from "data-forge"
+import { DataFrame } from "data-forge"
 import { DataFrameConfigFn, IDataFrameConfig } from "data-forge/build/lib/dataframe";
 import { Index } from "react-virtualized";
 
@@ -9,31 +9,33 @@ export interface TableMeta {
     time_index?: string,
     types?: ('numerical' | 'categorical' | 'timestamp')[],
     item_index?: string,
+    value_indexes?: string[],
+    alias?: string,
 }
 
-export class Entity<IndexT, ValueT> extends dataForge.DataFrame<IndexT, ValueT> {
-    private _metaInfo?: TableMeta;
+export class Entity<IndexT, ValueT> extends DataFrame<IndexT, ValueT> {
+    public metaInfo?: TableMeta;
     public name?: string;
     public timeIndex?: string;
 
     constructor(config?: Iterable<ValueT> | IDataFrameConfig<IndexT, ValueT>
-        | DataFrameConfigFn<IndexT, ValueT> | dataForge.DataFrame<IndexT, ValueT>) {
+        | DataFrameConfigFn<IndexT, ValueT> | DataFrame<IndexT, ValueT>) {
         super(config);
 
         this.columnWidth = this.columnWidth.bind(this);
     }
 
     public setMetaInfo(metaInfo: TableMeta) {
-        this._metaInfo = metaInfo;
+        this.metaInfo = metaInfo;
         return this;
     }
 
     public update() {
-        if (this._metaInfo !== undefined) {
-            const { name, time_index, types } = this._metaInfo;
+        if (this.metaInfo !== undefined) {
+            const { name, time_index, types } = this.metaInfo;
             this.name = name;
             this.timeIndex = time_index;
-            
+
             time_index && this.parseDates(time_index);
             types && this.getColumnNames().forEach((name, i) => {
                 if (types[i] === 'numerical') {

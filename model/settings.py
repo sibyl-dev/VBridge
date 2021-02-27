@@ -61,7 +61,7 @@ META_INFO = {
             'ANES_END_TIME': [],
             'SURGERY_BEGIN_TIME': [],
             'SURGERY_END_TIME': []
-        }
+        },
     },
     'DIAGNOSES_ICD': {
         'foreign_index': ['SUBJECT_ID', 'HADM_ID', 'ICD10_CODE_CN'],
@@ -72,6 +72,9 @@ META_INFO = {
         'types': {'HADM_ID': 'int', 'ITEMID': 'str', 'VISIT_ID': 'int',
                   'OPER_ID': 'int', 'ITEM_NO': 'int'},
         'time_index': 'MONITOR_TIME',
+        'item_index': 'ITEMID',
+        'value_indexes': ['VALUE'],
+        'alias': 'Vital Signs',
     },
     'EMR_SYMPTOMS': {
         'foreign_index': ['SUBJECT_ID', 'HADM_ID', 'EMR_ID'],
@@ -81,13 +84,17 @@ META_INFO = {
     'LABEVENTS': {
         'foreign_index': ['SUBJECT_ID', 'HADM_ID', 'ITEMID'],
         'types': {'HADM_ID': 'int', 'ITEMID': 'str'},
-        'time_index': 'CHARTTIME'
+        'time_index': 'CHARTTIME',
+        'item_index': 'ITEMID',
+        'value_indexes': ['VALUE'],
+        'alias': 'Lab Tests',
     },
     'MICROBIOLOGYEVENTS': {
         'foreign_index': ['SUBJECT_ID', 'HADM_ID', 'SPEC_ITEMID'],
         'types': {'HADM_ID': 'int', 'SPEC_ITEMID': 'str',
                   'ORG_ITEMID': 'str', 'AB_ITEMID': 'str'},
-        'time_index': 'CHARTTIME'
+        'time_index': 'CHARTTIME',
+        'alias': 'Micobiology Tests',
     },
     'OR_EXAM_REPORTS': {
         'foreign_index': ['SUBJECT_ID', 'HADM_ID'],
@@ -97,24 +104,34 @@ META_INFO = {
     'CHARTEVENTS': {
         'foreign_index': ['SUBJECT_ID', 'HADM_ID', 'ITEMID'],
         'types': {'ITEMID': 'str'},
-        'time_index': 'CHARTTIME'
+        'time_index': 'CHARTTIME',
+        'item_index': 'ITEMID',
+        'value_indexes': ['VALUE'],
+        'alias': 'Chart Signs',
     },
     'INPUTEVENTS': {
         'foreign_index': ['SUBJECT_ID', 'HADM_ID', 'ICUSTAY_ID'],
         'types': {'ICUSTAY_ID': 'int'},
-        'time_index': 'CHARTTIME'
+        'time_index': 'CHARTTIME',
+        'value_indexes': ['VALUE'],
+        'alias': 'Inputs',
     },
     'OUTPUTEVENTS': {
         'foreign_index': ['SUBJECT_ID', 'HADM_ID', 'ITEMID'],
         'types': {'ITEMID': 'str'},
-        'time_index': 'CHARTTIME'
+        'time_index': 'CHARTTIME',
+        'item_index': 'ITEMID',
+        'value_indexes': ['VALUE'],
+        'alias': 'Outputs',
     },
     'PRESCRIPTIONS': {
         'foreign_index': ['SUBJECT_ID', 'HADM_ID'],
         'time_index': 'STARTDATE',
         'secondary_index': {
             'ENDDATE': []
-        }
+        },
+        'item_index': 'DRUG_NAME',
+        'alias': 'Prescriptions',
     },
     'D_ITEMS': {
         'index': 'ITEMID',
@@ -176,7 +193,7 @@ identifier_variables = {
 interesting_variables = {'PATIENTS': ['GENDER', 'DOB'],
  'ADMISSIONS': ['ADMITTIME', 'ADMISSION_DEPARTMENT', 
   'INSURANCE', 'LANGUAGE', 'RELIGION', 'MARITAL_STATUS',
-  'ETHNICITY', 'EDREGTIME', 'ICD10_CODE_CN'],
+  'ETHNICITY', 'EDREGTIME', 'DIAGNOSIS', 'ICD10_CODE_CN'],
  'ICUSTAYS': ['FIRST_CAREUNIT', 'LAST_CAREUNIT', 'FIRST_WARDID',
   'LAST_WARDID', 'INTIME', 'OUTTIME', 'LOS'],
  'SURGERY_INFO': ['ANES_START_TIME',

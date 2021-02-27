@@ -7,6 +7,7 @@ import PureTable from "../Table"
 import { getPatientRecords } from "../../router/api"
 import { Entity } from "data/table";
 import { PatientMeta } from "data/patient";
+import { groupEvents } from "data/event";
 
 const { Option } = Select
 
@@ -27,6 +28,12 @@ export default class TableView extends React.Component<TableViewProps, TableView
         this.loadPatientRecords = this.loadPatientRecords.bind(this);
     }
 
+    componentDidUpdate(prevProps: TableViewProps) {
+        if (prevProps.patientMeta !== this.props.patientMeta) {
+            this.setState({tableRecords: undefined});
+        }
+    }
+
     private async loadPatientRecords(tableName: string) {
         const { patientMeta } = this.props;
         if (patientMeta === undefined) return;
@@ -39,7 +46,7 @@ export default class TableView extends React.Component<TableViewProps, TableView
         const { tableRecords } = this.state;
 
         return (
-            <Panel initialWidth={600} initialHeight={435} x={1010} y={265}>
+            <div>
                 <Select style={{ width: 240 }} onChange={this.loadPatientRecords}>
                     {tableNames.map((name, i) => (<Option value={name} key={i}>{name}</Option>))}
                 </Select>
@@ -48,7 +55,7 @@ export default class TableView extends React.Component<TableViewProps, TableView
                     drawIndex={false}
                 />}
 
-            </Panel>
+            </div>
         )
     }
 }

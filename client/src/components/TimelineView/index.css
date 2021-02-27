@@ -1,21 +1,29 @@
+.timeline-view-content {
+    height: calc(100% - 80px);
+    overflow: scroll;
+}
+
 .timeline {
-    height: 40px;
+    /* height: 80px; */
     width: calc(100% - 40px);
     position: relative;
     margin-left: 20px;
     margin-right: 20px;
     float: left;
+    border: 2px solid rgba(220, 225, 230, 0.7);
+    max-height: 80;
+    overflow: scroll;
 }
 
 .timeline-title {
     /* height: 100%; */
-    width: 60px;
+    width: 40px;
     float: left;
 }
 
 .timeline-content {
     height: 100%;
-    width: calc(100% - 60px);
+    width: calc(100% - 40px);
     float: left;
     /* position: relative; */
 }
@@ -23,4 +31,8 @@
 .timeline-svg {
     height: 100%;
     width: 100%;
+}
+
+.fix-on-bottom {
+    position: absolute;
 }

@@ -9,9 +9,9 @@ export interface FeatureViewStates {}
 export default class FeatureView extends React.Component<FeatureViewProps, FeatureViewStates> {
     public render (){
         return (
-            <Panel initialWidth={400} initialHeight={700} x={0} y={0}>
-
-            </Panel>
+            <div> 
+                
+            </div>
         )
     }
 }

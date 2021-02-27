@@ -7,12 +7,22 @@
 }
 
 .cell {
-    border-top: 2px solid rgba(220, 225, 230, 0.07);
-    border-bottom: 1px solid rgba(36, 41, 46, 0.07);
     /* display: table-cell; */
     /* vertical-align: middle; */
     height: 100%;
     display: flex;
     align-items: center;
     font-size: 10px;
+    text-align: center;
+}
+
+.cell-content {
+    border-top: 2px solid rgba(220, 225, 230, 0.07);
+    border-bottom: 1px solid rgba(36, 41, 46, 0.07);
+}
+
+.cell-header {
+    border-top: 2px solid rgba(9, 13, 17, 0.603);
+    border-bottom: 2px solid rgba(36, 41, 46, 0.678);
+    align-items: center;
 }

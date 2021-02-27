@@ -29,6 +29,7 @@ def load_pic(save=True, verbose=True):
             table_df = table_df[~table_df['UNI_OPER_ID'].duplicated()]
             add_info = pd.read_csv(os.path.join(PIC_dir, 'surgery_additional_features.csv'))
             table_df = pd.merge(table_df, add_info)
+            # table_df['SURGERY_NAME'] = table_df['SURGERY_NAME'].apply(lambda row: row.split('+'))
 
         index = info.get('index', 'ROW_ID')
         index_columns = info.get('foreign_index', []) + [index]

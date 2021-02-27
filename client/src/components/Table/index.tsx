@@ -58,7 +58,7 @@ export default class PureTable extends React.Component<PureTableProps, PureTable
         const { entity: dataFrame, drawIndex } = this.props;
         const columnIndex = cellProps.columnIndex + (drawIndex ? 0 : 1);
         return <div
-            className={`cell cell-content col-${columnIndex}`}
+            className={`cell cell-header col-${columnIndex}`}
             key={key}
             style={style}
             ref={registerChild as ((instance: HTMLDivElement | null) => void)}
@@ -74,7 +74,7 @@ export default class PureTable extends React.Component<PureTableProps, PureTable
         const columnIndex = cellProps.columnIndex + (drawIndex ? 0 : 1);
         const rowIndex = cellProps.rowIndex - 1;
         return <div
-            className={`cell cell-header row-${rowIndex} col-${columnIndex}`}
+            className={`cell cell-content row-${rowIndex} col-${columnIndex}`}
             key={key}
             style={style}
             ref={registerChild as ((instance: HTMLDivElement | null) => void)}

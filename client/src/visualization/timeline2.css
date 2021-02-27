@@ -1,0 +1,9 @@
+.point-event {
+    stroke: #777;
+    stroke-width: 2px;
+    stroke-opacity: 50%;
+}
+
+.interval-event {
+    opacity: 50%;
+}

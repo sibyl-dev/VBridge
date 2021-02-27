@@ -38,6 +38,13 @@ def handle_invalid_usage(error):
     return response
 
 
+@api.route('available_ids', methods=['GET'])
+def get_available_ids():
+    es = current_app.es
+    subjects_ids = es["SURGERY_INFO"].df["SUBJECT_ID"].values[-20:].tolist()
+    return jsonify(subjects_ids)
+
+
 @api.route('/individual_records', methods=['GET'])
 def get_individual_records():
     table_name = request.args.get('table_name')
@@ -47,6 +54,7 @@ def get_individual_records():
     records = get_patient_records(es, table_name, subject_id, cutoff_times=cutoff_times)
 
     return Response(records.to_csv(), mimetype="text/csv")
+
 
 @api.route('/patient_meta', methods=['GET'])
 def get_patient_meta():
@@ -63,23 +71,34 @@ def get_patient_meta():
 @api.route('/record_meta', methods=['GET'])
 def get_record_meta():
     table_name = request.args.get('table_name')
-    info = { 'name': table_name }
+    info = {'name': table_name}
     if table_name in META_INFO:
         table_info = META_INFO[table_name]
-        info['time_index'] = table_info['time_index']
+        info['time_index'] = table_info.get('time_index')
+        info['item_index'] = table_info.get('item_index')
+        info['value_indexes'] = table_info.get('value_indexes')
+        info['alias'] = table_info.get('alias')
         column_names = interesting_variables[table_name]
         df = current_app.es[table_name].df
         # distinguish "categorical" and "numerical" columns
         info['types'] = ['categorical' if df[name].dtype == object
-            else 'numerical' for name in column_names]
+                         else 'numerical' for name in column_names]
         for i, col in enumerate(column_names):
             if col == table_info.get("time_index") or col in table_info.get("secondary_index", []):
                 info['types'][i] = 'timestamp'
 
     return jsonify(info)
 
+
 @api.route('/table_names', methods=['GET'])
 def get_table_names():
-    table_names = ['LABEVENTS', 'SURGERY_VITAL_SIGNS', 'CHARTEVENTS', 'PRESCRIPTIONS', 
-        'MICROBIOLOGYEVENTS']
+    table_names = ['LABEVENTS', 'SURGERY_VITAL_SIGNS', 'CHARTEVENTS', 'PRESCRIPTIONS',
+                   'MICROBIOLOGYEVENTS', 'INPUTEVENTS', 'OUTPUTEVENTS']
     return jsonify(table_names)
+
+
+@api.route('/feature_meta', methods=['GET'])
+def get_feature_meta():
+    fl = current_app.fl
+    feature_meta = [{'name': f.get_name()} for f in fl]
+    return jsonify(feature_meta)

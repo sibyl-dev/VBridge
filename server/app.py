@@ -5,8 +5,9 @@ from flask_cors import CORS
 
 from server.api import api
 from model.data import load_pic
-from model.utils import load_entityset
-from model.featurization import generate_cutoff_times
+from model.utils import load_entityset, load_fm
+from model.model_manager import ModelManager
+from model.featurization import generate_cutoff_times, Featurization
 
 
 def create_app():
@@ -20,7 +21,23 @@ def create_app():
     app.es = es
     app.cutoff_times = generate_cutoff_times(es)
 
+    # load features
+    try:
+        fm, fl = load_fm()
+    except FileNotFoundError:
+        featurization = Featurization(es)
+        fm, fl = featurization.generate_features(forward=True, surgery_vital=True)
+    app.fm = fm
+    app.fl = fl
+
     # load model
+    try:
+        model_manager = ModelManager.load()
+    except FileNotFoundError:
+        model_manager = ModelManager(fm)
+        model_manager.fit_all()
+        print(model_manager.evaluate())
+    app.model_manager = model_manager
 
     # load explainer
 

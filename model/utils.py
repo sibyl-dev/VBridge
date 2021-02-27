@@ -25,12 +25,12 @@ def save_fm(df, fm_list, token=''):
     df.to_csv(os.path.join(output_dir, 'fm{}.csv'.format(token)))
 
 
-def load_fm(token=None):
+def load_fm(token=''):
     if str(token) != '':
         token = '_' + str(token)
     with open(os.path.join(output_dir, 'fl{}.pkl'.format(token)), 'rb') as f:
         fm_list = pickle.load(f)
-    df = pd.read_csv(os.path.join(output_dir, 'fm{}.pkl'.format(token)), index_col=0)
+    df = pd.read_csv(os.path.join(output_dir, 'fm{}.csv'.format(token)), index_col=0)
     return df, fm_list
 
 
