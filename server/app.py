@@ -27,6 +27,7 @@ def create_app():
     except FileNotFoundError:
         featurization = Featurization(es)
         fm, fl = featurization.generate_features(forward=True, surgery_vital=True)
+    fm['SURGERY_NAME'] = fm['SURGERY_NAME'].apply(lambda row: row.split('+'))
     app.fm = fm
     app.fl = fl
 
@@ -36,6 +37,7 @@ def create_app():
     except FileNotFoundError:
         model_manager = ModelManager(fm)
         model_manager.fit_all()
+        model_manager.save()
         print(model_manager.evaluate())
     app.model_manager = model_manager
 

@@ -1,13 +1,33 @@
 import logging
+import numpy as np
 
+from flask.json import JSONEncoder
 from flask import request, jsonify, Blueprint, current_app, Response
 
 from model.data import get_patient_records
+from model.modeler import Modeler
 from model.settings import interesting_variables, META_INFO
 
 api = Blueprint('api', __name__)
 
 logger = logging.getLogger('api')
+
+
+# From https://stackoverflow.com/questions/50916422/python-typeerror-object-of-type-int64-is-not
+# -json-serializable
+class NpEncoder(JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        else:
+            return super(NpEncoder, self).default(obj)
+
+
+api.json_encoder = NpEncoder
 
 
 class ApiError(Exception):
@@ -100,5 +120,46 @@ def get_table_names():
 @api.route('/feature_meta', methods=['GET'])
 def get_feature_meta():
     fl = current_app.fl
-    feature_meta = [{'name': f.get_name()} for f in fl]
+    # TODO: the code may only works for depth<=2 features
+    feature_meta = []
+    for f in fl:
+        info = {
+            'name': f.get_name(),
+            'where_item': f.where.get_name().split(' = ') if 'where' in f.__dict__ else None,
+            'primitive_name': f.primitive.name
+        }
+        if 'child_entity' in f.__dict__:
+            info['end_entity'] = f.child_entity.id
+        elif 'parent_entity' in f.__dict__:
+            info['end_entity'] = f.parent_entity.id
+        else:
+            info['end_entity'] = 'SURGERY_INFO'
+        feature_meta.append(info)
     return jsonify(feature_meta)
+
+
+@api.route('/prediction_target', methods=['GET'])
+def get_prediction_target():
+    return jsonify(Modeler.prediction_targets())
+
+
+@api.route('/prediction', methods=['GET'])
+def get_prediction():
+    subject_id = int(request.args.get('subject_id'))
+    predictions = current_app.model_manager.predict_proba(subject_id)
+    return jsonify([{'target': k, 'value': float(v)} for k, v in predictions.items()])
+
+
+@api.route('/feature_values', methods=['GET'])
+def get_feature_values():
+    subject_id = int(request.args.get('subject_id'))
+    entry = current_app.fm.loc[subject_id].to_dict()
+    return jsonify(entry)
+
+
+@api.route('/shap_values', methods=['GET'])
+def get_shap_values():
+    subject_id = int(request.args.get('subject_id'))
+    target = request.args.get('target')
+    shap_values = current_app.model_manager.explain(subject_id, target)
+    return jsonify(shap_values.loc[0].to_dict())
