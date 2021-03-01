@@ -4,3 +4,41 @@
     line-height: 30px;
     margin-right: 0px;
 }
+.ant-card-small > .ant-card-body{
+	padding: 1px;
+	margin-top: 5px;
+	/*text-align: left;*/
+	/*margin-left: 100px;*/
+}
+.ant-card-small .details-title{
+	display: block;
+	width: 70px;
+	float: left;
+	text-align: right;
+	margin-left: 50px;
+}
+.ant-card-small .details-value{
+	display: block;
+	margin-left: 10px;
+	/*width: 70px;*/
+	/*float: left;*/
+	text-align: center;
+	/*border: 1px solid black*/
+}
+.ant-col-4{
+	text-align: right;
+}
+.ant-col-9{
+	/*width: 70px;*/
+	/*float: left;*/
+	text-align: center;
+	margin-left: 10px;
+	background: rgba(232,230,230,1);
+	/*border: 1px solid black*/
+}
+.ant-row{
+	margin:10px 0px;
+}
+.ant-col{
+	margin-top: 5px;
+}

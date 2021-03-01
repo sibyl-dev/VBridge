@@ -65,6 +65,11 @@ def get_patient_meta():
     hadm_df = es["ADMISSIONS"].df
     info['startDate'] = str(hadm_df[hadm_df['SUBJECT_ID'] == subject_id]['ADMITTIME'].values[0])
     info['endDate'] = str(cutoff_times[cutoff_times['SUBJECT_ID'] == subject_id]['time'].values[0])
+    
+    patient_df = es["PATIENTS"].df
+    info['GENDER'] = patient_df[patient_df['SUBJECT_ID'] == subject_id]['GENDER'].values[0]
+    info['DOB'] = str(patient_df[patient_df['SUBJECT_ID'] == subject_id]['DOB'].values[0])
+    
     return jsonify(info)
 
 

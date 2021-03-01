@@ -37,6 +37,7 @@ class App extends React.Component<AppProps, AppStates>{
   public async init() {
     const subjectIds = await getPatientIds();
     const tableNames = await getTableNames();
+    // console.log('here', subjectIds, tableNames)
 
     // const patientMeta = (subjectIds.length > 0) ?
     //   await getPatientMeta({ subject_id: subjectIds[0] }) : undefined;
@@ -46,6 +47,7 @@ class App extends React.Component<AppProps, AppStates>{
   public async selectPatientId(subjectId: number) {
     const patientMeta = await getPatientMeta({ subject_id: subjectId });
     const tableRecords = await this.loadPatientRecords(subjectId);
+    console.log('selectPatientId', patientMeta, tableRecords)
     this.setState({ patientMeta, tableRecords });
   }
 
@@ -85,6 +87,7 @@ class App extends React.Component<AppProps, AppStates>{
             {tableNames && <Panel initialWidth={300} initialHeight={400} x={1110} y={0}>
               <MetaView
                 patientIds={subjectIds}
+                patientMeta={patientMeta}
                 selectPatientId={this.selectPatientId}
               />
             </Panel>

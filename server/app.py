@@ -31,13 +31,13 @@ def create_app():
     app.fl = fl
 
     # load model
-    try:
-        model_manager = ModelManager.load()
-    except FileNotFoundError:
-        model_manager = ModelManager(fm)
-        model_manager.fit_all()
-        print(model_manager.evaluate())
-    app.model_manager = model_manager
+    # try:
+    #     model_manager = ModelManager.load()
+    # except FileNotFoundError:
+    #     model_manager = ModelManager(fm)
+    #     model_manager.fit_all()
+    #     print(model_manager.evaluate())
+    # app.model_manager = model_manager
 
     # load explainer
 
