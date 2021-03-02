@@ -7,9 +7,12 @@ import MetaView from "./components/MetaView"
 import TableView from "./components/TableView"
 import TimelineView from "./components/TimelineView"
 import DynamicView from "./components/DynamicView"
-import { getPatientIds, getPatientMeta, getPatientRecords, getTableNames } from "./router/api"
+import { getPatientIds, getPatientMeta, getPatientInfoMeta, getPatientRecords, getTableNames } from "./router/api"
 import { PatientMeta } from 'data/patient';
 import { Entity } from 'data/table';
+import {patientInfoMeta} from 'data/metaInfo';
+
+
 import Panel from 'components/Panel';
 
 const { Header, Content } = Layout
@@ -22,7 +25,10 @@ interface AppStates {
   subjectIds?: number[],
   patientMeta?: PatientMeta,
   tableNames?: string[],
-  tableRecords?: Entity<number, any>[]
+  tableRecords?: Entity<number, any>[],
+  patientInfoMeta?: {[key: string]: any},
+  // admissionInfoMeta?: admissionInfoMeta,
+  // surgeryInfoMeta?: surgeryInfoMeta,
 }
 
 class App extends React.Component<AppProps, AppStates>{
@@ -46,9 +52,16 @@ class App extends React.Component<AppProps, AppStates>{
 
   public async selectPatientId(subjectId: number) {
     const patientMeta = await getPatientMeta({ subject_id: subjectId });
+    const patientInfoMeta = await getPatientInfoMeta({subject_id: subjectId});
+    // const admissionInfoMeta:admissionInfoMeta = JSON.parse(await getPatientInfoMeta({ subject_id: subjectId, table_name: 'ADMISSIONS'}));
+    // const surgeryInfoMeta:surgeryInfoMeta = JSON.parse(await getPatientInfoMeta({ subject_id: subjectId, table_name: 'SURGERY_INFO'}));
+
     const tableRecords = await this.loadPatientRecords(subjectId);
     console.log('selectPatientId', patientMeta, tableRecords)
-    this.setState({ patientMeta, tableRecords });
+    // console.log('meta', admissionInfoMeta, surgeryInfoMeta)
+    // console.log('meta', patientInfoMeta['GENDER'])
+    // patientInfoMeta, admissionInfoMeta, surgeryInfoMeta 
+    this.setState({patientMeta, tableRecords, patientInfoMeta});
   }
 
   private async loadPatientRecords(subjectId: number) {
@@ -67,7 +80,7 @@ class App extends React.Component<AppProps, AppStates>{
   }
 
   public render() {
-    const { subjectIds, patientMeta, tableNames, tableRecords } = this.state
+    const { subjectIds, patientMeta, tableNames, tableRecords, patientInfoMeta,  } = this.state
     return (
       <div className='App'>
         <Layout>
@@ -87,7 +100,7 @@ class App extends React.Component<AppProps, AppStates>{
             {tableNames && <Panel initialWidth={300} initialHeight={400} x={1110} y={0}>
               <MetaView
                 patientIds={subjectIds}
-                patientMeta={patientMeta}
+                patientInfoMeta={patientInfoMeta}
                 selectPatientId={this.selectPatientId}
               />
             </Panel>

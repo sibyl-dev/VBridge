@@ -63,12 +63,59 @@ def get_patient_meta():
     es = current_app.es
     cutoff_times = current_app.cutoff_times
     hadm_df = es["ADMISSIONS"].df
+    # print('hadm_df', hadm_df[hadm_df['SUBJECT_ID'] == subject_id])
     info['startDate'] = str(hadm_df[hadm_df['SUBJECT_ID'] == subject_id]['ADMITTIME'].values[0])
     info['endDate'] = str(cutoff_times[cutoff_times['SUBJECT_ID'] == subject_id]['time'].values[0])
     
     patient_df = es["PATIENTS"].df
     info['GENDER'] = patient_df[patient_df['SUBJECT_ID'] == subject_id]['GENDER'].values[0]
     info['DOB'] = str(patient_df[patient_df['SUBJECT_ID'] == subject_id]['DOB'].values[0])
+    
+    return jsonify(info)
+
+@api.route('/patientinfo_meta', methods=['GET'])
+def get_patientinfo_meta():
+    subject_id = int(request.args.get('subject_id'))
+    
+    info = {'subjectId': subject_id}
+    es = current_app.es
+    cutoff_times = current_app.cutoff_times
+    
+
+    table_names = ['PATIENTS', 'ADMISSIONS', 'SURGERY_INFO']
+    for i, table_name in enumerate(table_names):
+        print('table_names', table_name)
+        hadm_df = es[table_name].df
+        record = hadm_df[hadm_df['SUBJECT_ID'] == subject_id]
+        column_names = interesting_variables[table_name]
+        print('column_names', column_names)
+        for i, col in enumerate(column_names):
+            info[col] = str(record[col].values[0])
+    # print('patientinfo_meta', info)
+
+    return jsonify(info)
+
+
+    # info['startDate'] = str(hadm_df[hadm_df['SUBJECT_ID'] == subject_id]['ADMITTIME'].values[0])
+    # info['endDate'] = str(cutoff_times[cutoff_times['SUBJECT_ID'] == subject_id]['time'].values[0])
+    
+    # patient_df = es["PATIENTS"].df
+    # record = patient_df[patient_df['SUBJECT_ID'] == subject_id]
+
+    # # info['GENDER'] = patient_df[patient_df['SUBJECT_ID'] == subject_id]['GENDER'].values[0]
+    # # info['DOB'] = str(patient_df[patient_df['SUBJECT_ID'] == subject_id]['DOB'].values[0])
+
+    # surgery_df = es["SURGERY_INFO"].df
+    # record = surgery_df[surgery_df['SUBJECT_ID'] == subject_id]
+
+    # print('hadm_df', hadm_df[hadm_df['SUBJECT_ID'] == subject_id])
+    # print('patient_df', patient_df[patient_df['SUBJECT_ID'] == subject_id])
+    # print('surgery_df', surgery_df[surgery_df['SUBJECT_ID'] == subject_id])
+
+    # info['GENDER'] = patient_df[patient_df['SUBJECT_ID'] == subject_id]['GENDER'].values[0]
+    # info['DOB'] = str(patient_df[patient_df['SUBJECT_ID'] == subject_id]['DOB'].values[0])
+
+    
     
     return jsonify(info)
 

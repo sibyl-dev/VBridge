@@ -25,10 +25,10 @@
 	text-align: center;
 	/*border: 1px solid black*/
 }
-.ant-col-4{
+.ant-col-10{
 	text-align: right;
 }
-.ant-col-9{
+.ant-col-11{
 	/*width: 70px;*/
 	/*float: left;*/
 	text-align: center;
@@ -38,6 +38,7 @@
 }
 .ant-row{
 	margin:10px 0px;
+	align: middle;
 }
 .ant-col{
 	margin-top: 5px;

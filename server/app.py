@@ -9,7 +9,6 @@ from model.utils import load_entityset, load_fm
 from model.model_manager import ModelManager
 from model.featurization import generate_cutoff_times, Featurization
 
-
 def create_app():
     app = Flask(__name__)
 
