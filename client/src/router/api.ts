@@ -1,5 +1,6 @@
 import axios, { AxiosResponse } from "axios";
 import * as dataForge from "data-forge"
+import { FeatureMeta } from "data/feature";
 import { PatientMeta } from "data/patient";
 import { Entity } from "data/table";
 import { ROOT_URL, DEV_MODE } from "./env";
@@ -52,4 +53,44 @@ export async function getPatientMeta(params: {
     const url = `${API}/patient_meta`;
     const response = await axios.get(url, { params });
     return checkResponse(response, []);
+}
+
+export async function getFeatureMate(): Promise<FeatureMeta[]>{
+    const url = `${API}/feature_meta`;
+    const response = await axios.get(url);
+    return checkResponse(response, []);
+}
+
+export async function getPredictionTargets(): Promise<string[]>{
+    const url = `${API}/prediction_target`;
+    const response = await axios.get(url);
+    return checkResponse(response, []);
+}
+
+export async function getPrediction(params: {
+    subject_id: number
+}): Promise<(target: string) => number>{
+    const url = `${API}/prediction`;
+    const response = await axios.get(url, { params });
+    const predictions = checkResponse(response, []);
+    return (target: string) => predictions[target];
+}
+
+export async function getFeatureValues(params: {
+    subject_id: number
+}): Promise<(featureName: string) => number>{
+    const url = `${API}/feature_values`;
+    const response = await axios.get(url, { params });
+    const featureValues = checkResponse(response, []);
+    return (featureName: string) => featureValues[featureName];
+}
+
+export async function getSHAPValues(params: {
+    subject_id: number,
+    target: string,
+}): Promise<(featureName: string) => number>{
+    const url = `${API}/shap_values`;
+    const response = await axios.get(url, { params });
+    const shapValues = checkResponse(response, []);
+    return (featureName: string) => shapValues[featureName];
 }
