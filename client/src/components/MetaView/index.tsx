@@ -83,9 +83,9 @@ export default class MetaView extends React.Component<MetaViewProps, MetaViewSta
         return (
             <div>
                 <Row>
-                    <Col span={8}><span className="meta-info">PatientId: </span></Col>
+                    <Col span={10}><span className="meta-info">PatientId: </span></Col>
                     <Col span={2} />
-                    <Col span={10}>
+                    <Col span={12}>
                         <Select style={{ width: 120 }} onChange={selectPatientId}>
                             {patientIds && patientIds.map((id, i) =>
                                 <Option value={id} key={i}>{id}</Option>
@@ -120,7 +120,7 @@ export default class MetaView extends React.Component<MetaViewProps, MetaViewSta
                 </Row>
 
                 {expandItem && expandItem[0] && patientInfoMeta?(
-                    <Row justify="center" align="middle">
+                    <Row>
                         {PATIENTS ? PATIENTS.map(name => {
                             var value = patientInfoMeta[name]
                             if(name.indexOf("TIME") != -1){
@@ -153,7 +153,7 @@ export default class MetaView extends React.Component<MetaViewProps, MetaViewSta
                     <Col span={2} />
                 </Row>
                  {expandItem && expandItem[1] && patientInfoMeta?(
-                    <Row justify="center" align="middle">
+                    <Row>
                         {ADMISSIONS ? ADMISSIONS.map(name => {
                             var value = patientInfoMeta[name]
                             if(name.indexOf("TIME") != -1){
@@ -184,7 +184,7 @@ export default class MetaView extends React.Component<MetaViewProps, MetaViewSta
                     <Col span={2} />
                 </Row>
                 {expandItem && expandItem[2] && patientInfoMeta?(
-                    <Row justify="center" align="middle">
+                    <Row>
                         {SURGERY_INFO ? SURGERY_INFO.map(name => {
                             var value = patientInfoMeta[name]
                             if(name.indexOf("TIME") != -1){
@@ -196,68 +196,15 @@ export default class MetaView extends React.Component<MetaViewProps, MetaViewSta
                             return (<>
                                     <Col span={leftSpan}/>
                                     <Col span={titleWidth}><span className="details-title"> {name}: </span></Col>
-                                    <Col span={valueWidth}><span className="details-value"> {value} </span></Col>
+                                    <Col span={valueWidth}>
+                                        <div className='value' >{value}</div>
+                                    </Col>
                                     <Col span={rightSpan} />
                                 </>)
                         }): ""} 
                     </Row>
 
                 ):""}
-{/*
-                <Row onClick={this.handleClick.bind(this,1)}>
-                    <Col span={4}>
-                        {expandItem && expandItem[1] ? <img src='tri_fold.png'  width='15px'/> : <img src='tri_unfold.png'  width='15px'/>}
-                    </Col>
-                    <Col span={2}/>
-                    <Col span={12}><span className="meta-info-title">Admission Information </span></Col>
-                    <Col span={2} />
-                </Row>
-
-                {expandItem && expandItem[1] && patientInfoMeta?(
-                    <Row>
-
-                        <Col span={leftSpan}/>
-                        <Col span={titleWidth}><span className="details-title">Gender: </span></Col>
-                        <Col span={valueWidth}><span className="details-value"> {patientInfoMeta['GENDER']} </span></Col>
-                        <Col span={rightSpan} />
-                        <Col span={leftSpan}/>
-                        <Col span={titleWidth}><span className="details-title">Age: </span></Col>
-                        <Col span={valueWidth}><span className="details-value">{age} months</span></Col>
-                        <Col span={rightSpan} />
-                    </Row>
-                ):""}
-
-                 <Divider orientation="left"></Divider>
-
-                <Row onClick={this.handleClick.bind(this,2)}>
-                    <Col span={4}>
-                        {expandItem && expandItem[2] ? <img src='tri_fold.png'  width='15px'/> : <img src='tri_unfold.png'  width='15px'/>}
-                    </Col>
-                    <Col span={2}/>
-                    <Col span={12}><span className="meta-info-title">Surgery Information </span></Col>
-                    <Col span={2} />
-                </Row>
-
-                {expandItem && expandItem[2] && patientInfoMeta?(
-                    <Row>
-                        <Col span={leftSpan}/>
-                        <Col span={titleWidth}><span className="details-title">Gender: </span></Col>
-                        <Col span={valueWidth}><span className="details-value"> {patientInfoMeta['GENDER']} </span></Col>
-                        <Col span={rightSpan} />
-                        <Col span={leftSpan}/>
-                        <Col span={titleWidth}><span className="details-title">Age: </span></Col>
-                        <Col span={valueWidth}><span className="details-value">{age} months</span></Col>
-                        <Col span={rightSpan} />
-                    </Row>
-                ):""}
-
-            */}
-
-                
-
-             
-                
-
              </div>
         )
     }
