@@ -94,7 +94,7 @@ META_INFO = {
         'types': {'HADM_ID': 'int', 'SPEC_ITEMID': 'str',
                   'ORG_ITEMID': 'str', 'AB_ITEMID': 'str'},
         'time_index': 'CHARTTIME',
-        'alias': 'Micobiology Tests',
+        'alias': 'Microbiology Tests',
     },
     'OR_EXAM_REPORTS': {
         'foreign_index': ['SUBJECT_ID', 'HADM_ID'],
