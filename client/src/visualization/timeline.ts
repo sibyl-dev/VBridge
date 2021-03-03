@@ -17,8 +17,9 @@ export function drawTimeline(params: {
     margin?: IMargin,
     timeScale?: d3.ScaleTime<number, number>,
     color?: string,
+    onBrush?: (startDate: Date, endDate: Date) => void
 }) {
-    const { color, events, svg, timeScale } = params
+    const { color, events, svg, timeScale, onBrush } = params
     const root = d3.select(svg);
     const margin = getMargin(params.margin || {});
     const height = params.height - margin.top - margin.bottom;
@@ -37,6 +38,29 @@ export function drawTimeline(params: {
 
     const t = timeScale || getScaleTime(0, width, events.map(e => e.timestamp));
     const r = getScaleLinear(0, 10, events.map(d => d.count));
+
+    const brush = d3.brushX()
+        .extent([[0, 0], [width, height]])
+        .on("brush", brushed)
+        .on("end", brushend);
+
+    base.call(brush)
+        .on("click", brushed)
+
+    function brushed(event: { selection: [number, number] }) {
+        const { selection } = event;
+        if (selection) {
+            const extent = selection.map(t.invert);
+        }
+    }
+
+    function brushend(event: { selection: [number, number] }) {
+        const { selection } = event;
+        if (selection) {
+            const extent = selection.map(t.invert);
+            onBrush && onBrush(extent[0], extent[1]);
+        }
+    }
 
     const bubbles = bubbleBase.selectAll(".bubble")
         .data(events)
@@ -72,7 +96,7 @@ export function drawTimelineAxis(params: {
     const focusedTimeScale = d3.scaleTime().range([0, width]).domain(defaultTimeScale.domain());
 
     const base = getChildOrAppend<SVGGElement, SVGElement>(root, "g", "base")
-        .attr("transform", `translate(${margin.left}, ${margin.right})`);
+        .attr("transform", `translate(${margin.left}, ${margin.top})`);
     const defaultAxisbase = getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "long-axis-base")
         .attr("transform", `translate(0, ${height})`);
     const focusedAxisbase = getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "short-axis-base")
@@ -82,12 +106,18 @@ export function drawTimelineAxis(params: {
         .extent([[0, 0], [width, height]])
         .on("brush", brushed);
 
-    band.call(brush);
+    band.call(brush)
+        .on("click", brushed)
 
     function brushed(event: { selection: [number, number] }) {
         const { selection } = event;
         if (selection) {
             const extent = selection.map(defaultTimeScale.invert);
+            focusedTimeScale.domain(extent);
+            updateAxis();
+        }
+        else {
+            const extent = defaultTimeScale.domain();
             focusedTimeScale.domain(extent);
             updateAxis();
         }
