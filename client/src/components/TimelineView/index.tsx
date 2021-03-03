@@ -63,7 +63,7 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
         }
 
         return (
-            <div>
+            <div style={{height: "100%", width: "100%"}}>
                 {tableRecords && <div ref={this.ref} className={"timeline-view-content"}>
                     {events?.map((e, i) =>
                     (<Timeline

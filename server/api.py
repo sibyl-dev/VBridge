@@ -122,11 +122,14 @@ def get_feature_meta():
     fl = current_app.fl
     # TODO: the code may only works for depth<=2 features
     feature_meta = []
+    targets = Modeler.prediction_targets()
     for f in fl:
+        if f.get_name() in targets:
+            continue
         info = {
             'name': f.get_name(),
             'where_item': f.where.get_name().split(' = ') if 'where' in f.__dict__ else None,
-            'primitive_name': f.primitive.name
+            'primitive': f.primitive.name
         }
         if 'child_entity' in f.__dict__:
             info['end_entity'] = f.child_entity.id
@@ -134,6 +137,17 @@ def get_feature_meta():
             info['end_entity'] = f.parent_entity.id
         else:
             info['end_entity'] = 'SURGERY_INFO'
+
+        if len(f.base_features) == 0:
+            alias = f.get_name()
+        elif 'where' in f.__dict__:
+            alias = f.where.get_name().split(' = ')[-1]
+        else:
+            alias = f.base_features[0].get_name()
+        if f.primitive.name:
+            alias = "{}({})".format(f.primitive.name, alias)
+        info['alias'] = alias
+
         feature_meta.append(info)
     return jsonify(feature_meta)
 
@@ -147,7 +161,8 @@ def get_prediction_target():
 def get_prediction():
     subject_id = int(request.args.get('subject_id'))
     predictions = current_app.model_manager.predict_proba(subject_id)
-    return jsonify([{'target': k, 'value': float(v)} for k, v in predictions.items()])
+    # return jsonify([{'target': k, 'value': float(v)} for k, v in predictions.items()])
+    return jsonify(predictions)
 
 
 @api.route('/feature_values', methods=['GET'])

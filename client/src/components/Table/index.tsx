@@ -3,10 +3,10 @@ import * as dataForge from "data-forge"
 import { AutoSizer, MultiGrid, GridCellProps, CellMeasurer, CellMeasurerCache, Index, } from "react-virtualized"
 import 'react-virtualized/styles.css';
 import './index.css'
-import { Entity } from "data/table";
+import { Entity, getColumnWidth } from "data/table";
 
 export interface PureTableProps {
-    entity: Entity<number, any>,
+    dataFrame: dataForge.DataFrame<number, any>,
     className?: string,
     drawIndex?: boolean,
     rowWidth?: number | (number | ((params: Index) => number)),
@@ -44,7 +44,7 @@ export default class PureTable extends React.Component<PureTableProps, PureTable
                 rowIndex={rowIndex}
             >
                 {({ registerChild }) => (
-                    (rowIndex === 1) ?
+                    (rowIndex === 0) ?
                         this._headerRenderer(cellProps, registerChild as (instance: HTMLDivElement | null) => void) :
                         this._contentRenderer(cellProps, registerChild as (instance: HTMLDivElement | null) => void)
                 )}
@@ -55,7 +55,7 @@ export default class PureTable extends React.Component<PureTableProps, PureTable
     private _headerRenderer(cellProps: GridCellProps,
         registerChild?: (instance: HTMLDivElement | null) => void) {
         const { key, style } = cellProps;
-        const { entity: dataFrame, drawIndex } = this.props;
+        const { dataFrame: dataFrame, drawIndex } = this.props;
         const columnIndex = cellProps.columnIndex + (drawIndex ? 0 : 1);
         return <div
             className={`cell cell-header col-${columnIndex}`}
@@ -70,7 +70,7 @@ export default class PureTable extends React.Component<PureTableProps, PureTable
     private _contentRenderer(cellProps: GridCellProps,
         registerChild?: (instance: HTMLDivElement | null) => void) {
         const { key, style } = cellProps;
-        const { entity: dataFrame, drawIndex } = this.props;
+        const { dataFrame: dataFrame, drawIndex } = this.props;
         const columnIndex = cellProps.columnIndex + (drawIndex ? 0 : 1);
         const rowIndex = cellProps.rowIndex - 1;
         return <div
@@ -84,9 +84,9 @@ export default class PureTable extends React.Component<PureTableProps, PureTable
     }
 
     public render() {
-        const { className, entity, drawIndex, rowHeight, rowWidth } = this.props;
+        const { className, dataFrame: entity, drawIndex, rowHeight, rowWidth } = this.props;
         const columnCount = entity.getColumns().count() - (drawIndex ? 0 : 1);
-        const columnWidth = entity.columnWidth(drawIndex, 150, 60);
+        const columnWidth = rowWidth || getColumnWidth(entity, drawIndex, 150, 60);
         return <div className={"table-container" + (className ? ` ${className}` : "")}>
             <AutoSizer>
                 {({ width, height }) => (
@@ -99,7 +99,7 @@ export default class PureTable extends React.Component<PureTableProps, PureTable
                             columnCount={columnCount}
                             columnWidth={columnWidth || this._cache.columnWidth}
                             cellRenderer={this._cellRenderer}
-                            fixedRowCount={2}
+                            fixedRowCount={1}
                             fixedColumnCount={drawIndex ? 1 : 0}
                         />
                     </div>

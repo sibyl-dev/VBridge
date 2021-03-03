@@ -1,0 +1,89 @@
+.proba-bar {
+    position: absolute;
+    top: 0;
+    background-color: rgb(78, 121, 167);
+    opacity: 50%;
+    transition: width 0.5s;
+}
+
+.proba-target-name {
+    position: absolute;
+    top: 0;
+    right: 0;
+    font-style: italic;
+    color: #777;
+}
+
+.proba-value {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+button.proba-item {
+    border: #aaa;
+    padding-left: 2px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+}
+
+.feature-block,
+.feature-header {
+    width: "100%";
+    margin-left: 10px;
+    margin-right: 10px;
+}
+
+.feature-block {
+    border: 1px solid rgba(220, 225, 230, 0.7);
+    border-radius: 5px;
+    height: 30px;
+    margin-top: 2px;
+    transform: translate;
+}
+
+.feature-header {
+    height: 30px;
+    margin-top: 10px;
+}
+
+.feature-block-text,
+.feature-header-text {
+    max-width: 120px;
+    width: 120px;
+    height: inherit;
+    overflow: hidden;
+    float: left;
+    margin-top: 2px;
+}
+
+
+/* .feature-value {
+    background-color: #aaa;
+    opacity: 50%;
+} */
+
+.feature-header-text {
+    font-size: 14px;
+    font-weight: bolder;
+}
+
+.feature-block-text {
+    font-size: 10px;
+}
+
+.neg-feature,
+.pos-feature {
+    height: 15px;
+    margin-top: 3px;
+}
+
+.neg-feature {
+    background-color: #3C88E1;
+    opacity: 80%;
+}
+
+.pos-feature {
+    background-color: #FF0155;
+    opacity: 80%;
+}

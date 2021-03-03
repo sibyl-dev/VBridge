@@ -29,7 +29,7 @@ export default class TableView extends React.Component<TableViewProps, TableView
     }
 
     componentDidUpdate(prevProps: TableViewProps) {
-        if (prevProps.patientMeta !== this.props.patientMeta) {
+        if (prevProps.patientMeta?.subjectId !== this.props.patientMeta?.subjectId) {
             this.setState({tableRecords: undefined});
         }
     }
@@ -46,12 +46,12 @@ export default class TableView extends React.Component<TableViewProps, TableView
         const { tableRecords } = this.state;
 
         return (
-            <div>
+            <div style={{height: "100%", width: "100%"}}>
                 <Select style={{ width: 240 }} onChange={this.loadPatientRecords}>
                     {tableNames.map((name, i) => (<Option value={name} key={i}>{name}</Option>))}
                 </Select>
                 {tableRecords && <PureTable
-                    entity={tableRecords}
+                    dataFrame={tableRecords}
                     drawIndex={false}
                 />}
 
