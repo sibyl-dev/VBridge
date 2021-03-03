@@ -128,7 +128,7 @@ def get_feature_meta():
             continue
         info = {
             'name': f.get_name(),
-            'where_item': f.where.get_name().split(' = ') if 'where' in f.__dict__ else None,
+            'where_item': f.where.get_name().split(' = ') if 'where' in f.__dict__ else [],
             'primitive': f.primitive.name
         }
         if 'child_entity' in f.__dict__:

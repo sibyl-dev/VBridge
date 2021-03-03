@@ -1,6 +1,7 @@
 .proba-bar {
     position: absolute;
     top: 0;
+    left: 0;
     background-color: rgb(78, 121, 167);
     opacity: 50%;
     transition: width 0.5s;
@@ -9,7 +10,7 @@
 .proba-target-name {
     position: absolute;
     top: 0;
-    right: 0;
+    right: 10px;
     font-style: italic;
     color: #777;
 }
@@ -17,58 +18,72 @@
 .proba-value {
     position: absolute;
     top: 0;
-    left: 0;
+    left: 10px;
 }
 
 button.proba-item {
     border: #aaa;
-    padding-left: 2px;
-    padding-top: 2px;
-    padding-bottom: 2px;
+    width: calc(100% - 20px);
+    margin-left: 10px;
+    margin-right: 10px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+    height: 30px;
+}
+
+button.proba-selected {
+    border: 2px solid rgb(78, 121, 167);
 }
 
 .feature-block,
 .feature-header {
-    width: "100%";
-    margin-left: 10px;
+    height: 30px;
     margin-right: 10px;
+    margin-left: 5px;
+    display: flex;
+    transition: all 0.5s ease;
 }
 
 .feature-block {
     border: 1px solid rgba(220, 225, 230, 0.7);
     border-radius: 5px;
-    height: 30px;
     margin-top: 2px;
-    transform: translate;
+}
+
+.feature-block:hover {
+    border: 1px solid #777;
 }
 
 .feature-header {
-    height: 30px;
     margin-top: 10px;
 }
 
-.feature-block-text,
-.feature-header-text {
-    max-width: 120px;
-    width: 120px;
-    height: inherit;
+.feature-block-cell,
+.feature-header-cell {
+    height: 20px;
     overflow: hidden;
-    float: left;
-    margin-top: 2px;
+    float: right;
+    margin-top: 5px;
 }
 
+.feature-value,
+.feature-group-value {
+    margin-left: 10px;
+    margin-right: 10px;
+}
 
-/* .feature-value {
-    background-color: #aaa;
-    opacity: 50%;
-} */
+.feature-value {
+    background-color: #eee;
+    border-radius: 5px;
+    /* opacity: 50%; */
+}
 
-.feature-header-text {
+.feature-header-cell {
     font-size: 14px;
     font-weight: bolder;
 }
 
-.feature-block-text {
+.feature-block-cell {
     font-size: 10px;
 }
 
@@ -86,4 +101,11 @@ button.proba-item {
 .pos-feature {
     background-color: #FF0155;
     opacity: 80%;
+}
+
+.right-button {
+    position: relative;
+    margin-top: 10px;
+    color: #777;
+    float: left;
 }

@@ -6,7 +6,7 @@ import FeatureView from "./components/FeatureView"
 import MetaView from "./components/MetaView"
 import TableView from "./components/TableView"
 import TimelineView from "./components/TimelineView"
-import DynamicView from "./components/DynamicView"
+import DynamicView, { RecordTS } from "./components/DynamicView"
 import { getFeatureMate, getPatientIds, getPatientMeta, getPatientRecords, getPredictionTargets, getTableNames } from "./router/api"
 import { PatientMeta } from 'data/patient';
 import { Entity } from 'data/table';
@@ -21,22 +21,29 @@ interface AppProps {
 }
 
 interface AppStates {
+  // static information
   subjectIds?: number[],
-  patientMeta?: PatientMeta,
   tableNames?: string[],
-  tableRecords?: Entity<number, any>[],
-
   featureMeta?: DataFrame<number, FeatureMeta>,
   predictionTargets?: string[]
+
+  //patient information
+  patientMeta?: PatientMeta,
+  tableRecords?: Entity<number, any>[],
+
+  //for view communication
+  dynamicRecords: RecordTS[]
 }
 
 class App extends React.Component<AppProps, AppStates>{
   constructor(props: AppProps) {
     super(props);
-    this.state = {};
+    this.state = { dynamicRecords: [] };
 
     this.selectPatientId = this.selectPatientId.bind(this);
     this.loadPatientRecords = this.loadPatientRecords.bind(this);
+    this.buildRecordTS = this.buildRecordTS.bind(this);
+    this.updateRecordTS = this.updateRecordTS.bind(this);
   }
 
   public async init() {
@@ -70,8 +77,39 @@ class App extends React.Component<AppProps, AppStates>{
     this.init();
   }
 
+  private buildRecordTS(entityName: string, startDate: Date, endDate: Date): RecordTS[] {
+    const entity = this.state.tableRecords?.find(e => e.name === entityName);
+    const { item_index, time_index, value_indexes } = entity?.metaInfo!;
+    if (entity && item_index && time_index && value_indexes && value_indexes.length > 0) {
+      const selectedDf = entity.where(row => startDate < new Date(row[time_index]) && new Date(row[time_index]) < endDate)
+        .groupBy(row => (row[item_index]));
+      let records: RecordTS[] = [];
+      for (const itemDf of selectedDf) {
+        const dates = itemDf.getSeries(time_index).parseDates();
+        const itemRecords: RecordTS[] = value_indexes.map(value_index => {
+          return {
+            tableName: entity.name!,
+            itemName: itemDf.first()[item_index],
+            startDate: startDate,
+            endDate: endDate,
+            data: { dates: dates, values: itemDf.getSeries(value_index).parseFloats() }
+          }
+        })
+        records = [...records, ...itemRecords]
+      }
+      return records;
+    }
+    else
+      return [];
+  }
+
+  private updateRecordTS(entityName: string, startDate: Date, endDate: Date) {
+    const newRecords = this.buildRecordTS(entityName, startDate, endDate);
+    this.setState({ dynamicRecords: newRecords });
+  }
+
   public render() {
-    const { subjectIds, patientMeta, tableNames, tableRecords, featureMeta, predictionTargets } = this.state
+    const { subjectIds, patientMeta, tableNames, tableRecords, featureMeta, predictionTargets, dynamicRecords } = this.state
     return (
       <div className='App'>
         <Layout>
@@ -80,7 +118,7 @@ class App extends React.Component<AppProps, AppStates>{
           </Header>
           <Content>
             <Panel initialWidth={400} initialHeight={840} x={0} y={0}>
-              {featureMeta && predictionTargets&&  <FeatureView
+              {featureMeta && predictionTargets && <FeatureView
                 patientMeta={patientMeta}
                 featureMeta={featureMeta}
                 predictionTargets={predictionTargets}
@@ -90,29 +128,31 @@ class App extends React.Component<AppProps, AppStates>{
               <TimelineView
                 patientMeta={patientMeta}
                 tableRecords={tableRecords}
+                onSelectEvents={this.updateRecordTS}
               />
             </Panel>
-            {tableNames && <Panel initialWidth={300} initialHeight={400} x={1110} y={0}>
+            {tableNames && <Panel initialWidth={300} initialHeight={840} x={1110} y={0}>
               <MetaView
                 patientIds={subjectIds}
                 selectPatientId={this.selectPatientId}
               />
             </Panel>
             }
-            <Panel initialWidth={600} initialHeight={435} x={405} y={405}>
+            <Panel initialWidth={700} initialHeight={435} x={405} y={405}>
               <DynamicView
                 patientMeta={patientMeta}
                 tableNames={tableNames}
                 tableRecords={tableRecords}
+                dynamicRecords={dynamicRecords}
               />
             </Panel>
-            {tableNames && <Panel initialWidth={400} initialHeight={435} x={1010} y={405}>
+            {/* {tableNames && <Panel initialWidth={400} initialHeight={435} x={1010} y={405}>
               <TableView
                 patientMeta={patientMeta}
                 tableNames={tableNames}
               />
             </Panel>
-            }
+            } */}
           </Content>
         </Layout>
       </div>

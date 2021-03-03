@@ -3,48 +3,50 @@ import { distinct } from "data/common";
 import { PatientMeta } from "data/patient";
 import { Entity } from "data/table";
 import * as React from "react";
-import Panel from "../Panel"
 import { DataFrame, ISeries } from "data-forge"
 import { defaultMargin, getMargin, getScaleTime, MarginType } from "visualization/common";
 import { drawLineChart } from "visualization/lineChart";
+import Search from "antd/lib/input/Search";
 
 const { Option } = Select;
 
 export interface RecordTS {
     tableName: string,
     itemName: string,
+    startTime?: Date,
+    endTime?: Date,
     data: { dates: ISeries<number, Date>, values: ISeries<number, any> }
 }
 
-const buildRecordTS = (entity: Entity<number, any>, itemName: string): RecordTS[] => {
-    const { item_index, time_index, value_indexes } = entity.metaInfo!;
-    if (item_index && time_index && value_indexes && value_indexes.length > 0) {
-        const selectedDf = entity.where(row => (row[item_index] === itemName));
-        const dates = selectedDf.getSeries(time_index).parseDates();
-        const records = value_indexes.map(value_index => {
-            return {
-                tableName: entity.name!,
-                itemName: itemName,
-                data: { dates: dates, values: selectedDf.getSeries(value_index).parseFloats() }
-            }
-        })
-        return records;
-    }
-    else
-        return [];
-}
+// const buildRecordTS = (entity: Entity<number, any>, itemName: string): RecordTS[] => {
+//     const { item_index, time_index, value_indexes } = entity.metaInfo!;
+//     if (item_index && time_index && value_indexes && value_indexes.length > 0) {
+//         const selectedDf = entity.where(row => (row[item_index] === itemName));
+//         const dates = selectedDf.getSeries(time_index).parseDates();
+//         const records = value_indexes.map(value_index => {
+//             return {
+//                 tableName: entity.name!,
+//                 itemName: itemName,
+//                 data: { dates: dates, values: selectedDf.getSeries(value_index).parseFloats() }
+//             }
+//         })
+//         return records;
+//     }
+//     else
+//         return [];
+// }
 
 export interface DynamicViewProps {
     patientMeta?: PatientMeta,
     tableNames?: string[],
-    tableRecords?: Entity<number, any>[]
+    tableRecords?: Entity<number, any>[],
+    dynamicRecords: RecordTS[],
 }
 
 export interface DynamicViewStates {
     targetTableName?: string,
     itemOptions?: string[],
     targetItems?: string[],
-    recordData: RecordTS[],
 }
 
 export default class DynamicView extends React.Component<DynamicViewProps, DynamicViewStates> {
@@ -52,10 +54,10 @@ export default class DynamicView extends React.Component<DynamicViewProps, Dynam
     constructor(props: DynamicViewProps) {
         super(props);
 
-        this.state = { recordData: [] }
+        this.state = { }
 
         this._setTableName = this._setTableName.bind(this);
-        this._setItemName = this._setItemName.bind(this);
+        // this._setItemName = this._setItemName.bind(this);
     }
 
     _setTableName(value: string) {
@@ -69,35 +71,31 @@ export default class DynamicView extends React.Component<DynamicViewProps, Dynam
         this.setState({ targetTableName: value, itemOptions: itemOptions });
     }
 
-    _setItemName(value: string) {
-        const { tableRecords } = this.props;
-        const { itemOptions, targetTableName } = this.state;
-        const targetTable = tableRecords?.find(e => e.name === targetTableName)!;
-        const targetItems = value === 'All' ? itemOptions : [value];
-        const recordList = targetItems!.map(itemName => buildRecordTS(targetTable, itemName));
-        const recordData = Array.prototype.concat.apply([], recordList);
-        this.setState({ targetItems, recordData });
-    }
+    // _setItemName(value: string) {
+    //     const { tableRecords } = this.props;
+    //     const { itemOptions, targetTableName } = this.state;
+    //     const targetTable = tableRecords?.find(e => e.name === targetTableName)!;
+    //     const targetItems = value === 'All' ? itemOptions : [value];
+    //     const recordList = targetItems!.map(itemName => buildRecordTS(targetTable, itemName));
+    //     const recordData = Array.prototype.concat.apply([], recordList);
+    //     this.setState({ targetItems, recordData });
+    // }
 
     public render() {
-        const { tableNames, patientMeta } = this.props;
-        const { itemOptions, recordData } = this.state;
+        const { tableNames, patientMeta, dynamicRecords } = this.props;
+        const { itemOptions } = this.state;
 
         const startDate = patientMeta && new Date(patientMeta.startDate);
         const endDate = patientMeta && new Date(patientMeta.endDate);
+        console.log(dynamicRecords);
 
         return (
             <div>
                 <div>
-                    <Select style={{ width: 240 }} onChange={this._setTableName}>
-                        {tableNames && tableNames.map((name, i) => (<Option value={name} key={i}>{name}</Option>))}
-                    </Select>
-                    <Select style={{ width: 240 }} onChange={this._setItemName}>
-                        {itemOptions && itemOptions.map((name, i) => (<Option value={name} key={i}>{name}</Option>))}
-                    </Select>
+                <Search placeholder="input search text" style={{ marginLeft: 10, marginRight: 10, width: "90%" }} enterButton />
                 </div>
                 <div>
-                    {recordData.map((data, i) =>
+                    {dynamicRecords.map((data, i) =>
                         <DynamicCard
                             {...data}
                             key={i}
