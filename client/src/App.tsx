@@ -118,13 +118,14 @@ class App extends React.Component<AppProps, AppStates>{
           </Header>
           <Content>
             <Panel initialWidth={400} initialHeight={840} x={0} y={0}>
-              {featureMeta && predictionTargets && <FeatureView
+              {featureMeta && predictionTargets && tableNames && <FeatureView
                 patientMeta={patientMeta}
                 featureMeta={featureMeta}
                 predictionTargets={predictionTargets}
+                tableNames={tableNames}
               />}
             </Panel>
-            <Panel initialWidth={700} initialHeight={400} x={405} y={0}>
+            <Panel initialWidth={700} initialHeight={300} x={405} y={0}>
               <TimelineView
                 patientMeta={patientMeta}
                 tableRecords={tableRecords}
@@ -138,7 +139,7 @@ class App extends React.Component<AppProps, AppStates>{
               />
             </Panel>
             }
-            <Panel initialWidth={700} initialHeight={435} x={405} y={405}>
+            <Panel initialWidth={700} initialHeight={535} x={405} y={305}>
               <DynamicView
                 patientMeta={patientMeta}
                 tableNames={tableNames}
