@@ -38,10 +38,10 @@
 	background: rgba(232,230,230,1);
 	/*border: 1px solid black*/
 }
-.ant-row{
+/*.ant-row{
 	margin:10px 0px;
 	display:flex
-}
+}*/
 .ant-col .value{
 	padding-top:6%;
 	height: 100%;

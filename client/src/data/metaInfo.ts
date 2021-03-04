@@ -1,5 +1,4 @@
 export type patientInfoMeta = {
-    'DOB': string,
     'GENDER': string,
     'ADMITTIME': string,
     'ADMISSION_DEPARTMENT': string, 

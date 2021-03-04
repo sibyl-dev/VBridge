@@ -4,6 +4,8 @@ import { PatientMeta } from "data/patient";
 import { Entity } from "data/table";
 import { ROOT_URL, DEV_MODE } from "./env";
 import {patientInfoMeta} from 'data/metaInfo';
+import {filterType} from 'data/filterType';
+
 
 const API = `${ROOT_URL}/api`;
 
@@ -52,6 +54,19 @@ export async function getPatientInfoMeta(params: {
     subject_id: number
 }): Promise<patientInfoMeta>{
     const url = `${API}/patientinfo_meta`;
+    const response = await axios.get(url, { params });
+    return checkResponse(response, []);
+}
+
+export async function getPatientFilterRange(): Promise<filterType>{
+    const url = `${API}/record_filterrange`;
+    const response = await axios.get(url);
+    return checkResponse(response, []);
+}
+export async function getPatientGroup(params: {
+    filterConditions: {[key: string]: any}
+}): Promise<patientInfoMeta>{
+    const url = `${API}/patient_group`;
     const response = await axios.get(url, { params });
     return checkResponse(response, []);
 }

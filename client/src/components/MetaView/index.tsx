@@ -49,7 +49,7 @@ export default class MetaView extends React.Component<MetaViewProps, MetaViewSta
                               'arrhythmia complication',
                               'infectious complication',
                               'other complication',
-                              ]
+                              ],
 
         };
         this.handleClick = this.handleClick.bind(this);
@@ -108,8 +108,9 @@ export default class MetaView extends React.Component<MetaViewProps, MetaViewSta
                */}
             
              
-                <Divider orientation="left"></Divider>
+                <Divider orientation="center"> Demographic </Divider>
 
+            {/*
                 <Row onClick={this.handleClick.bind(this,0)}>
                     <Col span={4}>
                        {expandItem && expandItem[0] ? <img src='tri_fold.png'  width='15px'/> : <img src='tri_unfold.png'  width='15px'/>} 
@@ -118,8 +119,9 @@ export default class MetaView extends React.Component<MetaViewProps, MetaViewSta
                     <Col span={12}><span className="meta-info-title"> Demographic </span></Col>
                     <Col span={2} />
                 </Row>
+            */}
 
-                {expandItem && expandItem[0] && patientInfoMeta?(
+                {patientInfoMeta?(
                     <Row>
                         {PATIENTS ? PATIENTS.map(name => {
                             var value = patientInfoMeta[name]
@@ -131,7 +133,9 @@ export default class MetaView extends React.Component<MetaViewProps, MetaViewSta
                             return (<>
                                     <Col span={leftSpan}/>
                                     <Col span={titleWidth}><span className="details-title"> {name}: </span></Col>
-                                    <Col span={valueWidth}><span className="details-value"> {value} </span></Col>
+                                    <Col span={valueWidth}>
+                                        <div className='value' >{value}</div>
+                                    </Col>
                                     <Col span={rightSpan} />
                                 </>)
                         }): ""} 
@@ -165,7 +169,9 @@ export default class MetaView extends React.Component<MetaViewProps, MetaViewSta
                             return (<>
                                     <Col span={leftSpan}/>
                                     <Col span={titleWidth}><span className="details-title"> {name}: </span></Col>
-                                    <Col span={valueWidth}><span className="details-value"> {value} </span></Col>
+                                    <Col span={valueWidth}>
+                                        <div className='value' >{value}</div>
+                                    </Col>
                                     <Col span={rightSpan} />
                                 </>)
                         }): ""} 
