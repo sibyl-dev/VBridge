@@ -51,12 +51,13 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
                               
                               // 'CPB time (minutes)',
                               // 'Aortic cross-clamping time (times)',
-                              'complication',
-                              'lung complication',
-                              'cardiac complication',
-                              'arrhythmia complication',
-                              'infectious complication',
-                              'other complication',], 
+                              // 'complication',
+                              // 'lung complication',
+                              // 'cardiac complication',
+                              // 'arrhythmia complication',
+                              // 'infectious complication',
+                              // 'other complication',
+                              ], 
 
         };
 

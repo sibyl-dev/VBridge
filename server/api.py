@@ -173,27 +173,20 @@ def get_patient_group():
             if(condition_name in column_names):
                 flags = True
                 if(condition_name in number_vari):
-                    print('here', type(hadm_df[condition_name]), hadm_df[condition_name])
                     hadm_df = hadm_df[(hadm_df[condition_name]>=conditions[condition_name][0]) &  (hadm_df[condition_name]<=conditions[condition_name][1])]
+
                 elif(condition_name == 'SURGERY_NAME'):
-                    hadm_df['test'] = (hadm_df[condition_name].str).split('+') + conditions[condition_name]
-                    # print('here', hadm_df['test'])
-                    hadm_df = hadm_df[len(hadm_df[condition_name] +  conditions[condition_name]) != len(list( hadm_df[condition_name] +  conditions[condition_name]))]
+                    hadm_df[condition_name] = (hadm_df[condition_name].str).split('+')
+                    # hadm_df = hadm_df[ list(map(lambda x: x.isin(conditions[condition_name]), hadm_df[condition_name])).any() ]
+                    print('here', hadm_df)
+                    # hadm_df = hadm_df[len(hadm_df[condition_name] +  conditions[condition_name]) != len(list( hadm_df[condition_name] +  conditions[condition_name]))]
+                
+                
                 elif(condition_name == 'SURGERY_POSITION'):
                     hadm_df = hadm_df[((hadm_df[condition_name]).split(',')).any() in conditions[condition_name] ]
                 else:
-                    flag = (hadm_df[condition_name] == conditions[condition_name][0])
-                    for i, value  in enumerate(conditions[condition_name]):
-                        print('value', value, i)
-                        if(i == 0):
-                            continue
-                        flag = (flag) | (hadm_df[condition_name] == conditions[condition_name][i])
-                        hadm_df_ = hadm_df[flag]
-                    # print('here', type(hadm_df[condition_name]), hadm_df[condition_name])
-                    # print('here', type(conditions[condition_name]), conditions[condition_name])
-                    # hadm_df = hadm_df[ np.any(hadm_df[condition_name] == conditions[condition_name]) ]
-                    # hadm_df = hadm_df[(conditions[condition_name].count(hadm_df[condition_name])>0).any()]
-
+                    hadm_df = hadm_df[ hadm_df.isin({condition_name: conditions[condition_name]}) ]
+       
         # if(flags):
         #     print('filter', hadm_df['subject_id'])
     return ''
