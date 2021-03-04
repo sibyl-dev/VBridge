@@ -196,7 +196,7 @@ class App extends React.Component<AppProps, AppStates>{
                 tableNames={tableNames}
               />
             </Panel>
-            }
+            }*/}
             {tableNames && <Panel initialWidth={400} initialHeight={835} x={1410} y={0}>
               <FilterView
                 patientIds={subjectIds}
@@ -205,7 +205,6 @@ class App extends React.Component<AppProps, AppStates>{
               />
             </Panel>
             }
-             */}
           </Content>
         </Layout>
       </div>
