@@ -2,6 +2,12 @@ import * as d3 from "d3";
 import { DataFrame } from "data-forge";
 import { Entity } from "./table";
 
+export type IEvent = {
+    entityName: string,
+    timestamp: Date,
+    count: number
+}
+
 export type EventGroup = {
     startTime: Date,
     endTime: Date,

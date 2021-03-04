@@ -186,3 +186,16 @@ export const DELAY_PAINT_TIME = 100;
 export function isStringArray(x: number[] | string[]): x is string[] {
   return typeof x[0] === 'string';
 }
+
+export function beautifulPrinter(value: any, maxChar: number = 15): any {
+  if (typeof (value) === typeof ("")) {
+      return value.length > maxChar ? value.substring(0, 12) + "..." : value
+  }
+  if (typeof (value) === typeof (0.0)) {
+      return _.round(value, 3)
+  }
+  if (typeof (value) === typeof ([]) && value.length > 0) {
+      return `${beautifulPrinter(value[0], maxChar - 4)},...`
+  }
+  return value
+}

@@ -10,8 +10,9 @@ output_dir = os.path.join(ROOT, 'data/intermediate/')
 
 
 class ModelManager:
-    def __init__(self, fm):
-        self._models = {target_name: Modeler() for target_name in Modeler.prediction_targets()}
+    def __init__(self, fm, topk=10):
+        self._models = {target_name: Modeler(topk=topk)
+                        for target_name in Modeler.prediction_targets()}
         self.X_train, self.X_test, self.y_train, self.y_test = Modeler.train_test_split(fm)
 
     @property
@@ -27,8 +28,28 @@ class ModelManager:
                   for target_name, model in self._models.items()}
         return pd.DataFrame(scores).T
 
-    def predict(self, id):
-        pass
+    def predict_proba(self, id):
+        if id in self.X_train.index:
+            X = self.X_train.loc[id]
+        elif id in self.X_test.index:
+            X = self.X_test.loc[id]
+        else:
+            raise ValueError("Invalid id.")
+        X = X.to_frame().T
+        scores = {}
+        for target_name, model in self._models.items():
+            scores[target_name] = model.transform(X)[0, 1]
+        return scores
+
+    def explain(self, id, target='complication'):
+        if id in self.X_train.index:
+            X = self.X_train.loc[id]
+        elif id in self.X_test.index:
+            X = self.X_test.loc[id]
+        else:
+            raise ValueError("Invalid id.")
+        X = X.to_frame().T
+        return self.model[target].SHAP(X)
 
     def save(self, path=None):
         if path is None:

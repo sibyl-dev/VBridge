@@ -3,6 +3,7 @@ import collections
 import pandas as pd
 import numpy as np
 import sklearn
+import shap
 from sklearn.model_selection import train_test_split
 from sklearn.utils import class_weight
 from sklearn.base import TransformerMixin
@@ -30,12 +31,13 @@ def test(model, X, y):
 
 
 class Modeler:
-    def __init__(self):
-        self._one_hot_encoder = OneHotEncoder()
+    def __init__(self, topk=10):
+        self._one_hot_encoder = OneHotEncoder(topk=topk)
         self._imputer = SimpleImputer()
         self._scaler = MinMaxScaler()
         self._model = XGBClassifier(eval_metric='error', use_label_encoder=False)
         # self._model = XGBClassifier(eval_metric='logloss', use_label_encoder=False)
+        self._explainer = None
 
     @staticmethod
     def prediction_targets():
@@ -55,7 +57,7 @@ class Modeler:
     def model(self):
         return self._model
 
-    def fit(self, X, y, target='complication'):
+    def fit(self, X, y, target='complication', explain=True):
         y_train = y[target].values
 
         X_train = self._one_hot_encoder.fit_transform(X)
@@ -65,14 +67,36 @@ class Modeler:
         weights = class_weight.compute_class_weight('balanced', [0, 1], y_train)
         sample_weight = [weights[l] for l in y_train]
         self._model.fit(X_train, y_train, sample_weight=sample_weight)
+        if explain:
+            self._explainer = shap.TreeExplainer(self._model)
+
+    def transform(self, X):
+        X = self._one_hot_encoder.transform(X)
+        X = self._imputer.transform(X)
+        X = self._scaler.transform(X)
+        return self._model.predict_proba(X)
 
     def test(self, X, y, target='complication'):
         y_test = y[target].values
         X_test = self._one_hot_encoder.transform(X)
         X_test = self._imputer.transform(X_test)
         X_test = self._scaler.transform(X_test)
-
         return test(self.model, X_test, y_test)
+
+    def SHAP(self, X):
+        columns = X.columns
+        X = self._one_hot_encoder.transform(X)
+        X = self._imputer.transform(X)
+        X = self._scaler.transform(X)
+        dummy_columns = self._one_hot_encoder.dummy_columns
+        shap_values = pd.DataFrame(self._explainer.shap_values(X), columns=dummy_columns)
+        for original_col, dummies in self._one_hot_encoder.dummy_dict.items():
+            sub_dummy_column = ["{}_{}".format(original_col, cat) for cat in dummies]
+            assert np.array([col in dummy_columns for col in sub_dummy_column]).all()
+            if original_col+"_Others" in dummy_columns:
+                sub_dummy_column.append(original_col+"_Others")
+            shap_values[original_col] = shap_values.loc[:, sub_dummy_column].sum(axis=1)
+        return shap_values.reindex(columns=columns)
 
 
 class OneHotEncoder(TransformerMixin):
@@ -96,13 +120,13 @@ class OneHotEncoder(TransformerMixin):
                     dummies = sub_df[selected_dummies]
                     others = sub_df[[col for col in sub_df.columns if col not in selected_dummies]]
                     dummies['Others'] = others.any(axis=1)
-                    dummies = dummies.add_prefix(column_name)
                 else:
-                    counts = pd.value_counts(values)
+                    counts = pd.value_counts(values, sort=True, ascending=False)
                     selected_dummies = counts[:self.topk].index
                     mask = values.isin(selected_dummies)
                     values[~mask] = "Others"
-                    dummies = pd.get_dummies(values[mask])
+                    dummies = pd.get_dummies(values)
+                dummies = dummies.add_prefix(column_name + "_")
                 X = X.join(dummies)
                 self._dummy_dict[column_name] = selected_dummies
         self._dummy_columns = [col for col in X.columns if col not in self.dummy_dict]
@@ -115,14 +139,14 @@ class OneHotEncoder(TransformerMixin):
             if values.apply(lambda row: type(row) == list).all():
                 counts = values.apply(collections.Counter).reset_index(drop=True)
                 sub_df = pd.DataFrame.from_records(counts, index=values.index).fillna(0)
-                dummies = sub_df[selected_dummies]
+                dummies = sub_df.loc[:, sub_df.columns.isin(selected_dummies)]
                 others = sub_df[[col for col in sub_df.columns if col not in selected_dummies]]
                 dummies['Others'] = others.any(axis=1)
-                dummies = dummies.add_prefix(column_name)
             else:
                 mask = values.isin(selected_dummies)
                 values[~mask] = "Others"
-                dummies = pd.get_dummies(values[mask])
+                dummies = pd.get_dummies(values)
+            dummies = dummies.add_prefix(column_name + "_")
             X = X.join(dummies)
         return X.reindex(columns=self.dummy_columns)
 

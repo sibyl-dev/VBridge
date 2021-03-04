@@ -1,29 +1,29 @@
 .timeline-view-content {
-    height: calc(100% - 80px);
+    height: calc(100% - 70px);
     overflow: scroll;
 }
 
 .timeline {
     /* height: 80px; */
-    width: calc(100% - 40px);
+    width: calc(100% - 20px);
     position: relative;
-    margin-left: 20px;
-    margin-right: 20px;
+    margin-left: 10px;
+    margin-right: 10px;
     float: left;
-    border: 2px solid rgba(220, 225, 230, 0.7);
-    max-height: 80;
+    /* border: 1px solid rgba(220, 225, 230, 0.7); */
     overflow: scroll;
 }
 
 .timeline-title {
     /* height: 100%; */
-    width: 40px;
+    width: 60px;
     float: left;
+    font-size: 10px;
 }
 
 .timeline-content {
     height: 100%;
-    width: calc(100% - 40px);
+    width: calc(100% - 60px);
     float: left;
     /* position: relative; */
 }

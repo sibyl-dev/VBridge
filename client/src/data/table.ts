@@ -21,8 +21,6 @@ export class Entity<IndexT, ValueT> extends DataFrame<IndexT, ValueT> {
     constructor(config?: Iterable<ValueT> | IDataFrameConfig<IndexT, ValueT>
         | DataFrameConfigFn<IndexT, ValueT> | DataFrame<IndexT, ValueT>) {
         super(config);
-
-        this.columnWidth = this.columnWidth.bind(this);
     }
 
     public setMetaInfo(metaInfo: TableMeta) {
@@ -48,24 +46,24 @@ export class Entity<IndexT, ValueT> extends DataFrame<IndexT, ValueT> {
         }
         return this;
     }
+}
 
-    public columnWidth(includeIndex?: boolean,
-        maxWidth?: number, minWidth?: number) {
-        return ((params: Index) => {
-            let columnIndex = params.index;
-            if (!includeIndex) {
-                columnIndex += 1;
-            }
-            const column = this.getColumns().at(columnIndex);
-            const columnContent = column?.series.toArray();
-            columnContent?.push(column?.name);
-            const charLength = columnContent?.map(d => String(d).length);
-            let estLength = charLength && Math.max.apply(this, charLength) * 10 + 5;
-            if (maxWidth !== undefined && estLength)
-                estLength = Math.min(maxWidth, estLength);
-            if (minWidth !== undefined && estLength)
-                estLength = Math.max(minWidth, estLength);
-            return estLength || 120;
-        })
-    }
+export function getColumnWidth(dataFrame: DataFrame, includeIndex?: boolean,
+    maxWidth?: number, minWidth?: number) {
+    return ((params: Index) => {
+        let columnIndex = params.index;
+        if (!includeIndex) {
+            columnIndex += 1;
+        }
+        const column = dataFrame.getColumns().at(columnIndex);
+        const columnContent = column?.series.toArray();
+        columnContent?.push(column?.name);
+        const charLength = columnContent?.map(d => String(d).length);
+        let estLength = charLength && Math.max.apply(dataFrame, charLength) * 10 + 5;
+        if (maxWidth !== undefined && estLength)
+            estLength = Math.min(maxWidth, estLength);
+        if (minWidth !== undefined && estLength)
+            estLength = Math.max(minWidth, estLength);
+        return estLength || 120;
+    })
 }
