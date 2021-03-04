@@ -133,39 +133,35 @@ def get_record_filterrange():
 def get_patient_group():
     conditions = json.loads(request.args.get('filterConditions'))
     print('conditions', conditions)
+
     table_names = ['PATIENTS', 'ADMISSIONS', 'SURGERY_INFO']
+    number_vari = ['Age',  'Height', 'Weight', 'Surgical time (minutes)']
     # for condition_name in conditions:
     #     print(condition_name)
-    subject_idG = []
+    filterList = []
+    es = current_app.es
+    df = es['SURGERY_INFO'].df
+    flags = False
+
+    # print('teststst',df[(df['Age']>=conditions['Age'][0]) &  (df['Age']<=conditions['Age'][1])] )
     for i, table_name in enumerate(table_names):
         column_names = filter_variable[table_name]
-        es = current_app.es
         hadm_df = es[table_name].df
-        filter_nameG = []
 
         for condition_name in conditions:
             if(condition_name in column_names):
-                # filter_nameG.append(str(condition_name))
-                if (type(conditions[condition_name][0])=='string' or 'complication' in condition_name):
-                    print('hahaha',hadm_df[hadm_df[condition_name] in conditions[name]]['subject_id'])
-
-                    subject_idG.append(hadm_df[hadm_df[condition_name] in conditions[name]]['subject_id'].values[0])
+                flags = True
+                if(condition_name in number_vari):
+                    hadm_df = hadm_df[(hadm_df[condition_name]>=conditions[condition_name][0]) &  (hadm_df[condition_name]<=conditions[condition_name][1])]
+                elif(condition_name == 'SURGERY_NAME'):
+                    hadm_df = hadm_df[len(str(hadm_df[condition_name]).split('+') +  conditions[condition_name]) != len(list(set(str(hadm_df[condition_name]).split('+') +  conditions[condition_name])))]
+                elif(condition_name == 'SURGERY_POSITION'):
+                    hadm_df = hadm_df[((hadm_df[condition_name]).split(',') in conditions[condition_name]).any() ]
                 else:
-                    print('hahaha',hadm_df[hadm_df[condition_name] <= conditions[condition_name][1] and hadm_df[condition_name] >= conditions[condition_name][0]]['subject_id'])
+                    hadm_df = hadm_df[ (conditions[condition_name].count(hadm_df[condition_name])>0).any()]
 
-                    subject_idG.append((hadm_df[hadm_df[condition_name] <= conditions[condition_name][1] and hadm_df[condition_name] >= conditions[condition_name][0]]['subject_id'].values[0]).any())
-        print('subject_idG', subject_idG)
-
-        # if(len(filter_nameG)!=0):
-            # flag = [ hadm_df[name] in conditions[name] 
-            #         if (type(conditions[name][0])=='string' or 'complication' in name) 
-            #         else (hadm_df[name] <= conditions[name][1] and hadm_df[name] >= conditions[name][0] ) 
-            #         for name in filter_nameG]
-            # print('flag', flag)
-            # subject_idG = hadm_df[flag]['subject_id']
-            # print(table_name, subject_idG)
-
-
+        if(flags):
+            print('filter', hadm_df['subject_id'])
     return ''
 
 
