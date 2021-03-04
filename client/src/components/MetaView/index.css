@@ -29,6 +29,14 @@
 	text-align: right;
 
 }
+.details-title{
+	/*font-weight: bold;*/
+	font-size: 14px;
+}
+.metaInfoTitle{
+	font-weight: bold;
+	font-size: 18px;
+}
 .ant-col-11{
 	/*width: 70px;*/
 	/*float: left;*/

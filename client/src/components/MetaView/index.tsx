@@ -108,7 +108,7 @@ export default class MetaView extends React.Component<MetaViewProps, MetaViewSta
                */}
             
              
-                <Divider orientation="center"> Demographic </Divider>
+                <Divider className='metaInfoTitle' orientation="center"> Demographic </Divider>
 
             {/*
                 <Row onClick={this.handleClick.bind(this,0)}>
@@ -145,9 +145,9 @@ export default class MetaView extends React.Component<MetaViewProps, MetaViewSta
 
 
 
-                 <Divider orientation="left"></Divider>
+                 <Divider className='metaInfoTitle' orientation="center"> Admission </Divider>
 
-
+             {/*
                 <Row onClick={this.handleClick.bind(this,1)}>
                     <Col span={4}>
                         {expandItem && expandItem[1] ? <img src='tri_fold.png'  width='15px'/> : <img src='tri_unfold.png'  width='15px'/>}
@@ -156,7 +156,8 @@ export default class MetaView extends React.Component<MetaViewProps, MetaViewSta
                     <Col span={12}><span className="meta-info-title"> Admission  </span></Col>
                     <Col span={2} />
                 </Row>
-                 {expandItem && expandItem[1] && patientInfoMeta?(
+                 {expandItem && expandItem[1] &&*/} 
+                 {patientInfoMeta?(
                     <Row>
                         {ADMISSIONS ? ADMISSIONS.map(name => {
                             var value = patientInfoMeta[name]
@@ -176,11 +177,11 @@ export default class MetaView extends React.Component<MetaViewProps, MetaViewSta
                                 </>)
                         }): ""} 
                     </Row>
-
                 ):""}
 
-                <Divider orientation="left"></Divider>
+                <Divider className='metaInfoTitle' orientation="center"> Surgery </Divider>
 
+            {/*
                 <Row onClick={this.handleClick.bind(this,2)}>
                     <Col span={4}>
                         {expandItem && expandItem[2] ? <img src='tri_fold.png'  width='15px'/> : <img src='tri_unfold.png'  width='15px'/>}
@@ -189,7 +190,8 @@ export default class MetaView extends React.Component<MetaViewProps, MetaViewSta
                     <Col span={12}><span className="meta-info-title">Surgery </span></Col>
                     <Col span={2} />
                 </Row>
-                {expandItem && expandItem[2] && patientInfoMeta?(
+                {expandItem && expandItem[2] && */}
+                {patientInfoMeta?( 
                     <Row>
                         {SURGERY_INFO ? SURGERY_INFO.map(name => {
                             var value = patientInfoMeta[name]
@@ -207,7 +209,7 @@ export default class MetaView extends React.Component<MetaViewProps, MetaViewSta
                                     </Col>
                                     <Col span={rightSpan} />
                                 </>)
-                        }): ""} 
+                        }): ""}
                     </Row>
 
                 ):""}
