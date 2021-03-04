@@ -100,7 +100,7 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
         const condition:{[key: string]: any} = {}
         condition[name] = range
         if(filterPatients)
-         filterPatients(condition)
+             filterPatients(condition)
     }
 
     onCheckAllChange(idx:any, event:any){

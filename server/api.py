@@ -153,42 +153,45 @@ def get_record_filterrange():
 @api.route('/patient_group', methods=['GET'])
 def get_patient_group():
     conditions = json.loads(request.args.get('filterConditions'))
-    # print('conditions', conditions)
 
-    table_names = ['PATIENTS', 'ADMISSIONS', 'SURGERY_INFO']
+    table_names = ['PATIENTS', 'SURGERY_INFO', 'ADMISSIONS']
     number_vari = ['Age',  'Height', 'Weight', 'Surgical time (minutes)']
-    # for condition_name in conditions:
-    #     print(condition_name)
-    filterList = []
+
     es = current_app.es
     df = es['SURGERY_INFO'].df
-    flags = False
+
+    subject_idG = []
+    hadm_idG = []
 
     # print('teststst',df[(df['Age']>=conditions['Age'][0]) &  (df['Age']<=conditions['Age'][1])] )
     for i, table_name in enumerate(table_names):
         column_names = filter_variable[table_name]
         hadm_df = es[table_name].df
 
+
         for condition_name in conditions:
             if(condition_name in column_names):
-                flags = True
                 if(condition_name in number_vari):
                     hadm_df = hadm_df[(hadm_df[condition_name]>=conditions[condition_name][0]) &  (hadm_df[condition_name]<=conditions[condition_name][1])]
 
-                elif(condition_name == 'SURGERY_NAME'):
-                    hadm_df[condition_name] = (hadm_df[condition_name].str).split('+')
-                    # hadm_df = hadm_df[ list(map(lambda x: x.isin(conditions[condition_name]), hadm_df[condition_name])).any() ]
-                    print('here', hadm_df)
-                    # hadm_df = hadm_df[len(hadm_df[condition_name] +  conditions[condition_name]) != len(list( hadm_df[condition_name] +  conditions[condition_name]))]
-                
-                
-                elif(condition_name == 'SURGERY_POSITION'):
-                    hadm_df = hadm_df[((hadm_df[condition_name]).split(',')).any() in conditions[condition_name] ]
+                elif(condition_name == 'SURGERY_NAME' or condition_name == 'SURGERY_POSITION'):
+                    tmpDf = hadm_df[condition_name]
+                    flag = tmpDf.apply(lambda x: np.array([t in x for t in conditions[condition_name]]).any())
+                    hadm_df = hadm_df[flag]
+
                 else:
-                    hadm_df = hadm_df[ hadm_df.isin({condition_name: conditions[condition_name]}) ]
-       
-        # if(flags):
-        #     print('filter', hadm_df['subject_id'])
+                    hadm_df = hadm_df[hadm_df[condition_name].isin(conditions[condition_name]) ]
+
+        if(i == 0):
+            subject_idG = hadm_df['SUBJECT_ID'].drop_duplicates().values.tolist()
+        if(i == 1):
+            hadm_idG = hadm_df['HADM_ID'].drop_duplicates().values.tolist()
+        if(i == 2):
+            hadm_df = hadm_df[ (hadm_df['SUBJECT_ID'].isin(subject_idG)) & (hadm_df['HADM_ID'].isin(hadm_idG))]
+            subject_idG = hadm_df['SUBJECT_ID'].drop_duplicates().values.tolist()
+        
+    print('final', subject_idG)
+    # info['subject_idG'] = subject_idG
     return ''
 
 
