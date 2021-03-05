@@ -1,6 +1,7 @@
 import logging
 
 import json
+import csv
 import numpy as np
 
 from flask.json import JSONEncoder
@@ -158,19 +159,22 @@ def get_patient_group():
     number_vari = ['Age',  'Height', 'Weight', 'Surgical time (minutes)']
 
     es = current_app.es
-    df = es['SURGERY_INFO'].df
 
     subject_idG = []
-    hadm_idG = []
+    hasFilter = False
+    print('conditions', conditions)
 
-    # print('teststst',df[(df['Age']>=conditions['Age'][0]) &  (df['Age']<=conditions['Age'][1])] )
     for i, table_name in enumerate(table_names):
+        
         column_names = filter_variable[table_name]
         hadm_df = es[table_name].df
 
+        tableFlag = False
 
         for condition_name in conditions:
             if(condition_name in column_names):
+                tableFlag = True
+                hasFilter = True
                 if(condition_name in number_vari):
                     hadm_df = hadm_df[(hadm_df[condition_name]>=conditions[condition_name][0]) &  (hadm_df[condition_name]<=conditions[condition_name][1])]
 
@@ -182,16 +186,18 @@ def get_patient_group():
                 else:
                     hadm_df = hadm_df[hadm_df[condition_name].isin(conditions[condition_name]) ]
 
-        if(i == 0):
+        if(tableFlag):
+            if(len(subject_idG) != 0):
+                hadm_df = hadm_df[hadm_df['SUBJECT_ID'].isin(subject_idG)]
+
             subject_idG = hadm_df['SUBJECT_ID'].drop_duplicates().values.tolist()
-        if(i == 1):
-            hadm_idG = hadm_df['HADM_ID'].drop_duplicates().values.tolist()
-        if(i == 2):
-            hadm_df = hadm_df[ (hadm_df['SUBJECT_ID'].isin(subject_idG)) & (hadm_df['HADM_ID'].isin(hadm_idG))]
-            subject_idG = hadm_df['SUBJECT_ID'].drop_duplicates().values.tolist()
-        
-    print('final', subject_idG)
-    # info['subject_idG'] = subject_idG
+
+            print('subject_idG',  len(subject_idG))
+    if(hasFilter == False):
+        hadm_df = es['PATIENTS'].df
+        subject_idG = hadm_df['SUBJECT_ID']
+        print('subject_idG',  len(subject_idG))
+
     return ''
 
 

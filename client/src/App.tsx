@@ -89,13 +89,16 @@ class App extends React.Component<AppProps, AppStates>{
     this.setState({patientMeta, tableRecords, patientInfoMeta});
   }
 
-  public async filterPatients(conditions: {[key: string]: any}) {
+  public async filterPatients(conditions: {[key: string]: any}, checkedAll: boolean) {
     const {filterConditions, filterRange} = this.state
     for(var key in conditions)
       if(filterConditions){
         var value = conditions[key]=='Yes'?1: conditions[key]
         value = conditions[key]=='No'?0: conditions[key]
         filterConditions[key] = value
+
+      if(checkedAll)
+          delete filterConditions[key]
       }
     this.setState({filterConditions})
 

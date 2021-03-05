@@ -9,7 +9,7 @@ import {filterType} from 'data/filterType';
 export interface FliterViewProps {
     patientIds?: number[],
     filterRange?: { [key: string]: any },
-    filterPatients?: (condition: {[key: string]: any }) => void,
+    filterPatients?: (condition: {[key: string]: any}, checkedAll:boolean) => void,
 }
 
 export interface FilterViewStates { 
@@ -66,6 +66,8 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
         this.onCheckAllChange = this.onCheckAllChange.bind(this)
         this.onChangeInputValue = this.onChangeInputValue.bind(this)
         this.handleCheckBox = this.handleCheckBox.bind(this)
+        this.onInputValueAfterChange = this.onInputValueAfterChange.bind(this)
+        this.onCheckGender = this.onCheckGender.bind(this)
 
         
     }
@@ -95,12 +97,20 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
         this.init();
     }
 
-    public conveyConditions(name: string, range:any){
+    public conveyConditions(name: string, range:any, coverAll: boolean){
+        
         const { filterPatients } = this.props
         const condition:{[key: string]: any} = {}
         condition[name] = range
+        console.log('conveyConditions', condition, coverAll)
         if(filterPatients)
-             filterPatients(condition)
+             filterPatients(condition, coverAll)
+    }
+    onCheckGender(value:any){
+        var coverAll = false
+        if(value.length == 2)
+            coverAll = true
+        this.conveyConditions('GENDER', value, coverAll)
     }
 
     onCheckAllChange(idx:any, event:any){
@@ -123,7 +133,7 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
         this.setState({checkedList, checkedAll, indeterminate})
 
         if(checkedList && this.state.filter_name)
-            this.conveyConditions(this.state.filter_name[idx+5], checkedList[idx])
+            this.conveyConditions(this.state.filter_name[idx+5], checkedList[idx], event.target.checked)
    }
 
    handleCheckBox(idx:any, listV:any){
@@ -133,15 +143,19 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
         var indeterminate = this.state.indeterminate
         if(checkedList && this.state.filter_name && this.props.filterRange)
             checkedList[idx] = listV
-        if(this.state.filter_name && this.props.filterRange) 
-            if(indeterminate && listV.length < this.props.filterRange[this.state.filter_name[idx+5]].length && listV.length)
+        if(this.state.filter_name && this.props.filterRange && checkedAll && indeterminate) 
+            if(listV.length < this.props.filterRange[this.state.filter_name[idx+5]].length && listV.length){
                 indeterminate[idx] = true
-            else if(checkedAll && listV.length == this.props.filterRange[this.state.filter_name[idx+5]].length )
+                checkedAll[idx] = false
+            }
+            else if(listV.length == this.props.filterRange[this.state.filter_name[idx+5]].length){
+                indeterminate[idx] = false
                 checkedAll[idx] = true
+            }
         this.setState({checkedList, checkedAll, indeterminate})
 
-        if(checkedList && this.state.filter_name)
-            this.conveyConditions(this.state.filter_name[idx+5], checkedList[idx])
+        if(checkedList && this.state.filter_name && checkedAll)
+            this.conveyConditions(this.state.filter_name[idx+5], checkedList[idx], checkedAll[idx])
     }
 
 
@@ -157,23 +171,43 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
     onChangeInputValue(idx:number, value: any){
 
         const inputValues:any  = this.state.inputValues;
+        const filterRange = this.props.filterRange
         console.log('onChangeInputValue', value, idx, typeof(value)=='number')
         // console.log('before', inputValues)
         if(typeof(value) == 'number'){
             inputValues[idx] = value
             const trueIdx = idx%2?(idx-1)/2:idx/2            
-            if(inputValues && this.state.filter_name)
-                this.conveyConditions(this.state.filter_name[trueIdx], [inputValues[trueIdx*2], inputValues[trueIdx*2+1]])
+            if(inputValues && this.state.filter_name && filterRange){
+                const name = this.state.filter_name[trueIdx]
+                var coverAll = false
+                if(inputValues[trueIdx*2] <= filterRange[name][0] && inputValues[trueIdx*2+1] >= filterRange[name][1])
+                    coverAll = true
+                
+                this.conveyConditions(name, [inputValues[trueIdx*2], inputValues[trueIdx*2+1]], coverAll)
+            }
         }
         else{
             inputValues[idx*2] = value[0]
             inputValues[idx*2+1] = value[1]
         }
         this.setState({inputValues})
-        // console.log('after', this.state.inputValues)
-
 
     }
+    onInputValueAfterChange(trueIdx: number, value: any){
+        console.log('onInputValueAfterChange', trueIdx, value)
+        const inputValues:any  = this.state.inputValues;
+        const filterRange = this.props.filterRange
+        if(inputValues && this.state.filter_name && filterRange){
+            const name = this.state.filter_name[trueIdx]
+            var coverAll = false
+
+            if(inputValues[trueIdx*2] <= filterRange[name][0] && inputValues[trueIdx*2+1] >= filterRange[name][1])
+                coverAll = true
+            this.conveyConditions(name, [inputValues[trueIdx*2], inputValues[trueIdx*2+1]], coverAll)
+            console.log('coverAll', coverAll, name, filterRange[name])
+       }
+    }
+
 
     public render() {
         const { filterRange, patientIds,  } = this.props
@@ -192,7 +226,7 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
                 if(name == 'GENDER'){
                     return <>
                         <Divider orientation="center"></Divider>
-                        <Checkbox.Group style={{ width: '100%' }} defaultValue={filterRange[name]} onChange={this.conveyConditions.bind(this,name)}>
+                        <Checkbox.Group style={{ width: '100%' }} defaultValue={filterRange[name]} onChange={this.onCheckGender}>
                             <Row>
                                   <Col span={6} className='filterName'>{name}:</Col>
                                   <Col span={2}/>
@@ -256,21 +290,22 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
    
                 }
                 else if(name.indexOf("complication") != -1) {
-                    return <>
-                          <Divider orientation="center"></Divider>
-                          <Row>
-                              <Col span={12} className='complicationName filterName'>{name}:</Col>
+                    // return <>
+                    //       <Divider orientation="center"></Divider>
+                    //       <Row>
+                    //           <Col span={12} className='complicationName filterName'>{name}:</Col>
 
-                              <Col span={4}/>
-                              <Col span={8}>
-                                    <Switch key={name} checkedChildren="Yes" unCheckedChildren="No" defaultChecked onChange={this.conveyConditions.bind(this, name)} />
-                               </Col>
-                           </Row>
-                        </>
+                    //           <Col span={4}/>
+                    //           <Col span={8}>
+                    //                 <Switch key={name} checkedChildren="Yes" unCheckedChildren="No" defaultChecked onChange={this.conveyConditions.bind(this, name)} />
+                    //            </Col>
+                    //        </Row>
+                    //     </>
                 }
                 else{
                     const max = filterRange[name][1]
                     const min = filterRange[name][0]
+                    console.log('here min max',name, min, max)
                     return <>
                           {name!='Age'? <Divider orientation="center"> </Divider> :''}
                           <Row>
@@ -295,7 +330,7 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
                                     value={inputValues? [inputValues[idx*2],inputValues[idx*2+1]]:[0,100]}
                                     defaultValue={[min, max]}
                                     onChange={this.onChangeInputValue.bind(this, idx)}
-                                    onAfterChange={this.conveyConditions.bind(this, name)}
+                                    onAfterChange={this.onInputValueAfterChange.bind(this, idx)}
                                 />
                               </Col>
                               <Col span={3} className='rightValue'>
