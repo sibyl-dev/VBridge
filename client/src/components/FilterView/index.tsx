@@ -4,7 +4,7 @@ import { Row, Col, Select, Card, Divider, Slider, Checkbox, Switch, InputNumber}
 import "./index.css" 
 import {filterType} from 'data/filterType';
 
-const { Option } = Select
+
 
 export interface FliterViewProps {
     patientIds?: number[],
@@ -61,13 +61,15 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
 
         };
 
+
+        this.handleClick = this.handleClick.bind(this);
         this.onCheckAllChange = this.onCheckAllChange.bind(this)
-        this.handleMultiSelect = this.handleMultiSelect.bind(this)
-
         this.onChangeInputValue = this.onChangeInputValue.bind(this)
+        this.handleCheckBox = this.handleCheckBox.bind(this)
         this.onInputValueAfterChange = this.onInputValueAfterChange.bind(this)
-
         this.onCheckGender = this.onCheckGender.bind(this)
+
+        
     }
     public init() {
         var inputValues: number[] = []
@@ -96,6 +98,7 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
     }
 
     public conveyConditions(name: string, range:any, coverAll: boolean){
+        
         const { filterPatients } = this.props
         const condition:{[key: string]: any} = {}
         condition[name] = range
@@ -128,20 +131,19 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
         if(indeterminate)
             indeterminate[idx] = false
         this.setState({checkedList, checkedAll, indeterminate})
-        console.log('onCheckAllChange', checkedList && checkedList[idx])
 
         if(checkedList && this.state.filter_name)
             this.conveyConditions(this.state.filter_name[idx+5], checkedList[idx], event.target.checked)
    }
 
-   handleMultiSelect(idx: number, listV:string []){
+   handleCheckBox(idx:any, listV:any){
         console.log('onCheckAllChange', idx, listV)
         var checkedList  = this.state.checkedList;
         var checkedAll = this.state.checkedAll
         var indeterminate = this.state.indeterminate
-        if(checkedList)
+        if(checkedList && this.state.filter_name && this.props.filterRange)
             checkedList[idx] = listV
-        if(this.state.filter_name && this.props.filterRange && checkedAll && indeterminate){ 
+        if(this.state.filter_name && this.props.filterRange && checkedAll && indeterminate) 
             if(listV.length < this.props.filterRange[this.state.filter_name[idx+5]].length && listV.length){
                 indeterminate[idx] = true
                 checkedAll[idx] = false
@@ -150,21 +152,28 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
                 indeterminate[idx] = false
                 checkedAll[idx] = true
             }
-            else if(listV.length == 0){
-                indeterminate[idx] = false
-                checkedAll[idx] = false
-            }
-        }
         this.setState({checkedList, checkedAll, indeterminate})
 
         if(checkedList && this.state.filter_name && checkedAll)
             this.conveyConditions(this.state.filter_name[idx+5], checkedList[idx], checkedAll[idx])
     }
 
+
+    handleClick(i:number){
+        var expandItem:any  = this.state.expandItem;
+        expandItem[i] = !expandItem[i]
+        this.setState({
+          expandItem: expandItem,
+        });
+    }
+
+    
     onChangeInputValue(idx:number, value: any){
+
         const inputValues:any  = this.state.inputValues;
         const filterRange = this.props.filterRange
         console.log('onChangeInputValue', value, idx, typeof(value)=='number')
+        // console.log('before', inputValues)
         if(typeof(value) == 'number'){
             inputValues[idx] = value
             const trueIdx = idx%2?(idx-1)/2:idx/2            
@@ -173,6 +182,7 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
                 var coverAll = false
                 if(inputValues[trueIdx*2] <= filterRange[name][0] && inputValues[trueIdx*2+1] >= filterRange[name][1])
                     coverAll = true
+                
                 this.conveyConditions(name, [inputValues[trueIdx*2], inputValues[trueIdx*2+1]], coverAll)
             }
         }
@@ -190,6 +200,7 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
         if(inputValues && this.state.filter_name && filterRange){
             const name = this.state.filter_name[trueIdx]
             var coverAll = false
+
             if(inputValues[trueIdx*2] <= filterRange[name][0] && inputValues[trueIdx*2+1] >= filterRange[name][1])
                 coverAll = true
             this.conveyConditions(name, [inputValues[trueIdx*2], inputValues[trueIdx*2+1]], coverAll)
@@ -209,7 +220,9 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
         
         return (
             <div id='FilterView'>
+                
              { filter_name && filterRange && filter_name.map((name,idx) => {
+
                 if(name == 'GENDER'){
                     return <>
                         <Divider orientation="center"></Divider>
@@ -231,38 +244,44 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
                 }
                 else if(typeof(filterRange[name][0]) == 'string'){
                     const contents:string [] =  filterRange[name]
-                    const name1 = name.replace(/_/g," ")
+                    // contents.filter((x) => x != '')
+                    name = name.replace(/_/g," ")
                     var value: any = ['Empty']
-                    if(checkedList)
+                    if(checkedList){
                         value = checkedList[idx-5]
+                        // console.log('here', value, checkedList)
+                    }
                     return <>
                         <Divider orientation="center"></Divider>
                         <Row>
-                           <Col span={6} className='filterName' > {name1}: </Col>
+                           <Col span={6} className='filterName' > {name}: </Col>
                            <Col span={2}/>
-                           <Col span={14}>  
-                                   <Select
-                                      mode="multiple"
-                                      allowClear
-                                      style={{ width: '100%' }}
-                                      placeholder="Please select"
-                                      maxTagCount='responsive'
-                                      dropdownMatchSelectWidth={false}
-                                      value={value}
-                                      onChange={this.handleMultiSelect.bind(this, idx-5)}
-                                    >
-                                       {contents.map((content,i) =>{
-                                          return <>
-                                                <Select.Option key={i} value={content}>
-                                                    {content} 
-                                                 </Select.Option>
-                                             </>
-                                        })}
-                                    </Select> 
+                           <Col span={14}>
+                               <div className='firstRow'  onClick={this.handleClick.bind(this,idx-5)}>
+                                       {expandItem && expandItem[idx-5]? <img src='tri_fold.png' className='dropDownImg' width='15px'/> : <img src='tri_unfold.png' className='dropDownImg' width='15px'/>} 
+                               </div>
+                               <Checkbox indeterminate={indeterminate&&indeterminate[idx-5]}  checked={checkedAll&&checkedAll[idx-5]} style={{fontWeight:'bold'}} onChange={this.onCheckAllChange.bind(this,idx-5)}>
+                                    Check All
+                                </Checkbox>
+                               {expandItem&& expandItem[idx-5]?
+                                   <>
+                                       
+                                       <div className='dropDownList'> 
+                                               <Checkbox.Group options={filterRange[name]} value={value} onChange={this.handleCheckBox.bind(this, idx-5)}>
+                                                    <Row>
+                                                        {contents.map(content =>{
+                                                            return <>
+                                                                    <Col span={20}>
+                                                                        <Checkbox key={content} value={content}>{content}</Checkbox>
+                                                                    </Col>
+                                                                </>
+                                                        })}
+                                                    </Row>
+                                                </Checkbox.Group>     
+                                       </div>
+                                   </>
+                                :''}
 
-                           </Col>
-                           <Col span={2}>
-                               <Checkbox indeterminate={indeterminate&&indeterminate[idx-5]} style={{ marginLeft: '10px' }} checked={checkedAll&&checkedAll[idx-5]} onChange={this.onCheckAllChange.bind(this,idx-5)}/>
                            </Col>
                         </Row>
                         <Row>
@@ -270,9 +289,23 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
                     </>
    
                 }
+                else if(name.indexOf("complication") != -1) {
+                    // return <>
+                    //       <Divider orientation="center"></Divider>
+                    //       <Row>
+                    //           <Col span={12} className='complicationName filterName'>{name}:</Col>
+
+                    //           <Col span={4}/>
+                    //           <Col span={8}>
+                    //                 <Switch key={name} checkedChildren="Yes" unCheckedChildren="No" defaultChecked onChange={this.conveyConditions.bind(this, name)} />
+                    //            </Col>
+                    //        </Row>
+                    //     </>
+                }
                 else{
                     const max = filterRange[name][1]
                     const min = filterRange[name][0]
+                    console.log('here min max',name, min, max)
                     return <>
                           {name!='Age'? <Divider orientation="center"> </Divider> :''}
                           <Row>
@@ -321,3 +354,9 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
         )
     }
 }
+
+                            // tooltipVisible
+
+                            // getTooltipPopupContainer={document.querySelector==null ? () => document.body : () => document.querySelector(".ant-slider-step")}
+                    
+
