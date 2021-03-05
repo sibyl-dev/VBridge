@@ -1,5 +1,4 @@
 import * as d3 from "d3"
-import { useState } from "react";
 import { getChildOrAppend, getScaleLinear, getScaleTime, defaultCategoricalColor, IMargin, getMargin } from "./common";
 import "./timeline.css"
 
@@ -75,62 +74,4 @@ export function drawTimeline(params: {
         .attr("r", d => r(d.count))
         .style("fill", color || defaultCategoricalColor(0));
 
-}
-
-export function drawTimelineAxis(params: {
-    svg: SVGElement,
-    defaultTimeScale: d3.ScaleTime<number, number>,
-
-    width: number,
-    height: number,
-    margin?: IMargin,
-    color?: string,
-    updateTimeScale?: (scale: d3.ScaleTime<number, number>) => void
-}) {
-    const { svg, defaultTimeScale, updateTimeScale } = params
-    const root = d3.select(svg);
-    const margin = getMargin(params.margin || {});
-    const height = params.height - margin.top - margin.bottom;
-    const width = params.width - margin.left - margin.right;
-
-    const focusedTimeScale = d3.scaleTime().range([0, width]).domain(defaultTimeScale.domain());
-
-    const base = getChildOrAppend<SVGGElement, SVGElement>(root, "g", "base")
-        .attr("transform", `translate(${margin.left}, ${margin.top})`);
-    const defaultAxisbase = getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "long-axis-base")
-        .attr("transform", `translate(0, ${height})`);
-    const focusedAxisbase = getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "short-axis-base")
-    const band = getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "brush-base");
-
-    const brush = d3.brushX()
-        .extent([[0, 0], [width, height]])
-        .on("brush", brushed);
-
-    band.call(brush)
-        .on("click", brushed)
-
-    function brushed(event: { selection: [number, number] }) {
-        const { selection } = event;
-        if (selection) {
-            const extent = selection.map(defaultTimeScale.invert);
-            focusedTimeScale.domain(extent);
-            updateAxis();
-        }
-        else {
-            const extent = defaultTimeScale.domain();
-            focusedTimeScale.domain(extent);
-            updateAxis();
-        }
-    }
-
-    const longAxis = d3.axisBottom(defaultTimeScale);
-    defaultAxisbase.call(longAxis);
-
-    function updateAxis() {
-        focusedAxisbase.call(shortAxis);
-        updateTimeScale && updateTimeScale(focusedTimeScale);
-    }
-
-    const shortAxis = d3.axisBottom(focusedTimeScale);
-    focusedAxisbase.call(shortAxis);
 }

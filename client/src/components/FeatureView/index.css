@@ -42,6 +42,7 @@ button.proba-selected {
     margin-left: 5px;
     display: flex;
     transition: all 0.5s ease;
+    /* position: relative; */
 }
 
 .feature-block {
@@ -64,6 +65,10 @@ button.proba-selected {
     overflow: hidden;
     float: right;
     margin-top: 5px;
+    align-items: center;
+    align-content: center;
+    text-align: center;
+    vertical-align: middle;
 }
 
 .feature-value,
@@ -87,6 +92,10 @@ button.proba-selected {
     font-size: 10px;
 }
 
+.feature-block-cell-text {
+    margin-top: 3px;
+}
+
 .neg-feature,
 .pos-feature {
     height: 15px;
@@ -108,4 +117,24 @@ button.proba-selected {
     margin-top: 10px;
     color: #777;
     float: left;
+}
+
+.feature-block-dot {
+    position: absolute;
+    right: 0px;
+    height: 10px;
+    width: 10px;
+    background-color: #bbb;
+    border: 1px solid #fff;
+    border-radius: 50%;
+    display: inline-block;
+    transform: translate(-50%, -50%);
+}
+
+.feature-block-dot:hover {
+    right: -5px;
+    height: 15px;
+    width: 15px;
+    border: 2px solid #fff;
+    transform: translate(-50%, -50%);
 }

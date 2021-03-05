@@ -76,12 +76,6 @@ export default class Panel extends React.Component<IPanelProps, IPanelState> {
     return (
       <Rnd
         className="panel-wrapper"
-        default={{
-          x: 150,
-          y: 205,
-          width: 500,
-          height: 190
-        }}
         size={{ width, height }}
         position={{ x, y }}
         minWidth={100}
@@ -92,9 +86,12 @@ export default class Panel extends React.Component<IPanelProps, IPanelState> {
           this.setState({ x: d.x, y: d.y });
         }}
         onResize={(e, direction, ref, delta, position) => {
+          console.log(position);
           this.setState({
             width: ref.offsetWidth,
             height: ref.offsetHeight,
+            // width: Number(ref.style.width),
+            // height: Number(ref.style.height),
             ...position
           });
         }}

@@ -1,5 +1,7 @@
 export type PatientMeta = {
     subjectId: number,
-    startDate: string,
-    endDate: string,
+    startDate: Date,
+    endDate: Date,
+    DOB: string,
+    GENDER: string,
 }

@@ -36,3 +36,7 @@
 .fix-on-bottom {
     position: absolute;
 }
+
+rect.selection {
+    fill: #8dbefa;
+}
