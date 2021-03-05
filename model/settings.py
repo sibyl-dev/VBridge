@@ -190,6 +190,55 @@ identifier_variables = {
     'D_ICD_DIAGNOSES': ['ROW_ID']
 }
 
+interesting_info_meta = {
+    'PATIENTS': ['Age', 'GENDER', 'Height', 'Weight',  'LANGUAGE', 'RELIGION', 'MARITAL_STATUS', 'ETHNICITY'],
+    'ADMISSIONS': [
+                    'ADMITTIME', 'ADMISSION_DEPARTMENT', 
+                    'INSURANCE', 'EDREGTIME', 'DIAGNOSIS', 'ICD10_CODE_CN'],
+    'SURGERY_INFO': ['ANES_START_TIME',
+                      'ANES_END_TIME',
+                      'SURGERY_BEGIN_TIME',
+                      'SURGERY_END_TIME',
+                      'SURGERY_NAME',
+                      'ANES_METHOD',
+                      'SURGERY_POSITION',
+                      # 'Height',
+                      # 'Weight',
+                      'Preoperative oxygen saturation (%)',
+                      'Oxygen saturation (%)',
+                      'Surgical time (minutes)',
+                      'CPB time (minutes)',
+                      'Aortic cross-clamping time (times)',
+                      'complication',
+                      'lung complication',
+                      'cardiac complication',
+                      'arrhythmia complication',
+                      'infectious complication',
+                      'other complication',
+                      # 'Age'
+                      ],
+}
+
+filter_variable = {
+    'PATIENTS': ['GENDER'],
+    'ADMISSIONS':[ 'LANGUAGE', 'RELIGION', 'MARITAL_STATUS', 'ETHNICITY', 'ADMISSION_DEPARTMENT', 'INSURANCE', 'DIAGNOSIS', 'ICD10_CODE_CN',],
+    'SURGERY_INFO': [ 'Age', 'Height', 'Weight', 
+                    'SURGERY_NAME',
+                  'ANES_METHOD',
+                  'SURGERY_POSITION',
+                  # 'Preoperative oxygen saturation (%)',
+                  # 'Oxygen saturation (%)',
+                  'Surgical time (minutes)',
+                  # 'CPB time (minutes)',
+                  # 'Aortic cross-clamping time (times)',
+                  'complication',
+                  'lung complication',
+                  'cardiac complication',
+                  'arrhythmia complication',
+                  'infectious complication',
+                  'other complication',]
+}
+
 interesting_variables = {'PATIENTS': ['GENDER', 'DOB'],
  'ADMISSIONS': ['ADMITTIME', 'ADMISSION_DEPARTMENT', 
   'INSURANCE', 'LANGUAGE', 'RELIGION', 'MARITAL_STATUS',

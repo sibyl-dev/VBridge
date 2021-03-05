@@ -1,4 +1,6 @@
 import logging
+
+import json
 import numpy as np
 
 from flask.json import JSONEncoder
@@ -6,7 +8,7 @@ from flask import request, jsonify, Blueprint, current_app, Response
 
 from model.data import get_patient_records
 from model.modeler import Modeler
-from model.settings import interesting_variables, META_INFO
+from model.settings import interesting_variables, META_INFO, filter_variable
 
 api = Blueprint('api', __name__)
 
@@ -83,9 +85,118 @@ def get_patient_meta():
     es = current_app.es
     cutoff_times = current_app.cutoff_times
     hadm_df = es["ADMISSIONS"].df
+    # print('hadm_df', hadm_df[hadm_df['SUBJECT_ID'] == subject_id])
     info['startDate'] = str(hadm_df[hadm_df['SUBJECT_ID'] == subject_id]['ADMITTIME'].values[0])
     info['endDate'] = str(cutoff_times[cutoff_times['SUBJECT_ID'] == subject_id]['time'].values[0])
+    
+    patient_df = es["PATIENTS"].df
+    info['GENDER'] = patient_df[patient_df['SUBJECT_ID'] == subject_id]['GENDER'].values[0]
+    info['DOB'] = str(patient_df[patient_df['SUBJECT_ID'] == subject_id]['DOB'].values[0])
+    
     return jsonify(info)
+
+@api.route('/patientinfo_meta', methods=['GET'])
+def get_patientinfo_meta():
+    subject_id = int(request.args.get('subject_id'))
+    
+    info = {'subjectId': subject_id}
+    es = current_app.es
+    cutoff_times = current_app.cutoff_times
+    
+
+    table_names = ['PATIENTS', 'ADMISSIONS', 'SURGERY_INFO']
+    for i, table_name in enumerate(table_names):
+        # print('table_names', table_name)
+        hadm_df = es[table_name].df
+        record = hadm_df[hadm_df['SUBJECT_ID'] == subject_id]
+        column_names = interesting_variables[table_name]
+        print('column_names', column_names)
+        for i, col in enumerate(column_names):
+            info[col] = str(record[col].values[0])
+    # print('patientinfo_meta', info)
+
+    return jsonify(info)
+
+
+@api.route('/record_filterrange', methods=['GET'])
+def get_record_filterrange():
+    
+    table_names = ['PATIENTS', 'ADMISSIONS', 'SURGERY_INFO']
+    info = {'name': 'filter_range'}
+
+    for i, table_name in enumerate(table_names):
+        column_names = filter_variable[table_name]
+        df = current_app.es[table_name].df
+        for j, filter_name in enumerate(column_names):                
+            all_records = list(set(df[filter_name]))
+
+            if(filter_name == 'SURGERY_NAME'):
+                temp_records = []
+                for item in all_records:
+                    temp_records = temp_records + item.split('+')
+                all_records = list(set(temp_records))
+            if(filter_name == 'SURGERY_POSITION'):
+                temp_records = []
+                for item in all_records:
+                    temp_records = temp_records + item.split(',')
+                all_records = list(set(temp_records))
+
+            # categorical
+            if(df[filter_name].dtype == object):
+                all_records.sort()
+                info[filter_name] = all_records
+            else:
+                info[filter_name] = [min(all_records), max(all_records)]
+
+    return jsonify(info)
+
+@api.route('/patient_group', methods=['GET'])
+def get_patient_group():
+    conditions = json.loads(request.args.get('filterConditions'))
+    # print('conditions', conditions)
+
+    table_names = ['PATIENTS', 'ADMISSIONS', 'SURGERY_INFO']
+    number_vari = ['Age',  'Height', 'Weight', 'Surgical time (minutes)']
+    # for condition_name in conditions:
+    #     print(condition_name)
+    filterList = []
+    es = current_app.es
+    df = es['SURGERY_INFO'].df
+    flags = False
+
+    # print('teststst',df[(df['Age']>=conditions['Age'][0]) &  (df['Age']<=conditions['Age'][1])] )
+    for i, table_name in enumerate(table_names):
+        column_names = filter_variable[table_name]
+        hadm_df = es[table_name].df
+
+        for condition_name in conditions:
+            if(condition_name in column_names):
+                flags = True
+                if(condition_name in number_vari):
+                    print('here', type(hadm_df[condition_name]), hadm_df[condition_name])
+                    hadm_df = hadm_df[(hadm_df[condition_name]>=conditions[condition_name][0]) &  (hadm_df[condition_name]<=conditions[condition_name][1])]
+                elif(condition_name == 'SURGERY_NAME'):
+                    hadm_df['test'] = (hadm_df[condition_name].str).split('+') + conditions[condition_name]
+                    # print('here', hadm_df['test'])
+                    hadm_df = hadm_df[len(hadm_df[condition_name] +  conditions[condition_name]) != len(list( hadm_df[condition_name] +  conditions[condition_name]))]
+                elif(condition_name == 'SURGERY_POSITION'):
+                    hadm_df = hadm_df[((hadm_df[condition_name]).split(',')).any() in conditions[condition_name] ]
+                else:
+                    flag = (hadm_df[condition_name] == conditions[condition_name][0])
+                    for i, value  in enumerate(conditions[condition_name]):
+                        print('value', value, i)
+                        if(i == 0):
+                            continue
+                        flag = (flag) | (hadm_df[condition_name] == conditions[condition_name][i])
+                        hadm_df_ = hadm_df[flag]
+                    # print('here', type(hadm_df[condition_name]), hadm_df[condition_name])
+                    # print('here', type(conditions[condition_name]), conditions[condition_name])
+                    # hadm_df = hadm_df[ np.any(hadm_df[condition_name] == conditions[condition_name]) ]
+                    # hadm_df = hadm_df[(conditions[condition_name].count(hadm_df[condition_name])>0).any()]
+
+        # if(flags):
+        #     print('filter', hadm_df['subject_id'])
+    return ''
 
 
 @api.route('/record_meta', methods=['GET'])

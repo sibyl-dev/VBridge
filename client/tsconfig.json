@@ -20,7 +20,7 @@
     "jsx": "react-jsx",
     "baseUrl": "src",
     "noFallthroughCasesInSwitch": true,
-    "downlevelIteration": true
+    "downlevelIteration": true,
   },
   "include": [
     "src"

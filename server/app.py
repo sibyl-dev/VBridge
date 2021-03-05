@@ -9,7 +9,6 @@ from model.utils import load_entityset, load_fm
 from model.model_manager import ModelManager
 from model.featurization import generate_cutoff_times, Featurization
 
-
 def create_app():
     app = Flask(__name__)
 
@@ -32,14 +31,14 @@ def create_app():
     app.fl = fl
 
     # load model
-    try:
-        model_manager = ModelManager.load()
-    except FileNotFoundError:
-        model_manager = ModelManager(fm)
-        model_manager.fit_all()
-        model_manager.save()
-        print(model_manager.evaluate())
-    app.model_manager = model_manager
+    # try:
+    #     model_manager = ModelManager.load()
+    # except FileNotFoundError:
+    #     model_manager = ModelManager(fm)
+    #     model_manager.fit_all()
+    #     print(model_manager.evaluate())
+    # app.model_manager = model_manager
+
 
     # load explainer
 

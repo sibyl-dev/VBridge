@@ -4,8 +4,12 @@ import { FeatureMeta } from "data/feature";
 import { PatientMeta } from "data/patient";
 import { Entity } from "data/table";
 import { ROOT_URL, DEV_MODE } from "./env";
+import {patientInfoMeta} from 'data/metaInfo';
+import {filterType} from 'data/filterType';
+
 
 const API = `${ROOT_URL}/api`;
+
 
 function checkResponse<T>(response: AxiosResponse<T>, fallback: T): T {
     if (response.status === 200) return response.data;
@@ -46,6 +50,28 @@ export async function getPatientIds(): Promise<number[]> {
     const response = await axios.get(url);
     return checkResponse(response, [])
 }
+
+export async function getPatientInfoMeta(params: {
+    subject_id: number
+}): Promise<patientInfoMeta>{
+    const url = `${API}/patientinfo_meta`;
+    const response = await axios.get(url, { params });
+    return checkResponse(response, []);
+}
+
+export async function getPatientFilterRange(): Promise<filterType>{
+    const url = `${API}/record_filterrange`;
+    const response = await axios.get(url);
+    return checkResponse(response, []);
+}
+export async function getPatientGroup(params: {
+    filterConditions: {[key: string]: any}
+}): Promise<patientInfoMeta>{
+    const url = `${API}/patient_group`;
+    const response = await axios.get(url, { params });
+    return checkResponse(response, []);
+}
+
 
 export async function getPatientMeta(params: {
     subject_id: number
