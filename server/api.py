@@ -279,7 +279,7 @@ def get_prediction():
 @api.route('/feature_values', methods=['GET'])
 def get_feature_values():
     subject_id = int(request.args.get('subject_id'))
-    entry = current_app.fm.loc[subject_id].to_dict()
+    entry = current_app.fm.loc[subject_id].fillna('N/A').to_dict()
     return jsonify(entry)
 
 
