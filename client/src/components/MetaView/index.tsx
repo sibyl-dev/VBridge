@@ -1,14 +1,9 @@
 import * as React from "react";
-import Panel from "../Panel"
-import { Row, Col, Select, Card, Divider} from "antd"
-import "./index.css" 
-import {patientInfoMeta} from 'data/metaInfo';
-// const interesting_info_meta:string [] = {
-
-
+import { Row, Col, Select, Card, Divider } from "antd"
+import "./index.css"
+import { beautifulPrinter } from "visualization/common";
 
 const { Option } = Select;
-
 
 export interface MetaViewProps {
     patientIds?: number[],
@@ -16,70 +11,58 @@ export interface MetaViewProps {
     selectPatientId?: (subjectId: number) => void,
 }
 
-export interface MetaViewStates { 
+export interface MetaViewStates {
     expandItem?: boolean[],
-    PATIENTS?: string[],
-    ADMISSIONS?: string[],
-    SURGERY_INFO?: string[],
+}
+
+export type MetaItems = {
+    name: string,
+    itemNames: string[],
 }
 
 export default class MetaView extends React.Component<MetaViewProps, MetaViewStates> {
-    
+
+    private metaItems: MetaItems[];
+    private layout: number[] = [0, 10, 1, 11, 0];
+
     constructor(props: MetaViewProps) {
         super(props);
-        this.state = { 
-            expandItem: [false, false, false], 
-            PATIENTS: ['Age', 'GENDER', 'Height', 'Weight',  'LANGUAGE', 'RELIGION', 'MARITAL_STATUS', 'ETHNICITY'],
-            ADMISSIONS: ['ADMITTIME', 'ADMISSION_DEPARTMENT', 'INSURANCE', 'EDREGTIME', 'DIAGNOSIS', 'ICD10_CODE_CN'],
-            SURGERY_INFO: ['ANES_START_TIME',
-                              'ANES_END_TIME',
-                              'SURGERY_BEGIN_TIME',
-                              'SURGERY_END_TIME',
-                              'SURGERY_NAME',
-                              'ANES_METHOD',
-                              'SURGERY_POSITION',
-                              'Preoperative oxygen saturation (%)',
-                              'Oxygen saturation (%)',
-                              'Surgical time (minutes)',
-                              'CPB time (minutes)',
-                              'Aortic cross-clamping time (times)',
-                              'complication',
-                              'lung complication',
-                              'cardiac complication',
-                              'arrhythmia complication',
-                              'infectious complication',
-                              'other complication',
-                              ],
-
+        this.state = {
+            expandItem: [false, false, false],
         };
+        this.metaItems = [
+            {
+                name: 'Demographic',
+                itemNames: ['Age', 'GENDER', 'Height', 'Weight', 'LANGUAGE', 'RELIGION', 'MARITAL_STATUS', 'ETHNICITY']
+            },
+            {
+                name: 'Admission',
+                itemNames: ['ADMITTIME', 'ADMISSION_DEPARTMENT', 'INSURANCE', 'EDREGTIME', 'DIAGNOSIS', 'ICD10_CODE_CN']
+            },
+            {
+                name: 'Surgery',
+                itemNames: ['ANES_START_TIME', 'ANES_END_TIME', 'SURGERY_BEGIN_TIME', 'SURGERY_END_TIME',
+                    'SURGERY_NAME', 'SURGERY_POSITION', 'ANES_METHOD',
+                    'Preoperative oxygen saturation (%)', 'Oxygen saturation (%)',
+                    'Surgical time (minutes)', 'CPB time (minutes)', 'Aortic cross-clamping time (times)'
+                ]
+            }
+        ]
         this.handleClick = this.handleClick.bind(this);
-        
     }
-   
-    handleClick(i:number){
-        const expandItem:any  = this.state.expandItem;
+
+    handleClick(i: number) {
+        const expandItem: any = this.state.expandItem;
         expandItem[i] = !expandItem[i]
         this.setState({
-          expandItem: expandItem,
+            expandItem: expandItem,
         });
     }
 
     public render() {
         const { selectPatientId, patientIds, patientInfoMeta } = this.props
-        const { expandItem, PATIENTS, ADMISSIONS, SURGERY_INFO } = this.state;
-        // console.log("PATIENTS", PATIENTS)
-      
-        // const patientMetaName = interesting_info_meta['PATIENTS']
-        // const admissionMetaName = interesting_info_meta['ADMISSIONS']
-        // const surgeryMetaName = interesting_info_meta['SURGERY_INFO']
+        const { expandItem } = this.state;
 
-        // const age = patientInfoMeta && 
-        // (((new Date(patientInfoMeta.startDate).getTime()- new Date(patientInfoMeta.DOB).getTime())/1000/24/60/60/30 + 1).toFixed(0));
-
-        const leftSpan = 0
-        const titleWidth = 10
-        const valueWidth = 11
-        const rightSpan=0
         return (
             <div>
                 <Row>
@@ -93,127 +76,28 @@ export default class MetaView extends React.Component<MetaViewProps, MetaViewSta
                         </Select>
                     </Col>
                 </Row>
-               
-            {/*
-                <Card extra='▶️' title='Patient Information' size='small' style={{marginTop:10,}}>
-                    <p> 
-                        <span className='details-title'> Gender :  </span>
-                        <span className='details-value'> {'   '} {patientInfoMeta && patientInfoMeta['GENDER']}  </span>
-                    </p>
-                    <p> 
-                        <span className='details-title'> Age :  </span>
-                        <span className='details-value'> {'   '} {age} months </span>
-                   </p>
-                </Card>
-               */}
-            
-             
-                <Divider className='metaInfoTitle' orientation="center"> Demographic </Divider>
-
-            {/*
-                <Row onClick={this.handleClick.bind(this,0)}>
-                    <Col span={4}>
-                       {expandItem && expandItem[0] ? <img src='tri_fold.png'  width='15px'/> : <img src='tri_unfold.png'  width='15px'/>} 
-                    </Col>
-                    <Col span={2}/>
-                    <Col span={12}><span className="meta-info-title"> Demographic </span></Col>
-                    <Col span={2} />
-                </Row>
-            */}
-
-                {patientInfoMeta?(
-                    <Row>
-                        {PATIENTS ? PATIENTS.map(name => {
+                {patientInfoMeta && this.metaItems.map(metaItem => <div key={metaItem.name}>
+                    <Divider className='metaInfoTitle' orientation="center"> {metaItem.name} </Divider>
+                        {metaItem.itemNames.map(name => {
                             var value = patientInfoMeta[name]
-                            if(name.indexOf("TIME") != -1){
-                                console.log('TIME', name)
-                                value = value.substr(11, 8)
+                            if (name.indexOf("TIME") != -1) {
+                                // console.log('TIME', name);
+                                value = value.substr(11, 8);
                             }
-                            name = name.replace(/_/g," ")
-                            return (<>
-                                    <Col span={leftSpan}/>
-                                    <Col span={titleWidth}><span className="details-title"> {name}: </span></Col>
-                                    <Col span={valueWidth}>
-                                        <div className='value' >{value}</div>
-                                    </Col>
-                                    <Col span={rightSpan} />
-                                </>)
-                        }): ""} 
-                    </Row>
-
-                ):""}
-
-
-
-                 <Divider className='metaInfoTitle' orientation="center"> Admission </Divider>
-
-             {/*
-                <Row onClick={this.handleClick.bind(this,1)}>
-                    <Col span={4}>
-                        {expandItem && expandItem[1] ? <img src='tri_fold.png'  width='15px'/> : <img src='tri_unfold.png'  width='15px'/>}
-                    </Col>
-                    <Col span={2}/>
-                    <Col span={12}><span className="meta-info-title"> Admission  </span></Col>
-                    <Col span={2} />
-                </Row>
-                 {expandItem && expandItem[1] &&*/} 
-                 {patientInfoMeta?(
-                    <Row>
-                        {ADMISSIONS ? ADMISSIONS.map(name => {
-                            var value = patientInfoMeta[name]
-                            if(name.indexOf("TIME") != -1){
-                                console.log('TIME', name)
-                                value = value.substr(11, 8)
-                            }
-                            name = name.replace(/_/g," ")
-
-                            return (<>
-                                    <Col span={leftSpan}/>
-                                    <Col span={titleWidth}><span className="details-title"> {name}: </span></Col>
-                                    <Col span={valueWidth}>
-                                        <div className='value' >{value}</div>
-                                    </Col>
-                                    <Col span={rightSpan} />
-                                </>)
-                        }): ""} 
-                    </Row>
-                ):""}
-
-                <Divider className='metaInfoTitle' orientation="center"> Surgery </Divider>
-
-            {/*
-                <Row onClick={this.handleClick.bind(this,2)}>
-                    <Col span={4}>
-                        {expandItem && expandItem[2] ? <img src='tri_fold.png'  width='15px'/> : <img src='tri_unfold.png'  width='15px'/>}
-                    </Col>
-                    <Col span={2}/>
-                    <Col span={12}><span className="meta-info-title">Surgery </span></Col>
-                    <Col span={2} />
-                </Row>
-                {expandItem && expandItem[2] && */}
-                {patientInfoMeta?( 
-                    <Row>
-                        {SURGERY_INFO ? SURGERY_INFO.map(name => {
-                            var value = patientInfoMeta[name]
-                            if(name.indexOf("TIME") != -1){
-                                console.log('TIME', name)
-                                value = value.substr(11, 8)
-                            }
-                            name = name.replace(/_/g," ")
-
-                            return (<>
-                                    <Col span={leftSpan}/>
-                                    <Col span={titleWidth}><span className="details-title"> {name}: </span></Col>
-                                    <Col span={valueWidth}>
-                                        <div className='value' >{value}</div>
-                                    </Col>
-                                    <Col span={rightSpan} />
-                                </>)
-                        }): ""}
-                    </Row>
-
-                ):""}
-             </div>
+                            name = name.replace(/_/g, " ");
+                            return <Row key={name}>
+                                <Col span={this.layout[0]} />
+                                <Col span={this.layout[1]}><span className="details-title"> {name}: </span></Col>
+                                <Col span={this.layout[2]} />
+                                <Col span={this.layout[3]}>
+                                    <div className='value' >{value}</div>
+                                </Col>
+                                <Col span={this.layout[4]} />
+                            </Row>
+                        })}
+                </div>
+                )}
+            </div>
         )
     }
 }

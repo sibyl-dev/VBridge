@@ -1,12 +1,13 @@
 import * as React from "react";
+import * as d3 from "d3";
 import { PatientMeta } from "data/patient";
 import { Entity } from "data/table";
 import { defaultCategoricalColor, defaultMargin, getMargin, getScaleTime, IMargin, MarginType } from "visualization/common";
-import { drawTimeline, drawTimelineAxis } from "visualization/timeline";
-import "./index.css"
+import { drawTimeline } from "visualization/timeline";
+import { drawTimelineAxis } from "visualization/timelineAxis"
 import { EventGroup, groupEvents, IEvent } from "data/event";
 import { calculateTracks, drawTimeline2, VEventGroup } from "visualization/timeline2";
-import * as d3 from "d3";
+import "./index.css"
 
 export interface TimelineViewProps {
     patientMeta?: PatientMeta,
@@ -36,6 +37,7 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
     public componentDidUpdate(prevProps: TimelineViewProps) {
         if (prevProps.patientMeta !== this.props.patientMeta) {
             this._extractEvents();
+            this.setState({ timeScale: undefined });
         }
     }
 
@@ -66,8 +68,8 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
     public render() {
         const { patientMeta, tableRecords, onSelectEvents } = this.props;
         let { timeScale, events } = this.state;
-        const startDate = patientMeta && new Date(patientMeta['startDate']);
-        const endDate = patientMeta && new Date(patientMeta.endDate);
+        const startDate = patientMeta && patientMeta.startDate;
+        const endDate = patientMeta && patientMeta.endDate;
         const width = 600;
         const margin: IMargin = { left: 15, right: 15, top: 0, bottom: 0 }
         if (!timeScale) {
@@ -88,7 +90,7 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
                             width: width,
                             margin: margin
                         }}
-                        onSelectEvents={(startDate: Date, endDate: Date) => 
+                        onSelectEvents={(startDate: Date, endDate: Date) =>
                             onSelectEvents && onSelectEvents(tableRecords[i].name!, startDate, endDate)}
                     />)}
                 </div>}
@@ -102,6 +104,8 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
                         margin: { ...margin, bottom: 30, top: 0 }
                     }}
                     updateTimeScale={this.updateTimeScale}
+                    events={events}
+                    color={defaultCategoricalColor}
                 />}
 
             </div>
@@ -212,8 +216,10 @@ export class Timeline extends React.PureComponent<TimelineProps>{
 
 export interface TimelineAxisProps {
     className?: string,
+    events?: IEvent[][],
     startTime?: Date,
     endTime?: Date,
+    color?: (id: number) => string,
     timelineStyle: Partial<TimelineStyle>,
     updateTimeScale?: (scale: d3.ScaleTime<number, number>) => void
 }
@@ -232,20 +238,22 @@ export class TimelineAxis extends React.PureComponent<TimelineAxisProps>{
 
     componentDidUpdate(prevProps: TimelineAxisProps) {
         if ((prevProps.startTime?.toString() !== this.props.startTime?.toString()) ||
-            (prevProps.endTime?.toString() !== this.props.endTime?.toString())) {
+            (prevProps.endTime?.toString() !== this.props.endTime?.toString()) ||
+            (prevProps.events != this.props.events)
+        ) {
             this._draw();
         }
     }
 
     private _draw() {
-        const { startTime, endTime, updateTimeScale } = this.props;
+        const { startTime, endTime, updateTimeScale, events, color } = this.props;
         const style = { ...defaultTimelineStyle, ...this.props.timelineStyle };
-        const { width, height, color } = style;
+        const { width, height } = style;
         const margin = getMargin(style.margin);
         if (startTime && endTime) {
             const extend: [Date, Date] = [startTime, endTime];
             const timeScale = getScaleTime(0, width - margin.left - margin.right,
-                undefined, extend);
+                undefined, extend).nice();
             const node = this.ref.current;
             if (node) {
                 drawTimelineAxis({
@@ -255,7 +263,9 @@ export class TimelineAxis extends React.PureComponent<TimelineAxisProps>{
                     margin: margin,
                     color: color,
                     defaultTimeScale: timeScale,
-                    updateTimeScale: updateTimeScale
+                    updateTimeScale: updateTimeScale,
+                    drawAreaChart: true,
+                    events: events,
                 })
             }
         }
@@ -268,7 +278,7 @@ export class TimelineAxis extends React.PureComponent<TimelineAxisProps>{
         return <div className={"timeline" + (className ? ` ${className}` : "")}>
             <div className={"timeline-title"}><p></p></div>
             <div className={"timeline-content"}>
-                <svg ref={this.ref} className={"timeline-svg"} height={style.height}/>
+                <svg ref={this.ref} className={"timeline-svg"} height={style.height} />
             </div>
         </div>
     }

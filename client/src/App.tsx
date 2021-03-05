@@ -163,21 +163,22 @@ class App extends React.Component<AppProps, AppStates>{
             <p className='system-name'>Bridges</p>
           </Header>
           <Content>
-            <Panel initialWidth={400} initialHeight={840} x={0} y={0}>
-              {featureMeta && predictionTargets && <FeatureView
+            <Panel initialWidth={400} initialHeight={840} x={0} y={0} title="Feature View">
+              {featureMeta && predictionTargets && tableNames && <FeatureView
                 patientMeta={patientMeta}
                 featureMeta={featureMeta}
                 predictionTargets={predictionTargets}
+                tableNames={tableNames}
               />}
             </Panel>
-            <Panel initialWidth={700} initialHeight={400} x={405} y={0}>
+            <Panel initialWidth={700} initialHeight={300} x={405} y={0} title="Timeline View">
               <TimelineView
                 patientMeta={patientMeta}
                 tableRecords={tableRecords}
                 onSelectEvents={this.updateRecordTS}
               />
             </Panel>
-            {tableNames && <Panel initialWidth={300} initialHeight={840} x={1110} y={0}>
+            {tableNames && <Panel initialWidth={300} initialHeight={840} x={1110} y={0} title="Patient View">
               <MetaView
                 patientIds={subjectIds}
                 patientInfoMeta={patientInfoMeta}
@@ -185,7 +186,7 @@ class App extends React.Component<AppProps, AppStates>{
               />
             </Panel>
             }
-            <Panel initialWidth={700} initialHeight={435} x={405} y={405}>
+            <Panel initialWidth={700} initialHeight={535} x={405} y={305} title="Signal View">
               <DynamicView
                 patientMeta={patientMeta}
                 tableNames={tableNames}
@@ -200,14 +201,14 @@ class App extends React.Component<AppProps, AppStates>{
               />
             </Panel>
             }*/}
-            {tableNames && <Panel initialWidth={400} initialHeight={835} x={1410} y={0}>
+            {/* {tableNames && <Panel initialWidth={400} initialHeight={835} x={1410} y={0}>
               <FilterView
                 patientIds={subjectIds}
                 filterRange={filterRange}
                 filterPatients={this.filterPatients}
               />
             </Panel>
-            }
+            } */}
           </Content>
         </Layout>
       </div>

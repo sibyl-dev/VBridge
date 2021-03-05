@@ -78,7 +78,10 @@ export async function getPatientMeta(params: {
 }): Promise<PatientMeta>{
     const url = `${API}/patient_meta`;
     const response = await axios.get(url, { params });
-    return checkResponse(response, []);
+    let meta: PatientMeta = checkResponse(response, []);
+    meta.endDate = new Date(meta.endDate);
+    meta.startDate = new Date(meta.startDate);
+    return meta;
 }
 
 export async function getFeatureMate(): Promise<FeatureMeta[]>{

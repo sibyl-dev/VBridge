@@ -1,12 +1,12 @@
 import { Feature, FeatureMeta } from "data/feature";
 import { PatientMeta } from "data/patient";
 import * as React from "react";
-import { Button, Divider, Tooltip, Input } from "antd"
+import { Badge, Button, Divider, Tooltip, Input } from "antd"
 import "./index.css"
 import { getFeatureValues, getPrediction, getSHAPValues } from "router/api";
 import { DataFrame, IDataFrame } from "data-forge";
 import * as _ from "lodash"
-import { getScaleLinear, beautifulPrinter } from "visualization/common";
+import { getScaleLinear, beautifulPrinter, defaultCategoricalColor } from "visualization/common";
 import { ArrowDownOutlined, ArrowUpOutlined, CaretRightOutlined, SortAscendingOutlined } from "@ant-design/icons"
 import { ScaleLinear } from "d3";
 
@@ -14,6 +14,7 @@ const { Search } = Input;
 
 export interface FeatureViewProps {
     patientMeta?: PatientMeta,
+    tableNames?: string[],
     featureMeta: IDataFrame<number, FeatureMeta>,
     predictionTargets: string[]
 }
@@ -35,6 +36,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
         };
         this.defaultCellWidth = this.defaultCellWidth.bind(this);
         this.onSelectTarget = this.onSelectTarget.bind(this);
+        this.color = this.color.bind(this);
     }
 
     private async updatePrediction() {
@@ -52,6 +54,12 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
 
     private onSelectTarget(target: string) {
         this.setState({ target });
+    }
+
+    private color(entityName: string) {
+        const {tableNames} = this.props;
+        const i = tableNames?.indexOf(entityName);
+        return (i !== undefined) ? defaultCategoricalColor(i): '#aaa';
     }
 
     private async updateFeatures() {
@@ -109,6 +117,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                 {features && <FeatureList
                     features={features}
                     cellWidth={this.defaultCellWidth}
+                    color={this.color}
                 />}
             </div>
         )
@@ -137,6 +146,7 @@ function ProbaList(params: {
 export interface FeatureListProps {
     features: IDataFrame<number, Feature>,
     cellWidth: (id: number) => number,
+    color?: (entityName: string) => string,
 }
 
 export interface FeatureListStates {
@@ -187,7 +197,7 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
     }
 
     public render() {
-        const { features, cellWidth } = this.props;
+        const { features, cellWidth, color } = this.props;
         const { order } = this.state;
         const sortedFeatures = this.sortFeatures(features);
         const x = getScaleLinear(0, cellWidth(2), this.getContributions(sortedFeatures));
@@ -212,9 +222,11 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
                     {sortedFeatures?.toArray().map(row =>
                         <FeatureBlock
                             feature={row}
+                            depth={0}
                             x={x!}
                             cellWidth={cellWidth}
                             key={row.name}
+                            color={color && color(row.end_entity)}
                         />
                     )}
                 </div>
@@ -224,9 +236,12 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
 }
 
 export interface FeatureBlockProps {
+    className?: string,
+    depth: number,
     feature: Feature,
     x: ScaleLinear<number, number>,
     cellWidth: (id: number) => number,
+    color?: string,
 }
 export interface FeatureBlockStates {
     collapsed: boolean,
@@ -260,49 +275,58 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
     }
 
     render() {
-        const { feature, x, cellWidth } = this.props;
+        const { feature, x, cellWidth, color, className, depth } = this.props;
         const { collapsed, expanded } = this.state
         const { name, alias, value, contribution, children } = feature;
-        return <div>
+        return <div className={className}>
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
                 <div style={{ width: 20 }}>
                     {children && <CaretRightOutlined className="right-button"
                         onClick={this.onClickButton} rotate={collapsed ? 0 : 90} />}
                 </div>
-                <div className="feature-block" key={name} style={{ height: expanded ? 100 : 30 }}
-                    onClick={children ? this.onClickButton : this.onClickDiv}>
-                    <Tooltip title={alias}>
-                        <div className="feature-block-cell feature-name" style={{ width: cellWidth(0) }}>
-                            {beautifulPrinter(alias)}
+                <Badge count={0}>
+                    <div className="feature-block" key={name}
+                        style={{ height: expanded ? 100 : 30, }}
+                        onClick={children ? this.onClickButton : this.onClickDiv}>
+                        <Tooltip title={alias}>
+                            <div className="feature-block-cell feature-name" style={{ width: cellWidth(0) - depth * 10 }}>
+                                <p className={"feature-block-cell-text"}>{beautifulPrinter(alias)}</p>
+                            </div>
+                        </Tooltip>
+                        <Tooltip title={value}>
+                            <div className={"feature-block-cell" + (children ? " feature-group-value" : " feature-value")}
+                                style={{ width: cellWidth(1) }}>
+                                <p className={"feature-block-cell-text"}>{beautifulPrinter(value)}</p>
+                            </div>
+                        </Tooltip>
+                        <div className={"feature-block-cell feature-contribution"}
+                            style={{ width: cellWidth(2), opacity: Math.max(1 - 0.5 * depth, 0.5) }}>
+                            {contribution > 0 ?
+                                <div className="pos-feature"
+                                    style={{
+                                        width: x(contribution) - x(0),
+                                        marginLeft: x(0)
+                                    }} /> :
+                                <div className="neg-feature"
+                                    style={{
+                                        width: x(0) - x(contribution),
+                                        marginLeft: x(contribution)
+                                    }} />
+                            }
                         </div>
-                    </Tooltip>
-                    <Tooltip title={value}>
-                        <div className={"feature-block-cell" + (children ? " feature-group-value" : " feature-value")}
-                            style={{ width: cellWidth(1) }}>
-                            {beautifulPrinter(value)}
-                        </div>
-                    </Tooltip>
-                    <div className={"feature-block-cell feature-contribution"} style={{ width: cellWidth(2) }}>
-                        {contribution > 0 ?
-                            <div className="pos-feature"
-                                style={{
-                                    width: x(contribution) - x(0),
-                                    marginLeft: x(0)
-                                }} /> :
-                            <div className="neg-feature"
-                                style={{
-                                    width: x(0) - x(contribution),
-                                    marginLeft: x(contribution)
-                                }} />
-                        }
+                        <span className={"feature-block-dot"} style={{backgroundColor: color || '#aaa'}}/>
+
                     </div>
-                </div>
+                </Badge>
             </div>
             {!collapsed && children?.toArray().map(feature =>
                 <FeatureBlock
+                    className={className}
+                    depth={depth + 1}
                     feature={feature}
                     x={x!}
-                    cellWidth={id => id === 0 ? cellWidth(id) - 10 : cellWidth(id)}
+                    cellWidth={cellWidth}
+                    color={color}
                     key={feature.name}
                 />)}
         </div>
