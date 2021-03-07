@@ -6,3 +6,21 @@
 .bubble {
     opacity: 50%;
 }
+
+.left-time-annotation,
+.right-time-annotation {
+    font-size: 10px;
+    fill: #777;
+    font-weight: bolder;
+    text-anchor: middle;
+}
+
+.handle {
+    fill: rgb(119, 119, 119)
+}
+
+.subline {
+    stroke: #aaa;
+    stroke-width: 1px;
+    transition: all 0.5s ease;
+}
