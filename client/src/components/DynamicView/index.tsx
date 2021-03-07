@@ -1,51 +1,32 @@
-import { Card, Select } from "antd";
-import { distinct } from "data/common";
+import { Button, Card, Select } from "antd";
 import { PatientMeta } from "data/patient";
-import { Entity } from "data/table";
+import { Entity, ItemDict } from "data/table";
 import * as React from "react";
 import { DataFrame, ISeries } from "data-forge"
 import { defaultMargin, getMargin, getScaleTime, MarginType } from "visualization/common";
 import { drawLineChart } from "visualization/lineChart";
 import Search from "antd/lib/input/Search";
-
-const { Option } = Select;
+import "./index.css"
+import { CloseOutlined, MinusOutlined, PushpinOutlined } from "@ant-design/icons";
 
 export interface RecordTS {
     tableName: string,
     itemName: string,
     startTime?: Date,
     endTime?: Date,
-    data: { dates: ISeries<number, Date>, values: ISeries<number, any> }
+    data: { dates: ISeries<number, Date>, values: ISeries<number, any> },
 }
-
-// const buildRecordTS = (entity: Entity<number, any>, itemName: string): RecordTS[] => {
-//     const { item_index, time_index, value_indexes } = entity.metaInfo!;
-//     if (item_index && time_index && value_indexes && value_indexes.length > 0) {
-//         const selectedDf = entity.where(row => (row[item_index] === itemName));
-//         const dates = selectedDf.getSeries(time_index).parseDates();
-//         const records = value_indexes.map(value_index => {
-//             return {
-//                 tableName: entity.name!,
-//                 itemName: itemName,
-//                 data: { dates: dates, values: selectedDf.getSeries(value_index).parseFloats() }
-//             }
-//         })
-//         return records;
-//     }
-//     else
-//         return [];
-// }
 
 export interface DynamicViewProps {
     patientMeta?: PatientMeta,
     tableNames?: string[],
     tableRecords?: Entity<number, any>[],
     dynamicRecords: RecordTS[],
+    itemDicts?: ItemDict
 }
 
 export interface DynamicViewStates {
     targetTableName?: string,
-    itemOptions?: string[],
     targetItems?: string[],
 }
 
@@ -54,56 +35,31 @@ export default class DynamicView extends React.Component<DynamicViewProps, Dynam
     constructor(props: DynamicViewProps) {
         super(props);
 
-        this.state = { }
-
-        this._setTableName = this._setTableName.bind(this);
-        // this._setItemName = this._setItemName.bind(this);
+        this.state = {}
     }
-
-    _setTableName(value: string) {
-        const { tableRecords } = this.props
-        const targetTable = tableRecords?.find(e => e.name === value);
-        const itemIndex = targetTable?.metaInfo?.item_index;
-        let itemOptions: undefined | string[] = [];
-        if (itemIndex) {
-            itemOptions = targetTable?.getSeries(itemIndex).toArray().filter(distinct);
-        }
-        this.setState({ targetTableName: value, itemOptions: itemOptions });
-    }
-
-    // _setItemName(value: string) {
-    //     const { tableRecords } = this.props;
-    //     const { itemOptions, targetTableName } = this.state;
-    //     const targetTable = tableRecords?.find(e => e.name === targetTableName)!;
-    //     const targetItems = value === 'All' ? itemOptions : [value];
-    //     const recordList = targetItems!.map(itemName => buildRecordTS(targetTable, itemName));
-    //     const recordData = Array.prototype.concat.apply([], recordList);
-    //     this.setState({ targetItems, recordData });
-    // }
 
     public render() {
-        const { tableNames, patientMeta, dynamicRecords } = this.props;
-        const { itemOptions } = this.state;
+        const { tableNames, patientMeta, dynamicRecords, itemDicts } = this.props;
 
         const startDate = patientMeta && new Date(patientMeta.startDate);
         const endDate = patientMeta && new Date(patientMeta.endDate);
-        console.log(dynamicRecords);
 
         return (
             <div>
                 <div>
-                <Search placeholder="input search text" style={{ marginLeft: 10, marginRight: 10, width: "90%" }} enterButton />
+                    <Search placeholder="input search text" style={{ marginLeft: 10, marginRight: 10, width: "90%" }} enterButton />
                 </div>
                 <div>
                     {dynamicRecords.map((data, i) =>
                         <DynamicCard
                             {...data}
                             key={i}
+                            itemDicts={itemDicts}
                             startTime={startDate}
                             endTime={endDate}
                             align={false}
                             timeSeriesStyle={{
-                                margin: {bottom: 20, left: 25, top: 15}
+                                margin: { bottom: 20, left: 25, top: 15 }
                             }}
                         />)}
                 </div>
@@ -120,7 +76,7 @@ export interface TimeSeriesStyle {
 }
 
 const defaultTimeSeriesStyle: TimeSeriesStyle = {
-    width: 560,
+    width: 720,
     height: 120,
     color: "#aaa",
     margin: defaultMargin,
@@ -130,7 +86,8 @@ export interface DynamicCardProps extends RecordTS {
     startTime?: Date,
     endTime?: Date,
     align?: boolean,
-    timeSeriesStyle: Partial<TimeSeriesStyle>
+    timeSeriesStyle: Partial<TimeSeriesStyle>,
+    itemDicts?: ItemDict
 }
 
 export interface DynamicCardStates { }
@@ -177,12 +134,23 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
     }
 
     public render() {
-        const { tableName, itemName } = this.props;
+        const { tableName, itemName, itemDicts } = this.props;
         const style = { ...defaultTimeSeriesStyle, ...this.props.timeSeriesStyle };
         const { width, height } = style;
+        const itemLabel = itemDicts && itemDicts(tableName, itemName)?.LABEL;
 
-        return <Card title={`${tableName}.${itemName}`} size="small">
+        // return <Card title={`${tableName}.${itemName}`} size="small">
+        //     <svg ref={this.ref} className={"ts-svg"} style={{ width: width, height: height }} />
+        // </Card>
+        return <div className={"ts-card"}>
+            <div className={"ts-title"}> 
+                <span className={"ts-title-text"}>{`${itemLabel || itemName}`}</span>
+                <Button size="small" type="text" icon={<CloseOutlined />} className={"ts-title-button"}/>
+                <Button size="small" type="text" icon={<MinusOutlined />} className={"ts-title-button"}/>
+                <Button size="small" type="text" icon={<PushpinOutlined />} className={"ts-title-button"}/>
+                <Button size="small" type="primary" className={"ts-title-button"}>Explain</Button>
+            </div>
             <svg ref={this.ref} className={"ts-svg"} style={{ width: width, height: height }} />
-        </Card>
+        </div>
     }
 }

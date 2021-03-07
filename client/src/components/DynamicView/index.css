@@ -1,0 +1,25 @@
+.ts-card {
+    border: 1px solid #bbb;
+    margin: 5px 20px 5px 20px;
+    border-radius: 5px;
+}
+
+.ts-title {
+    border-bottom: 1px solid #bbb;
+    /* display: flex; */
+    margin: 3px 0px 3px 0px;
+    font-size: 12px;
+    height: 30px;
+}
+
+.ts-title-text {
+    margin-top: 3px;
+    margin-left: 5px;
+    float: left;
+}
+
+.ts-title-button {
+    /* margin-left: 2px; */
+    margin-right: 2px;
+    float: right;
+}
