@@ -4,9 +4,6 @@ import "./lineChart.css"
 import { getChildOrAppend, getScaleLinear, getScaleTime, defaultCategoricalColor, IMargin, getMargin } from "./common";
 import { ISeries } from "data-forge";
 
-
-
-
 export function drawLineChart(params: {
     data: { dates: ISeries<number, Date>, values: ISeries<number, any> }
     svg: SVGElement,
