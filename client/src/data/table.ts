@@ -13,6 +13,12 @@ export interface TableMeta {
     alias?: string,
 }
 
+export type ItemDesc = {
+    LABEL: string,
+    LABEL_CN: string
+}
+export type ItemDict = (tableName: string, itemName: string) => ItemDesc|undefined;
+
 export class Entity<IndexT, ValueT> extends DataFrame<IndexT, ValueT> {
     public metaInfo?: TableMeta;
     public name?: string;

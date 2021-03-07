@@ -40,7 +40,6 @@ button.proba-selected {
     height: 30px;
     margin-right: 10px;
     margin-left: 5px;
-    display: flex;
     transition: all 0.5s ease;
     /* position: relative; */
 }
@@ -49,14 +48,25 @@ button.proba-selected {
     border: 1px solid rgba(220, 225, 230, 0.7);
     border-radius: 5px;
     margin-top: 2px;
+    display: flex;
+    flex-direction: column;
 }
 
 .feature-block:hover {
     border: 1px solid #777;
 }
 
+.feature-block-inner {
+    display: flex;
+}
+
+.feature-block-hist {
+    margin-top: 10px;
+}
+
 .feature-header {
     margin-top: 10px;
+    display: flex;
 }
 
 .feature-block-cell,
@@ -124,6 +134,7 @@ button.proba-selected {
     right: 0px;
     height: 10px;
     width: 10px;
+    top: 15px;
     background-color: #bbb;
     border: 1px solid #fff;
     border-radius: 50%;

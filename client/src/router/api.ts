@@ -1,8 +1,9 @@
 import axios, { AxiosResponse } from "axios";
 import * as dataForge from "data-forge"
+import * as _ from "lodash"
 import { FeatureMeta } from "data/feature";
 import { PatientMeta } from "data/patient";
-import { Entity } from "data/table";
+import { Entity, ItemDict } from "data/table";
 import { ROOT_URL, DEV_MODE } from "./env";
 import {patientInfoMeta} from 'data/metaInfo';
 import {filterType} from 'data/filterType';
@@ -105,6 +106,14 @@ export async function getPrediction(params: {
     return (target: string) => predictions[target];
 }
 
+export async function getFeatureMatrix(): Promise<dataForge.IDataFrame<number, any>>{
+    const url = `${API}/feature_matrix`;
+    const response = await axios.get(url);
+    const checked = checkResponse(response, []);
+    const fm = dataForge.fromCSV(checked);
+    return fm;
+}
+
 export async function getFeatureValues(params: {
     subject_id: number
 }): Promise<(featureName: string) => number>{
@@ -122,4 +131,16 @@ export async function getSHAPValues(params: {
     const response = await axios.get(url, { params });
     const shapValues = checkResponse(response, []);
     return (featureName: string) => shapValues[featureName];
+}
+
+export async function getItemDict(): Promise<ItemDict> {
+    const url = `${API}/item_dict`;
+    const response = await axios.get(url);
+    const checked = checkResponse(response, []);
+    return (tableName: string, itemName: string) => {
+        if (_.has(checked, tableName)) {
+            return checked[tableName][itemName];
+        }
+        else return undefined;
+    }
 }

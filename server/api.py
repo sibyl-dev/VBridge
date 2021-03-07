@@ -276,6 +276,11 @@ def get_prediction():
     return jsonify(predictions)
 
 
+@api.route('/feature_matrix', methods=['GET'])
+def get_feature_matrix():
+    return Response(current_app.fm.to_csv(), mimetype="text/csv")
+
+
 @api.route('/feature_values', methods=['GET'])
 def get_feature_values():
     subject_id = int(request.args.get('subject_id'))
@@ -289,3 +294,16 @@ def get_shap_values():
     target = request.args.get('target')
     shap_values = current_app.model_manager.explain(subject_id, target)
     return jsonify(shap_values.loc[0].to_dict())
+
+
+@api.route('/item_dict', methods=['GET'])
+def get_item_dict():
+    item_dict = {}
+    for group in current_app.es['D_ITEMS'].df.groupby('LINKSTO'):
+        items = group[1].loc[:, ['LABEL', 'LABEL_CN']]
+        table_name = group[0].upper()
+        item_dict[table_name] = items.to_dict('index')
+    
+    item_dict['LABEVENTS'] = current_app.es['D_LABITEMS'].df.loc[:, ['LABEL', 'LABEL_CN']].to_dict('index')
+
+    return jsonify(item_dict)

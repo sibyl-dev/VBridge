@@ -11,11 +11,11 @@ import TimelineView from "./components/TimelineView"
 import DynamicView, { RecordTS } from "./components/DynamicView"
 import FilterView from "./components/FilterView"
 
-import { getFeatureMate, getPatientIds, getPatientMeta, getPatientInfoMeta, getPatientRecords, getPredictionTargets, getTableNames, getPatientFilterRange, getPatientGroup } from "./router/api"
+import { getFeatureMate, getPatientIds, getPatientMeta, getPatientInfoMeta, getPatientRecords, getPredictionTargets, getTableNames, getPatientFilterRange, getPatientGroup, getItemDict } from "./router/api"
 import { PatientMeta } from 'data/patient';
-import { Entity } from 'data/table';
-import {patientInfoMeta} from 'data/metaInfo';
-import {filterType} from 'data/filterType';
+import { Entity, ItemDict } from 'data/table';
+import { patientInfoMeta } from 'data/metaInfo';
+import { filterType } from 'data/filterType';
 
 
 
@@ -33,6 +33,7 @@ interface AppStates {
   // static information
   subjectIds?: number[],
   tableNames?: string[],
+  itemDicts?: ItemDict,
 
   //patient information
   tableRecords?: Entity<number, any>[],
@@ -44,9 +45,9 @@ interface AppStates {
   featureMeta?: DataFrame<number, FeatureMeta>,
   predictionTargets?: string[],
 
-  patientInfoMeta?: {[key: string]: any},
+  patientInfoMeta?: { [key: string]: any },
   filterRange?: filterType,
-  filterConditions?: {[key: string]: any},
+  filterConditions?: { [key: string]: any },
 
 }
 
@@ -66,42 +67,35 @@ class App extends React.Component<AppProps, AppStates>{
     const subjectIds = await getPatientIds();
     const tableNames = await getTableNames();
     const filterRange = await getPatientFilterRange();
-    const filterConditions ={'':''}
-    
+    const itemDicts = await getItemDict();
+    const filterConditions = { '': '' }
+
     const featureMeta = new DataFrame(await getFeatureMate());
     const predictionTargets = await getPredictionTargets();
 
 
-    this.setState({ subjectIds, tableNames, filterRange, filterConditions, featureMeta, predictionTargets});
+    this.setState({ subjectIds, tableNames, filterRange, filterConditions, featureMeta, predictionTargets, itemDicts });
   }
 
   public async selectPatientId(subjectId: number) {
     const patientMeta = await getPatientMeta({ subject_id: subjectId });
-    const patientInfoMeta = await getPatientInfoMeta({subject_id: subjectId});
-    // const admissionInfoMeta:admissionInfoMeta = JSON.parse(await getPatientInfoMeta({ subject_id: subjectId, table_name: 'ADMISSIONS'}));
-    // const surgeryInfoMeta:surgeryInfoMeta = JSON.parse(await getPatientInfoMeta({ subject_id: subjectId, table_name: 'SURGERY_INFO'}));
-
+    const patientInfoMeta = await getPatientInfoMeta({ subject_id: subjectId });
     const tableRecords = await this.loadPatientRecords(subjectId);
-    console.log('selectPatientId', patientMeta, tableRecords)
-    // console.log('meta', admissionInfoMeta, surgeryInfoMeta)
-    // console.log('meta', patientInfoMeta['GENDER'])
-    // patientInfoMeta, admissionInfoMeta, surgeryInfoMeta 
-    this.setState({patientMeta, tableRecords, patientInfoMeta});
+    this.setState({ patientMeta, tableRecords, patientInfoMeta });
   }
 
-  public async filterPatients(conditions: {[key: string]: any}) {
-    const {filterConditions, filterRange} = this.state
-    for(var key in conditions)
-      if(filterConditions){
-        var value = conditions[key]=='Yes'?1: conditions[key]
-        value = conditions[key]=='No'?0: conditions[key]
+  public async filterPatients(conditions: { [key: string]: any }) {
+    const { filterConditions, filterRange } = this.state
+    for (var key in conditions)
+      if (filterConditions) {
+        var value = conditions[key] == 'Yes' ? 1 : conditions[key]
+        value = conditions[key] == 'No' ? 0 : conditions[key]
         filterConditions[key] = value
       }
-    this.setState({filterConditions})
+    this.setState({ filterConditions })
 
-    if(filterConditions)
+    if (filterConditions)
       getPatientGroup({ filterConditions: filterConditions })
-    console.log('conditions', filterConditions)
 
   }
 
@@ -152,7 +146,8 @@ class App extends React.Component<AppProps, AppStates>{
   }
 
   public render() {
-    const { subjectIds, patientMeta, tableNames, tableRecords, featureMeta, predictionTargets, dynamicRecords, patientInfoMeta, filterRange } = this.state
+    const { subjectIds, patientMeta, tableNames, tableRecords, featureMeta, predictionTargets, 
+      itemDicts, dynamicRecords, patientInfoMeta, filterRange } = this.state
     return (
       <div className='App'>
         <Layout>
@@ -166,16 +161,26 @@ class App extends React.Component<AppProps, AppStates>{
                 featureMeta={featureMeta}
                 predictionTargets={predictionTargets}
                 tableNames={tableNames}
+                itemDicts={itemDicts}
               />}
             </Panel>
-            <Panel initialWidth={700} initialHeight={300} x={405} y={0} title="Timeline View">
+            <Panel initialWidth={800} initialHeight={300} x={405} y={0} title="Timeline View">
               <TimelineView
                 patientMeta={patientMeta}
                 tableRecords={tableRecords}
                 onSelectEvents={this.updateRecordTS}
               />
             </Panel>
-            {tableNames && <Panel initialWidth={300} initialHeight={840} x={1110} y={0} title="Patient View">
+            <Panel initialWidth={800} initialHeight={535} x={405} y={305} title="Signal View">
+              <DynamicView
+                patientMeta={patientMeta}
+                tableNames={tableNames}
+                tableRecords={tableRecords}
+                dynamicRecords={dynamicRecords}
+                itemDicts={itemDicts}
+              />
+            </Panel>
+            {tableNames && <Panel initialWidth={300} initialHeight={840} x={1210} y={0} title="Patient View">
               <MetaView
                 patientIds={subjectIds}
                 patientInfoMeta={patientInfoMeta}
@@ -183,14 +188,6 @@ class App extends React.Component<AppProps, AppStates>{
               />
             </Panel>
             }
-            <Panel initialWidth={700} initialHeight={535} x={405} y={305} title="Signal View">
-              <DynamicView
-                patientMeta={patientMeta}
-                tableNames={tableNames}
-                tableRecords={tableRecords}
-                dynamicRecords={dynamicRecords}
-              />
-            </Panel>
             {/* {tableNames && <Panel initialWidth={400} initialHeight={435} x={1010} y={405}>
               <TableView
                 patientMeta={patientMeta}
