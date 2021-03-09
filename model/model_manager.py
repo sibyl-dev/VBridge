@@ -10,8 +10,8 @@ output_dir = os.path.join(ROOT, 'data/intermediate/')
 
 
 class ModelManager:
-    def __init__(self, fm, topk=10):
-        self._models = {target_name: Modeler(topk=topk)
+    def __init__(self, fm, topk=10, **kwargs):
+        self._models = {target_name: Modeler(topk=topk, **kwargs)
                         for target_name in Modeler.prediction_targets()}
         self.X_train, self.X_test, self.y_train, self.y_test = Modeler.train_test_split(fm)
 

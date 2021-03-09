@@ -10,7 +10,7 @@ from featuretools.selection import remove_low_information_features, \
     remove_highly_correlated_features, remove_highly_null_features
 
 from model.settings import ignore_variables
-from model.utils import save_fm
+from model.utils import save_fm, load_fm, exist_fm
 
 
 def generate_cutoff_times(es):
@@ -45,6 +45,14 @@ def merge_features(fm_list, fl_list):
                 fl_names.append(f.get_name())
     return fm, fl
 
+ignore_features = ['MEAN(SURGERY_VITAL_SIGNS.VALUE)',
+    'STD(SURGERY_VITAL_SIGNS.VALUE)',
+    'TREND(SURGERY_VITAL_SIGNS.VALUE, MONITOR_TIME)',
+    'ADMISSIONS.MEAN(CHARTEVENTS.VALUE)',
+    'ADMISSIONS.STD(CHARTEVENTS.VALUE)',
+    'ADMISSIONS.TREND(CHARTEVENTS.VALUE, CHARTTIME)'
+]
+
 
 class Featurization:
 
@@ -54,47 +62,120 @@ class Featurization:
         self.label_times = es['SURGERY_INFO'].df[['UNI_OPER_ID', 'SURGERY_END_TIME']]
         self.label_times.columns = ['instance_id', 'time']
 
-    def generate_features(self, forward=True, surgery_vital=True, select=True, save=True):
+    def generate_features(self, entity_list=None, select=True, save=True, use_saved=True):
         features = []
-        if forward:
-            features.append(self._forward_features(select))
-        if surgery_vital:
-            features.append(self._surgery_vital_sign_features(select))
+        if entity_list is None or 'PATIENTS' in entity_list:
+            features.append(self._forward_features(select, save, use_saved))
+        if entity_list is None or 'SURGERY_VITAL_SIGNS' in entity_list:
+            features.append(self._surgery_vital_sign_features(select, save, use_saved))
+        if entity_list is None or 'CHARTEVENTS' in entity_list:
+            features.append(self._chart_event_features(select, save, use_saved))
         fm, fl = merge_features([f[0] for f in features], [f[1] for f in features])
+
+        for col in ignore_features:
+            if col in fm:
+                fm.pop(col)
+        fl = [f for f in fl if f.get_name() in fm.columns]
+
         # TODO: this code only works for this case. The formal id should be the surgery id
         fm = fm.set_index(self.es['SURGERY_INFO'].df['SUBJECT_ID'])
         if save:
             save_fm(fm, fl)
         return fm, fl
 
-    def _surgery_vital_sign_features(self, select=True):
-        # Generate features
-        vital_sign_items = self.es['SURGERY_VITAL_SIGNS'].df['ITEMID'].unique()
-        self.es['SURGERY_VITAL_SIGNS']['ITEMID'].interesting_values = vital_sign_items
-        fm, fl = ft.dfs(entityset=self.es,
-                        target_entity=self.target_entity,
-                        agg_primitives=["mean", "std", "trend"],
-                        where_primitives=["mean", "std", "trend"],
-                        trans_primitives=[],
-                        allowed_paths=[['SURGERY_INFO', 'SURGERY_VITAL_SIGNS']],
-                        ignore_variables=ignore_variables,
-                        cutoff_time=self.label_times,
-                        verbose=True)
-        if select:
-            fm, fl = select_features(fm, fl)
+    def _surgery_vital_sign_features(self, select=True, save=True, use_saved=True):
+        token = 'surgery_vital_sign_select={}'.format(select)
+        if use_saved and exist_fm(token):
+            fm, fl = load_fm(token)
+        else:
+            # Generate features
+            vital_sign_items = self.es['SURGERY_VITAL_SIGNS'].df['ITEMID'].unique()
+            self.es['SURGERY_VITAL_SIGNS']['ITEMID'].interesting_values = vital_sign_items
+            fm, fl = ft.dfs(entityset=self.es,
+                            target_entity=self.target_entity,
+                            agg_primitives=["mean", "std", "trend"],
+                            where_primitives=["mean", "std", "trend"],
+                            trans_primitives=[],
+                            allowed_paths=[['SURGERY_INFO', 'SURGERY_VITAL_SIGNS']],
+                            ignore_variables=ignore_variables,
+                            cutoff_time=self.label_times,
+                            verbose=True)
+            if select:
+                fm, fl = select_features(fm, fl)
+        if save:
+            save_fm(fm, fl, token)
         return fm, fl
 
-    def _forward_features(self, select=True):
-        fm, fl = ft.dfs(entityset=self.es,
-                        target_entity=self.target_entity,
-                        agg_primitives=[],
-                        trans_primitives=[],
-                        allowed_paths=[['SURGERY_INFO', 'ADMISSIONS'],
-                                       ['SURGERY_INFO', 'ADMISSIONS', 'PATIENTS']],
-                        ignore_variables=ignore_variables,
-                        cutoff_time=self.label_times,
-                        verbose=True)
-        if select:
-            fm, fl = select_features(fm, fl)
+    def _forward_features(self, select=True, save=True, use_saved=True):
+        token = 'forward_select={}'.format(select)
+        if use_saved and exist_fm(token):
+            fm, fl = load_fm(token)
+        else:
+            # Generate features
+            fm, fl = ft.dfs(entityset=self.es,
+                            target_entity=self.target_entity,
+                            agg_primitives=[],
+                            trans_primitives=[],
+                            allowed_paths=[['SURGERY_INFO', 'ADMISSIONS'],
+                                        ['SURGERY_INFO', 'ADMISSIONS', 'PATIENTS']],
+                            ignore_variables=ignore_variables,
+                            cutoff_time=self.label_times,
+                            verbose=True)
+            if select:
+                fm, fl = select_features(fm, fl)
+        if save:
+            save_fm(fm, fl, token)
+        return fm, fl
+
+    def _chart_event_features(self, select=True, save=True, use_saved=True):
+        token = 'chart_event_select={}'.format(select)
+        self.es.add_last_time_indexes()
+        if use_saved and exist_fm(token):
+            fm, fl = load_fm(token)
+        else:
+            # Generate features
+            vital_sign_items = self.es['CHARTEVENTS'].df['ITEMID'].unique()
+            self.es['CHARTEVENTS']['ITEMID'].interesting_values = vital_sign_items
+            fm, fl = ft.dfs(entityset=self.es,
+                            target_entity=self.target_entity,
+                            agg_primitives=["mean", "std", "trend"],
+                            where_primitives=["mean", "std", "trend"],
+                            trans_primitives=[],
+                            allowed_paths=[['SURGERY_INFO', 'ADMISSIONS'],
+                                        ['SURGERY_INFO', 'ADMISSIONS', 'CHARTEVENTS']],
+                            ignore_variables=ignore_variables,
+                            cutoff_time=self.label_times,
+                            training_window='24h',
+                            verbose=True)
+            if select:
+                fm, fl = select_features(fm, fl)
+        if save:
+            save_fm(fm, fl, token)
+        return fm, fl
+
+    def _lab_test_features(self, select=True, save=True, use_saved=True):
+        token = 'chart_event_select={}'.format(select)
+        self.es.add_last_time_indexes()
+        if use_saved and exist_fm(token):
+            fm, fl = load_fm(token)
+        else:
+            # Generate features
+            vital_sign_items = self.es['CHARTEVENTS'].df['ITEMID'].unique()
+            self.es['CHARTEVENTS']['ITEMID'].interesting_values = vital_sign_items
+            fm, fl = ft.dfs(entityset=self.es,
+                            target_entity=self.target_entity,
+                            agg_primitives=["mean"],
+                            where_primitives=["mean"],
+                            trans_primitives=[],
+                            allowed_paths=[['SURGERY_INFO', 'ADMISSIONS'],
+                                        ['SURGERY_INFO', 'ADMISSIONS', 'CHARTEVENTS']],
+                            ignore_variables=ignore_variables,
+                            cutoff_time=self.label_times,
+                            training_window='24h',
+                            verbose=True)
+            if select:
+                fm, fl = select_features(fm, fl)
+        if save:
+            save_fm(fm, fl, token)
         return fm, fl
 

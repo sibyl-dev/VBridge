@@ -23,19 +23,23 @@ classification_metrics = {
 
 
 def test(model, X, y):
+    y_pred_proba = model.predict_proba(X)
     y_pred = model.predict(X)
     scores = {}
     for name, func in classification_metrics.items():
-        scores[name] = func(y, y_pred)
+        if name is 'AUROC':
+            scores[name] = func(y, y_pred_proba[:, 1])
+        else:
+            scores[name] = func(y, y_pred)
     return scores
 
 
 class Modeler:
-    def __init__(self, topk=10):
+    def __init__(self, topk=10, **kwargs):
         self._one_hot_encoder = OneHotEncoder(topk=topk)
         self._imputer = SimpleImputer()
         self._scaler = MinMaxScaler()
-        self._model = XGBClassifier(eval_metric='error', use_label_encoder=False)
+        self._model = XGBClassifier(use_label_encoder=False, **kwargs)
         # self._model = XGBClassifier(eval_metric='logloss', use_label_encoder=False)
         self._explainer = None
 
@@ -66,7 +70,8 @@ class Modeler:
 
         weights = class_weight.compute_class_weight('balanced', [0, 1], y_train)
         sample_weight = [weights[l] for l in y_train]
-        self._model.fit(X_train, y_train, sample_weight=sample_weight)
+        self._model.fit(X_train, y_train, sample_weight=sample_weight, eval_metric='auc')
+        # self._model.fit(X_train, y_train)
         if explain:
             self._explainer = shap.TreeExplainer(self._model)
 
