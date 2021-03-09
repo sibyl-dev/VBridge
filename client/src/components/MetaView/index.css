@@ -52,15 +52,19 @@
 }
 #Demographic .ant-col-11 {
     background: rgba(179,205,227, 0.3);
-    border: 1px solid  #3CB371;
+    /*DarkTurquoise*/
+    border: 1px solid #00CED1;
 }
 #Admission .ant-col-11 {
     background: rgba(251,180,174, 0.3);
+    /*pink*/
     border: 1px solid #FFB6C1;
 }
 #Surgery .ant-col-11 {
-    background: rgba(204,235,197, 0.3);
-    border: 1px solid #00CED1;
+	 background: rgba(204,235,197, 0.3); 
+    /*SpringGreen*/
+    border: 1px solid  #3CB371;
+   
 }
 
 .ant-col .details-title{
