@@ -192,7 +192,7 @@ def get_patient_group():
 
             subject_idG = hadm_df['SUBJECT_ID'].drop_duplicates().values.tolist()
             # print('subject_idG',  len(subject_idG))
-            
+
     if(hasFilter == False):
         hadm_df = es['PATIENTS'].df
         subject_idG = hadm_df['SUBJECT_ID']
@@ -283,12 +283,6 @@ def get_prediction():
 @api.route('/feature_values', methods=['GET'])
 def get_feature_values():
     subject_id = int(request.args.get('subject_id'))
-    
-    test = current_app.fm
-    test['SUBJECT_ID'] = test.index
-    # print('get_feature_values', test.index)
-    (test).to_csv('current_app1.csv')
-
     entry = current_app.fm.loc[subject_id].fillna('N/A').to_dict()
     return jsonify(entry)
 
