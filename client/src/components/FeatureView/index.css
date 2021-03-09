@@ -94,6 +94,8 @@ button.proba-selected {
 
 .feature-block-cell-text {
     margin-top: 3px;
+    color: #3d3d3d;
+    font-weight: bold;
 }
 
 .neg-feature,

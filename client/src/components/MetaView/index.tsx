@@ -76,7 +76,7 @@ export default class MetaView extends React.Component<MetaViewProps, MetaViewSta
                         </Select>
                     </Col>
                 </Row>
-                {patientInfoMeta && this.metaItems.map(metaItem => <div key={metaItem.name}>
+                {patientInfoMeta && this.metaItems.map(metaItem => <div key={metaItem.name} id={metaItem.name}>
                     <Divider className='metaInfoTitle' orientation="center"> {metaItem.name} </Divider>
                         {metaItem.itemNames.map(name => {
                             var value = patientInfoMeta[name]

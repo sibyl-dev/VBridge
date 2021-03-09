@@ -189,7 +189,7 @@ export function isStringArray(x: number[] | string[]): x is string[] {
 
 export function beautifulPrinter(value: any, maxChar: number = 15): any {
   if (typeof (value) === typeof ("")) {
-      return value.length > maxChar ? value.substring(0, 30) + "..." : value
+      return value.length > maxChar ? value.substring(0, 12) + "..." : value
   }
   if (typeof (value) === typeof (0.0)) {
       return _.round(value, 3)
