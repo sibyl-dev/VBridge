@@ -163,7 +163,7 @@ def get_patient_group():
     subject_idG = []
     hasFilter = False
     print('conditions', conditions)
-
+    info = {'subject_idG' : []}
     for i, table_name in enumerate(table_names):
         
         column_names = filter_variable[table_name]
@@ -191,14 +191,16 @@ def get_patient_group():
                 hadm_df = hadm_df[hadm_df['SUBJECT_ID'].isin(subject_idG)]
 
             subject_idG = hadm_df['SUBJECT_ID'].drop_duplicates().values.tolist()
-
-            print('subject_idG',  len(subject_idG))
+            # print('subject_idG',  len(subject_idG))
+            
     if(hasFilter == False):
         hadm_df = es['PATIENTS'].df
         subject_idG = hadm_df['SUBJECT_ID']
-        print('subject_idG',  len(subject_idG))
+        # print('subject_idG',  len(subject_idG))
 
-    return ''
+    info['subject_idG'] = list(subject_idG)
+
+    return jsonify(info)
 
 
 @api.route('/record_meta', methods=['GET'])
@@ -281,6 +283,12 @@ def get_prediction():
 @api.route('/feature_values', methods=['GET'])
 def get_feature_values():
     subject_id = int(request.args.get('subject_id'))
+    
+    test = current_app.fm
+    test['SUBJECT_ID'] = test.index
+    # print('get_feature_values', test.index)
+    (test).to_csv('current_app1.csv')
+
     entry = current_app.fm.loc[subject_id].fillna('N/A').to_dict()
     return jsonify(entry)
 

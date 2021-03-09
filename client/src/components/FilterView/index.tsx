@@ -3,6 +3,7 @@ import Panel from "../Panel"
 import { Row, Col, Select, Card, Divider, Slider, Checkbox, Switch, InputNumber} from "antd"
 import "./index.css" 
 import {filterType} from 'data/filterType';
+import {beautifulPrinter} from 'visualization/common'
 
 const { Option } = Select
 
@@ -44,7 +45,9 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
             filter_name: ['Age',  'Height', 'Weight', 'Surgical time (minutes)','GENDER', 
                             // 'LANGUAGE', 'RELIGION', 'MARITAL_STATUS', 
                             'ETHNICITY',
-                            'ADMISSION_DEPARTMENT', 'INSURANCE', 'DIAGNOSIS', 'ICD10_CODE_CN', 
+                            'ADMISSION_DEPARTMENT', 
+                            // 'INSURANCE', 
+                            'DIAGNOSIS', 'ICD10_CODE_CN', 
                             'SURGERY_NAME', 'ANES_METHOD','SURGERY_POSITION', 
                                 // 'Preoperative oxygen saturation (%)',
                               // 'Oxygen saturation (%)',
@@ -233,8 +236,13 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
                     const contents:string [] =  filterRange[name]
                     const name1 = name.replace(/_/g," ")
                     var value: any = ['Empty']
-                    if(checkedList)
+                    if(checkedList){
                         value = checkedList[idx-5]
+                        // for(let i in value)
+                            // value[i] = beautifulPrinter(value[i], 30)                        
+                    }
+                    // for(let i in contents)
+                        // contents[i] = beautifulPrinter(contents[i], 30)
                     return <>
                         <Divider orientation="center"></Divider>
                         <Row>
@@ -247,7 +255,7 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
                                       style={{ width: '100%' }}
                                       placeholder="Please select"
                                       maxTagCount='responsive'
-                                      dropdownMatchSelectWidth={false}
+                                      dropdownMatchSelectWidth={true}
                                       value={value}
                                       onChange={this.handleMultiSelect.bind(this, idx-5)}
                                     >
