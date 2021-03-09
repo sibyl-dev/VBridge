@@ -65,17 +65,6 @@ export default class MetaView extends React.Component<MetaViewProps, MetaViewSta
 
         return (
             <div>
-                <Row>
-                    <Col span={10}><span className="meta-info">PatientId: </span></Col>
-                    <Col span={2} />
-                    <Col span={12}>
-                        <Select style={{ width: 120 }} onChange={selectPatientId}>
-                            {patientIds && patientIds.map((id, i) =>
-                                <Option value={id} key={i}>{id}</Option>
-                            )}
-                        </Select>
-                    </Col>
-                </Row>
                 {patientInfoMeta && this.metaItems.map(metaItem => <div key={metaItem.name}>
                     <Divider className='metaInfoTitle' orientation="center"> {metaItem.name} </Divider>
                         {metaItem.itemNames.map(name => {
