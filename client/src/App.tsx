@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Layout } from 'antd'
+import { Layout, Select } from 'antd'
 import './App.css';
 
 import FeatureView from "./components/FeatureView"
@@ -23,7 +23,8 @@ import Panel from 'components/Panel';
 import { FeatureMeta } from 'data/feature';
 import { DataFrame } from 'data-forge';
 
-const { Header, Content } = Layout
+const { Header, Content } = Layout;
+const { Option } = Select;
 
 interface AppProps {
 
@@ -114,6 +115,11 @@ class App extends React.Component<AppProps, AppStates>{
     this.init();
   }
 
+  private buildRecordTSFromFeature(feature: FeatureMeta) {
+    const { end_entity, where_item, start_time, end_time } = feature;
+    
+  }
+
   private buildRecordTS(entityName: string, startDate: Date, endDate: Date): RecordTS[] {
     const entity = this.state.tableRecords?.find(e => e.name === entityName);
     const { item_index, time_index, value_indexes } = entity?.metaInfo!;
@@ -122,14 +128,13 @@ class App extends React.Component<AppProps, AppStates>{
         .groupBy(row => (row[item_index]));
       let records: RecordTS[] = [];
       for (const itemDf of selectedDf) {
-        const dates = itemDf.getSeries(time_index).parseDates();
         const itemRecords: RecordTS[] = value_indexes.map(value_index => {
           return {
             tableName: entity.name!,
+            columnName: value_index,
             itemName: itemDf.first()[item_index],
             startDate: startDate,
             endDate: endDate,
-            data: { dates: dates, values: itemDf.getSeries(value_index).parseFloats() }
           }
         })
         records = [...records, ...itemRecords]
@@ -146,13 +151,19 @@ class App extends React.Component<AppProps, AppStates>{
   }
 
   public render() {
-    const { subjectIds, patientMeta, tableNames, tableRecords, featureMeta, predictionTargets, 
+    const { subjectIds, patientMeta, tableNames, tableRecords, featureMeta, predictionTargets,
       itemDicts, dynamicRecords, patientInfoMeta, filterRange } = this.state
     return (
       <div className='App'>
         <Layout>
           <Header>
             <p className='system-name'>Bridges</p>
+            <span className="patient-selector-title">PatientId: </span>
+            <Select style={{ width: 120 }} onChange={this.selectPatientId} className="patient-selector">
+              {subjectIds && subjectIds.map((id, i) =>
+                <Option value={id} key={i}>{id}</Option>
+              )}
+            </Select>
           </Header>
           <Content>
             <Panel initialWidth={400} initialHeight={840} x={0} y={0} title="Feature View">
@@ -164,21 +175,20 @@ class App extends React.Component<AppProps, AppStates>{
                 itemDicts={itemDicts}
               />}
             </Panel>
-            <Panel initialWidth={800} initialHeight={300} x={405} y={0} title="Timeline View">
+            <Panel initialWidth={800} initialHeight={260} x={405} y={0} title="Timeline View">
               <TimelineView
                 patientMeta={patientMeta}
                 tableRecords={tableRecords}
                 onSelectEvents={this.updateRecordTS}
               />
             </Panel>
-            <Panel initialWidth={800} initialHeight={535} x={405} y={305} title="Signal View">
-              <DynamicView
+            <Panel initialWidth={800} initialHeight={575} x={405} y={265} title="Signal View">
+              {patientMeta && tableRecords && <DynamicView
                 patientMeta={patientMeta}
-                tableNames={tableNames}
                 tableRecords={tableRecords}
                 dynamicRecords={dynamicRecords}
                 itemDicts={itemDicts}
-              />
+              />}
             </Panel>
             {tableNames && <Panel initialWidth={300} initialHeight={840} x={1210} y={0} title="Patient View">
               <MetaView

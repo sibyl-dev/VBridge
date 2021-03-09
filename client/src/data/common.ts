@@ -82,3 +82,10 @@ export function confidenceThresholds(data: number[]) {
     const z_values = [1.645, 1.960, 2.576];
     return _.sortBy(z_values.map(z => confidenceInterval(data, z)).flat());
 }
+
+export type referenceValue = {
+    mean: number,
+    std: number,
+    count: number,
+    ci95: [number, number],
+}

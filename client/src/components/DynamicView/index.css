@@ -1,7 +1,9 @@
 .ts-card {
-    border: 1px solid #bbb;
-    margin: 5px 20px 5px 20px;
+    border: 1px solid rgba(220, 225, 230, 0.7);
+    margin: 10px 20px 10px 20px;
     border-radius: 5px;
+    position: relative;
+    transition: all 0.5s ease;
 }
 
 .ts-title {
@@ -22,4 +24,19 @@
     /* margin-left: 2px; */
     margin-right: 2px;
     float: right;
+}
+
+.ts-title-float {
+    position: absolute;
+    top: -10px;
+    left: 15px;
+    width: inherit;
+}
+
+.ts-title-float-text {
+    font-size: 14px;
+    background-color: #fff;
+    padding-left: 10px;
+    padding-right: 10px;
+    float: left;
 }

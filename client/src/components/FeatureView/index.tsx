@@ -307,7 +307,7 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
             if (id > 3)
                 return d3.interpolateReds((id / 3 - 1) * 0.5);
             else if (id < 3)
-                return d3.interpolateGreens((1 - id / 3) * 0.5);
+                return d3.interpolateBlues((1 - id / 3) * 0.5);
         }
 
         if (typeof (value) === typeof (0.0)) {
@@ -320,7 +320,7 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
         }
 
         return <div className={className}>
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", position: "relative" }}>
                 <div style={{ width: 20 }}>
                     {children && <CaretRightOutlined className="right-button"
                         onClick={this.onClickButton} rotate={collapsed ? 0 : 90} />}

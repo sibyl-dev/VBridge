@@ -5,4 +5,15 @@
 
 .point {
     fill: #aaa;
+    opacity: 70%;
+}
+
+.reference-line {
+    stroke-width: 1px;
+    stroke: #3C88E1;
+}
+
+.reference-area {
+    fill: #3C88E1;
+    opacity: 10%;
 }
