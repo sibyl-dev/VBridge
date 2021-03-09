@@ -8,12 +8,9 @@ const { Option } = Select;
 export interface MetaViewProps {
     patientIds?: number[],
     patientInfoMeta?: { [key: string]: any },
-    selectPatientId?: (subjectId: number) => void,
 }
 
-export interface MetaViewStates {
-    expandItem?: boolean[],
-}
+export interface MetaViewStates {}
 
 export type MetaItems = {
     name: string,
@@ -48,20 +45,10 @@ export default class MetaView extends React.Component<MetaViewProps, MetaViewSta
                 ]
             }
         ]
-        this.handleClick = this.handleClick.bind(this);
-    }
-
-    handleClick(i: number) {
-        const expandItem: any = this.state.expandItem;
-        expandItem[i] = !expandItem[i]
-        this.setState({
-            expandItem: expandItem,
-        });
     }
 
     public render() {
-        const { selectPatientId, patientIds, patientInfoMeta } = this.props
-        const { expandItem } = this.state;
+        const {  patientInfoMeta } = this.props
 
         return (
             <div>

@@ -45,8 +45,8 @@ interface AppStates {
 
   patientInfoMeta?: { [key: string]: any },
   filterRange?: filterType,
-  filterConditions?: { [key: string]: any },
-
+  filterConditions?: {[key: string]: any},
+  subjectIdG?: object,
 }
 
 class App extends React.Component<AppProps, AppStates>{
@@ -86,6 +86,7 @@ class App extends React.Component<AppProps, AppStates>{
     const featureMeta = new DataFrame(await getFeatureMate());
     const predictionTargets = await getPredictionTargets();
 
+    const subjectIdG = (await getPatientGroup({ filterConditions: filterConditions })).subject_idG
 
     this.setState({ subjectIds, tableNames, filterRange, filterConditions, featureMeta, predictionTargets, itemDicts });
   }
@@ -97,18 +98,24 @@ class App extends React.Component<AppProps, AppStates>{
     this.setState({ patientMeta, tableRecords, patientInfoMeta });
   }
 
-  public async filterPatients(conditions: { [key: string]: any }) {
-    const { filterConditions, filterRange } = this.state
-    for (var key in conditions)
-      if (filterConditions) {
-        var value = conditions[key] == 'Yes' ? 1 : conditions[key]
-        value = conditions[key] == 'No' ? 0 : conditions[key]
+  public async filterPatients(conditions: {[key: string]: any}, checkedAll: boolean) {
+    const {filterConditions, filterRange} = this.state
+    for(var key in conditions)
+      if(filterConditions){
+        var value = conditions[key]=='Yes'?1: conditions[key]
+        value = conditions[key]=='No'?0: conditions[key]
         filterConditions[key] = value
+
+      if(checkedAll)
+          delete filterConditions[key]
       }
     this.setState({ filterConditions })
 
-    if (filterConditions)
-      getPatientGroup({ filterConditions: filterConditions })
+    var subjectIdG:{[key: string]: any} = {}
+    if(filterConditions){
+      subjectIdG = (await getPatientGroup({ filterConditions: filterConditions })).subject_idG
+      this.setState({subjectIdG})
+    }
 
   }
 
@@ -215,7 +222,6 @@ class App extends React.Component<AppProps, AppStates>{
               <MetaView
                 patientIds={subjectIds}
                 patientInfoMeta={patientInfoMeta}
-                selectPatientId={this.selectPatientId}
               />
             </Panel>
             }
@@ -226,14 +232,14 @@ class App extends React.Component<AppProps, AppStates>{
               />
             </Panel>
             }*/}
-            {/* {tableNames && <Panel initialWidth={400} initialHeight={835} x={1410} y={0}>
+             {/* {tableNames && <Panel initialWidth={400} initialHeight={835} x={1410} y={0}>
               <FilterView
                 patientIds={subjectIds}
                 filterRange={filterRange}
                 filterPatients={this.filterPatients}
               />
             </Panel>
-            } */}
+            }  */}
           </Content>
         </Layout>
       </div>

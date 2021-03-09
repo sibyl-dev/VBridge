@@ -26,6 +26,8 @@ def create_app():
     except FileNotFoundError:
         featurization = Featurization(es)
         fm, fl = featurization.generate_features(forward=True, surgery_vital=True)
+    
+    fm = fm.set_index(es['SURGERY_INFO'].df['SUBJECT_ID'])
     fm['SURGERY_NAME'] = fm['SURGERY_NAME'].apply(lambda row: row.split('+'))
     app.fm = fm
     app.fl = fl

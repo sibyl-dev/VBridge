@@ -1,6 +1,8 @@
 import logging
 import math
 import json
+import csv
+import numpy as np
 
 import numpy as np
 from flask.json import JSONEncoder
@@ -153,50 +155,53 @@ def get_record_filterrange():
 @api.route('/patient_group', methods=['GET'])
 def get_patient_group():
     conditions = json.loads(request.args.get('filterConditions'))
-    # print('conditions', conditions)
 
-    table_names = ['PATIENTS', 'ADMISSIONS', 'SURGERY_INFO']
+    table_names = ['PATIENTS', 'SURGERY_INFO', 'ADMISSIONS']
     number_vari = ['Age',  'Height', 'Weight', 'Surgical time (minutes)']
-    # for condition_name in conditions:
-    #     print(condition_name)
-    filterList = []
-    es = current_app.es
-    df = es['SURGERY_INFO'].df
-    flags = False
 
-    # print('teststst',df[(df['Age']>=conditions['Age'][0]) &  (df['Age']<=conditions['Age'][1])] )
+    es = current_app.es
+
+    subject_idG = []
+    hasFilter = False
+    print('conditions', conditions)
+    info = {'subject_idG' : []}
     for i, table_name in enumerate(table_names):
+        
         column_names = filter_variable[table_name]
         hadm_df = es[table_name].df
 
+        tableFlag = False
+
         for condition_name in conditions:
             if(condition_name in column_names):
-                flags = True
+                tableFlag = True
+                hasFilter = True
                 if(condition_name in number_vari):
-                    print('here', type(hadm_df[condition_name]), hadm_df[condition_name])
                     hadm_df = hadm_df[(hadm_df[condition_name]>=conditions[condition_name][0]) &  (hadm_df[condition_name]<=conditions[condition_name][1])]
-                elif(condition_name == 'SURGERY_NAME'):
-                    hadm_df['test'] = (hadm_df[condition_name].str).split('+') + conditions[condition_name]
-                    # print('here', hadm_df['test'])
-                    hadm_df = hadm_df[len(hadm_df[condition_name] +  conditions[condition_name]) != len(list( hadm_df[condition_name] +  conditions[condition_name]))]
-                elif(condition_name == 'SURGERY_POSITION'):
-                    hadm_df = hadm_df[((hadm_df[condition_name]).split(',')).any() in conditions[condition_name] ]
-                else:
-                    flag = (hadm_df[condition_name] == conditions[condition_name][0])
-                    for i, value  in enumerate(conditions[condition_name]):
-                        print('value', value, i)
-                        if(i == 0):
-                            continue
-                        flag = (flag) | (hadm_df[condition_name] == conditions[condition_name][i])
-                        hadm_df_ = hadm_df[flag]
-                    # print('here', type(hadm_df[condition_name]), hadm_df[condition_name])
-                    # print('here', type(conditions[condition_name]), conditions[condition_name])
-                    # hadm_df = hadm_df[ np.any(hadm_df[condition_name] == conditions[condition_name]) ]
-                    # hadm_df = hadm_df[(conditions[condition_name].count(hadm_df[condition_name])>0).any()]
 
-        # if(flags):
-        #     print('filter', hadm_df['subject_id'])
-    return ''
+                elif(condition_name == 'SURGERY_NAME' or condition_name == 'SURGERY_POSITION'):
+                    tmpDf = hadm_df[condition_name]
+                    flag = tmpDf.apply(lambda x: np.array([t in x for t in conditions[condition_name]]).any())
+                    hadm_df = hadm_df[flag]
+
+                else:
+                    hadm_df = hadm_df[hadm_df[condition_name].isin(conditions[condition_name]) ]
+
+        if(tableFlag):
+            if(len(subject_idG) != 0):
+                hadm_df = hadm_df[hadm_df['SUBJECT_ID'].isin(subject_idG)]
+
+            subject_idG = hadm_df['SUBJECT_ID'].drop_duplicates().values.tolist()
+            # print('subject_idG',  len(subject_idG))
+
+    if(hasFilter == False):
+        hadm_df = es['PATIENTS'].df
+        subject_idG = hadm_df['SUBJECT_ID']
+        # print('subject_idG',  len(subject_idG))
+
+    info['subject_idG'] = list(subject_idG)
+
+    return jsonify(info)
 
 
 @api.route('/record_meta', methods=['GET'])

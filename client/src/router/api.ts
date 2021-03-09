@@ -67,8 +67,8 @@ export async function getPatientFilterRange(): Promise<filterType> {
     return checkResponse(response, []);
 }
 export async function getPatientGroup(params: {
-    filterConditions: { [key: string]: any }
-}): Promise<patientInfoMeta> {
+    filterConditions: {[key: string]: any}
+}): Promise<{[key: string]: any}>{
     const url = `${API}/patient_group`;
     const response = await axios.get(url, { params });
     return checkResponse(response, []);
