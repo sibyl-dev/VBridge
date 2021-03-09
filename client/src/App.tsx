@@ -17,23 +17,23 @@ import { Entity, ItemDict } from 'data/table';
 import { patientInfoMeta } from 'data/metaInfo';
 import { filterType } from 'data/filterType';
 
-
-
 import Panel from 'components/Panel';
 import { FeatureMeta } from 'data/feature';
 import { DataFrame } from 'data-forge';
+import { isUndefined } from 'lodash';
+import { isDefined } from 'data/common';
 
 const { Header, Content } = Layout;
 const { Option } = Select;
 
-interface AppProps {
-
-}
+interface AppProps { }
 
 interface AppStates {
   // static information
   subjectIds?: number[],
   tableNames?: string[],
+  featureMeta?: DataFrame<number, FeatureMeta>,
+  predictionTargets?: string[],
   itemDicts?: ItemDict,
 
   //patient information
@@ -42,9 +42,6 @@ interface AppStates {
 
   //for view communication
   dynamicRecords: RecordTS[]
-
-  featureMeta?: DataFrame<number, FeatureMeta>,
-  predictionTargets?: string[],
 
   patientInfoMeta?: { [key: string]: any },
   filterRange?: filterType,
@@ -62,6 +59,21 @@ class App extends React.Component<AppProps, AppStates>{
     this.filterPatients = this.filterPatients.bind(this)
     this.buildRecordTS = this.buildRecordTS.bind(this);
     this.updateRecordTS = this.updateRecordTS.bind(this);
+    this.buildRecordTSFromFeature = this.buildRecordTSFromFeature.bind(this);
+  }
+
+  public componentDidMount() {
+    this.init();
+  }
+
+  public componentDidUpdate(prevProps: AppProps, prevState: AppStates) {
+    if (prevState.patientMeta?.subjectId !== this.state.patientMeta?.subjectId) {
+      const { featureMeta } = this.state;
+      if (featureMeta) {
+        const dynamicRecords = featureMeta.toArray().map(row => this.buildRecordTSFromFeature(row)).filter(isDefined);
+        this.setState({ dynamicRecords });
+      }
+    }
   }
 
   public async init() {
@@ -111,13 +123,22 @@ class App extends React.Component<AppProps, AppStates>{
     return tableRecords
   }
 
-  public componentDidMount() {
-    this.init();
-  }
-
-  private buildRecordTSFromFeature(feature: FeatureMeta) {
-    const { end_entity, where_item, start_time, end_time } = feature;
-    
+  private buildRecordTSFromFeature(feature: FeatureMeta): RecordTS | undefined {
+    const { entityId, where_item, start_time, end_time, columnName } = feature;
+    console.log(entityId);
+    const entity = this.state.tableRecords?.find(e => e.name === entityId);
+    if (entity?.metaInfo) {
+      const { item_index, time_index } = entity.metaInfo;
+      if (item_index && time_index)
+        return {
+          tableName: entityId,
+          columnName: columnName,
+          itemName: where_item[1] as string,
+          startTime: start_time,
+          endTime: end_time,
+        }
+    }
+    else return undefined
   }
 
   private buildRecordTS(entityName: string, startDate: Date, endDate: Date): RecordTS[] {

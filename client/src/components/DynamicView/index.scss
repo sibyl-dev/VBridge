@@ -4,6 +4,15 @@
     border-radius: 5px;
     position: relative;
     transition: all 0.5s ease;
+    .ts-title-float {
+        button.ant-btn {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+    }
 }
 
 .ts-title {

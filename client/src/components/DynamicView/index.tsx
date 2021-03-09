@@ -5,7 +5,7 @@ import * as React from "react";
 import { DataFrame, IDataFrame, ISeries } from "data-forge"
 import { defaultMargin, getMargin, getScaleLinear, IMargin } from "visualization/common";
 import Search from "antd/lib/input/Search";
-import "./index.css"
+import "./index.scss"
 import { CloseOutlined, ExpandAltOutlined, PushpinOutlined, ShrinkOutlined } from "@ant-design/icons";
 import { referenceValue } from "data/common";
 import { getReferenceValues } from "router/api";
@@ -27,17 +27,14 @@ export interface DynamicViewProps {
     dynamicRecords: RecordTS[],
 }
 
-export interface DynamicViewStates {
-    targetTableName?: string,
-    targetItems?: string[],
-}
+export interface DynamicViewStates {}
 
 export default class DynamicView extends React.Component<DynamicViewProps, DynamicViewStates> {
 
     constructor(props: DynamicViewProps) {
         super(props);
 
-        this.state = {}
+        this.state = {};
     }
 
     private extractData(record: RecordTS) {
@@ -60,7 +57,7 @@ export default class DynamicView extends React.Component<DynamicViewProps, Dynam
         return (
             <div>
                 <div>
-                    <Search placeholder="input search text" style={{ marginLeft: 10, marginRight: 10, width: "90%" }} enterButton />
+                    {/* <Search placeholder="input search text" style={{ marginLeft: 10, marginRight: 10, width: "90%" }} enterButton /> */}
                 </div>
                 <Divider />
                 <div>
@@ -153,10 +150,10 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
         return <div className={"ts-card"}>
             <div className={"ts-title-float"} style={{ width: width }}>
                 <span className={"ts-title-float-text"}>{`${itemLabel || itemName}`}</span>
-                <Button size="small" icon={<CloseOutlined />} className={"ts-title-button"} />
-                {expand ? <Button size="small" icon={<ShrinkOutlined />} className={"ts-title-button"} onClick={this.onCollapse} />
-                    : <Button size="small" icon={<ExpandAltOutlined />} className={"ts-title-button"} onClick={this.onExpand} />}
-                <Button size="small" icon={<PushpinOutlined />} className={"ts-title-button"} />
+                <Button size="small" type="primary" icon={<CloseOutlined />} className={"ts-title-button"}/>
+                {expand ? <Button size="small" type="primary" icon={<ShrinkOutlined />} className={"ts-title-button"} onClick={this.onCollapse} />
+                    : <Button size="small" type="primary" icon={<ExpandAltOutlined />} className={"ts-title-button"} onClick={this.onExpand} />}
+                <Button size="small" type="primary" icon={<PushpinOutlined />} className={"ts-title-button"} />
                 {/* <Button size="small" type="primary" className={"ts-title-button"}>Explain</Button> */}
             </div>
             <LineChart
