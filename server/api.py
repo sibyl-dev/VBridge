@@ -259,7 +259,8 @@ def get_feature_meta():
             'where_item': leve2_leaf_node.where.get_name().split(' = ') \
                 if leve2_leaf_node and ('where' in  leve2_leaf_node.__dict__) else [],
             'primitive': leve2_leaf_node and leve2_leaf_node.primitive.name,
-            'end_entity': leaf_node.entity_id,
+            'entityId': leaf_node.entity_id,
+            'columnName': leaf_node.get_name()
         }
 
         if len(info['where_item']) > 0:
