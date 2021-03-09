@@ -3,7 +3,6 @@ import { PatientMeta } from "data/patient";
 import * as React from "react";
 import * as d3 from "d3";
 import { Badge, Button, Divider, Tooltip, Input } from "antd"
-import "./index.css"
 import { getFeatureMatrix, getFeatureValues, getPrediction, getSHAPValues } from "router/api";
 import { DataFrame, IDataFrame } from "data-forge";
 import * as _ from "lodash"
@@ -13,6 +12,8 @@ import { ScaleLinear } from "d3";
 import { ItemDict } from "data/table";
 import Histogram from "visualization/Histogram";
 import { confidenceThresholds } from "data/common";
+
+import "./index.scss"
 
 const { Search } = Input;
 
@@ -97,7 +98,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
             const groupedFeature: IDataFrame<number, Feature> = new DataFrame(groups.map(group => {
                 const sample = group.first();
                 const itemName = sample.where_item![1] as string;
-                const itemLabel = itemDicts && itemDicts(sample.end_entity, itemName)?.LABEL;
+                const itemLabel = itemDicts && itemDicts(sample.entityId, itemName)?.LABEL;
                 return {
                     ...sample,
                     alias: itemLabel || itemName,
@@ -125,7 +126,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
         const { predictions, features, target, featureMatrix } = this.state;
 
         return (
-            <div style={{ height: "100%", width: "100%" }}>
+            <div style={{ height: "100%", width: "100%" }} className="feature-view">
                 {predictionTargets && ProbaList({
                     predictionTargets, predictions,
                     selected: target, onClick: this.onSelectTarget
@@ -222,10 +223,9 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
         const x = getScaleLinear(0, cellWidth(2), this.getContributions(sortedFeatures));
 
         return <div style={{ width: "100%" }}>
-            <Search placeholder="input search text" style={{ marginLeft: 10, marginRight: 10, width: "90%" }} enterButton />
+            {/* <Search placeholder="input search text" style={{ marginLeft: 10, marginRight: 10, width: "90%" }} enterButton /> */}
             <div style={{ width: "100%" }}>
                 <div className="feature-header">
-                    <div style={{ width: 20 }} />
                     <div className="feature-header-cell" style={{ width: cellWidth(0) }}>
                         <span>Name</span>
                         <SortAscendingOutlined />
@@ -325,19 +325,20 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                     {children && <CaretRightOutlined className="right-button"
                         onClick={this.onClickButton} rotate={collapsed ? 0 : 90} />}
                 </div>
-                <div className="feature-block" key={name}
+                <div className={(children ? "feature-group-block" : "feature-block") +
+                    ((depth === 0) ? " feature-top-block" : "")} key={name}
                     style={{ height: expanded ? 100 : 30, }}
                     onClick={children ? this.onClickButton : this.onClickDiv}>
                     <div className="feature-block-inner">
                         <Tooltip title={alias}>
                             <div className="feature-block-cell feature-name" style={{ width: cellWidth(0) - depth * 10 }}>
-                                <p className={"feature-block-cell-text"}>{beautifulPrinter(alias)}</p>
+                                <span className={"feature-block-cell-text"}>{beautifulPrinter(alias)}</span>
                             </div>
                         </Tooltip>
                         <Tooltip title={value}>
-                            <div className={"feature-block-cell" + (children ? " feature-group-value" : " feature-value")}
+                            <div className={"feature-block-cell feature-value"}
                                 style={{ width: cellWidth(1), backgroundColor: barColor(colorIndex) }}>
-                                <p className={"feature-block-cell-text"}>{beautifulPrinter(value)}</p>
+                                <span className={"feature-block-cell-text"}>{beautifulPrinter(value)}</span>
                             </div>
                         </Tooltip>
                         <div className={"feature-block-cell feature-contribution"}

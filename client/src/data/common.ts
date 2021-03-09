@@ -83,6 +83,10 @@ export function confidenceThresholds(data: number[]) {
     return _.sortBy(z_values.map(z => confidenceInterval(data, z)).flat());
 }
 
+export const isDefined = <T>(input: T | undefined | null): input is T => { 
+    return typeof input !== 'undefined' && input !== null;
+};
+
 export type referenceValue = {
     mean: number,
     std: number,

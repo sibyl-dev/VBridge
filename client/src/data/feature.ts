@@ -4,7 +4,8 @@ export interface FeatureMeta {
     name: string,
     alias: string,
     primitive?: string,
-    end_entity: string,
+    entityId: string,
+    columnName: string
     where_item: [string, string]|[],
     start_time?: Date,
     end_time?: Date,
