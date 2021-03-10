@@ -8,7 +8,7 @@ import MetaView from "./components/MetaView"
 import TableView from "./components/TableView"
 import TimelineView from "./components/TimelineView"
 
-import DynamicView, { RecordTS } from "./components/DynamicView"
+import DynamicView, { SignalMeta } from "./components/DynamicView"
 import FilterView from "./components/FilterView"
 
 import { getFeatureMate, getPatientIds, getPatientMeta, getPatientInfoMeta, getPatientRecords, getPredictionTargets, getTableNames, getPatientFilterRange, getPatientGroup, getItemDict } from "./router/api"
@@ -19,7 +19,7 @@ import { filterType } from 'data/filterType';
 
 import Panel from 'components/Panel';
 import { FeatureMeta } from 'data/feature';
-import { DataFrame } from 'data-forge';
+import { DataFrame, IDataFrame } from 'data-forge';
 import { isUndefined } from 'lodash';
 import { isDefined } from 'data/common';
 
@@ -41,18 +41,18 @@ interface AppStates {
   patientMeta?: PatientMeta,
 
   //for view communication
-  dynamicRecords: RecordTS[]
+  signalMeta: SignalMeta[]
 
   patientInfoMeta?: { [key: string]: any },
   filterRange?: filterType,
-  filterConditions?: {[key: string]: any},
+  filterConditions?: { [key: string]: any },
   subjectIdG?: object,
 }
 
 class App extends React.Component<AppProps, AppStates>{
   constructor(props: AppProps) {
     super(props);
-    this.state = { dynamicRecords: [] };
+    this.state = { signalMeta: [] };
 
     this.selectPatientId = this.selectPatientId.bind(this);
     this.loadPatientRecords = this.loadPatientRecords.bind(this);
@@ -70,8 +70,21 @@ class App extends React.Component<AppProps, AppStates>{
     if (prevState.patientMeta?.subjectId !== this.state.patientMeta?.subjectId) {
       const { featureMeta } = this.state;
       if (featureMeta) {
-        const dynamicRecords = featureMeta.toArray().map(row => this.buildRecordTSFromFeature(row)).filter(isDefined);
-        this.setState({ dynamicRecords });
+        const signalMetaDF = featureMeta.select(row => this.buildRecordTSFromFeature(row));
+        console.log(signalMetaDF.toArray());
+        const signalMetaGroups = signalMetaDF.groupBy(row => `${row?.tableName}.${row?.itemName}`);
+        console.log(signalMetaGroups.toArray());
+        const signalMeta: SignalMeta[] = signalMetaGroups.select(group => {
+          const sample = group.first();
+          if (sample)
+            return {
+              ...sample,
+              relatedFeatureNames: group.getSeries('relatedFeatureNames').toArray() as string[]
+            }
+          else
+            return undefined
+        }).toArray().filter(isDefined);
+        this.setState({ signalMeta });
       }
     }
   }
@@ -98,25 +111,24 @@ class App extends React.Component<AppProps, AppStates>{
     this.setState({ patientMeta, tableRecords, patientInfoMeta });
   }
 
-  public async filterPatients(conditions: {[key: string]: any}, checkedAll: boolean) {
-    const {filterConditions, filterRange} = this.state
-    for(var key in conditions)
-      if(filterConditions){
-        var value = conditions[key]=='Yes'?1: conditions[key]
-        value = conditions[key]=='No'?0: conditions[key]
+  public async filterPatients(conditions: { [key: string]: any }, checkedAll: boolean) {
+    const { filterConditions, filterRange } = this.state
+    for (var key in conditions)
+      if (filterConditions) {
+        var value = conditions[key] == 'Yes' ? 1 : conditions[key]
+        value = conditions[key] == 'No' ? 0 : conditions[key]
         filterConditions[key] = value
 
-      if(checkedAll)
+        if (checkedAll)
           delete filterConditions[key]
       }
     this.setState({ filterConditions })
 
-    var subjectIdG:{[key: string]: any} = {}
-    if(filterConditions){
+    var subjectIdG: { [key: string]: any } = {}
+    if (filterConditions) {
       subjectIdG = (await getPatientGroup({ filterConditions: filterConditions })).subject_idG
-      this.setState({subjectIdG})
+      this.setState({ subjectIdG })
     }
-
   }
 
   private async loadPatientRecords(subjectId: number) {
@@ -130,9 +142,8 @@ class App extends React.Component<AppProps, AppStates>{
     return tableRecords
   }
 
-  private buildRecordTSFromFeature(feature: FeatureMeta): RecordTS | undefined {
-    const { entityId, where_item, start_time, end_time, columnName } = feature;
-    console.log(entityId);
+  private buildRecordTSFromFeature(feature: FeatureMeta): SignalMeta | undefined {
+    const { entityId, where_item, start_time, end_time, columnName, name } = feature;
     const entity = this.state.tableRecords?.find(e => e.name === entityId);
     if (entity?.metaInfo) {
       const { item_index, time_index } = entity.metaInfo;
@@ -143,20 +154,21 @@ class App extends React.Component<AppProps, AppStates>{
           itemName: where_item[1] as string,
           startTime: start_time,
           endTime: end_time,
+          relatedFeatureNames: [name]
         }
     }
     else return undefined
   }
 
-  private buildRecordTS(entityName: string, startDate: Date, endDate: Date): RecordTS[] {
+  private buildRecordTS(entityName: string, startDate: Date, endDate: Date): SignalMeta[] {
     const entity = this.state.tableRecords?.find(e => e.name === entityName);
     const { item_index, time_index, value_indexes } = entity?.metaInfo!;
     if (entity && item_index && time_index && value_indexes && value_indexes.length > 0) {
       const selectedDf = entity.where(row => startDate < new Date(row[time_index]) && new Date(row[time_index]) < endDate)
         .groupBy(row => (row[item_index]));
-      let records: RecordTS[] = [];
+      let records: SignalMeta[] = [];
       for (const itemDf of selectedDf) {
-        const itemRecords: RecordTS[] = value_indexes.map(value_index => {
+        const itemRecords: SignalMeta[] = value_indexes.map(value_index => {
           return {
             tableName: entity.name!,
             columnName: value_index,
@@ -175,12 +187,12 @@ class App extends React.Component<AppProps, AppStates>{
 
   private updateRecordTS(entityName: string, startDate: Date, endDate: Date) {
     const newRecords = this.buildRecordTS(entityName, startDate, endDate);
-    this.setState({ dynamicRecords: newRecords });
+    this.setState({ signalMeta: newRecords });
   }
 
   public render() {
     const { subjectIds, patientMeta, tableNames, tableRecords, featureMeta, predictionTargets,
-      itemDicts, dynamicRecords, patientInfoMeta, filterRange } = this.state
+      itemDicts, signalMeta: dynamicRecords, patientInfoMeta, filterRange } = this.state
     return (
       <div className='App'>
         <Layout>
@@ -214,7 +226,7 @@ class App extends React.Component<AppProps, AppStates>{
               {patientMeta && tableRecords && <DynamicView
                 patientMeta={patientMeta}
                 tableRecords={tableRecords}
-                dynamicRecords={dynamicRecords}
+                signalMeta={dynamicRecords}
                 itemDicts={itemDicts}
               />}
             </Panel>
@@ -232,7 +244,7 @@ class App extends React.Component<AppProps, AppStates>{
               />
             </Panel>
             }*/}
-             {/* {tableNames && <Panel initialWidth={400} initialHeight={835} x={1410} y={0}>
+            {/* {tableNames && <Panel initialWidth={400} initialHeight={835} x={1410} y={0}>
               <FilterView
                 patientIds={subjectIds}
                 filterRange={filterRange}
