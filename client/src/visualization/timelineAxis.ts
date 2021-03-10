@@ -22,7 +22,7 @@ export function drawTimelineAxis(params: {
     const height = params.height - margin.top - margin.bottom;
     const width = params.width - margin.left - margin.right;
 
-    const focusedTimeScale = d3.scaleTime().range([0, width]).domain(defaultTimeScale.domain());
+    let focusedTimeScale = d3.scaleTime().range([0, width]).domain(defaultTimeScale.domain());
 
     const base = getChildOrAppend<SVGGElement, SVGElement>(root, "g", "base")
         .attr("transform", `translate(${margin.left}, ${margin.top})`);
@@ -50,7 +50,8 @@ export function drawTimelineAxis(params: {
         else {
             extent = defaultTimeScale.domain();
         }
-        focusedTimeScale.domain(extent).nice();
+        // focusedTimeScale.domain(extent);
+        focusedTimeScale = d3.scaleTime().range([0, width]).domain(extent);
         updateAxis();
     }
 
@@ -58,11 +59,12 @@ export function drawTimelineAxis(params: {
     defaultAxisbase.call(longAxis);
 
     function updateAxis() {
+        shortAxis = d3.axisBottom(focusedTimeScale);
         focusedAxisbase.call(shortAxis);
         updateTimeScale && updateTimeScale(focusedTimeScale);
     }
 
-    const shortAxis = d3.axisBottom(focusedTimeScale);
+    let shortAxis = d3.axisBottom(focusedTimeScale);
     focusedAxisbase.call(shortAxis);
 
     const areaChartNode = areaChartbase.node();

@@ -26,6 +26,7 @@
     float: left;
     font-size: 30px;
 }
+
 #Filter{
     border: 2px solid black;
 }
@@ -39,4 +40,12 @@
     font-weight: bold;
     float: left;
     margin-left: 10px;
+}
+
+.patient-selector-title {
+    color: #fff;
+    font-size: 18px;
+    font-weight: bold;
+    line-height: 30px;
+    margin-right: 20px;
 }

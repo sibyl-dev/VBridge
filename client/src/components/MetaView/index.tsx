@@ -8,12 +8,9 @@ const { Option } = Select;
 export interface MetaViewProps {
     patientIds?: number[],
     patientInfoMeta?: { [key: string]: any },
-    selectPatientId?: (subjectId: number) => void,
 }
 
-export interface MetaViewStates {
-    expandItem?: boolean[],
-}
+export interface MetaViewStates {}
 
 export type MetaItems = {
     name: string,
@@ -48,37 +45,15 @@ export default class MetaView extends React.Component<MetaViewProps, MetaViewSta
                 ]
             }
         ]
-        this.handleClick = this.handleClick.bind(this);
-    }
-
-    handleClick(i: number) {
-        const expandItem: any = this.state.expandItem;
-        expandItem[i] = !expandItem[i]
-        this.setState({
-            expandItem: expandItem,
-        });
     }
 
     public render() {
-        const { selectPatientId, patientIds, patientInfoMeta } = this.props
-        const { expandItem } = this.state;
+        const {  patientInfoMeta } = this.props
 
         return (
             <div>
-                <Row>
-                    <Col span={1} />
-                    <Col span={6}><span className="meta-info">PatientId: </span></Col>
-                    <Col span={1} />
-                    <Col span={12}>
-                        <Select style={{ width: 120 }} onChange={selectPatientId}>
-                            {patientIds && patientIds.map((id, i) =>
-                                <Option value={id} key={i}>{id}</Option>
-                            )}
-                        </Select>
-                    </Col>
-                    <Col span={2}/>
-                </Row>
-                {patientInfoMeta && this.metaItems.map(metaItem => <div key={metaItem.name} id={metaItem.name}>
+
+                {patientInfoMeta && this.metaItems.map(metaItem => <div key={metaItem.name}>
                     <Divider className='metaInfoTitle' orientation="center"> {metaItem.name} </Divider>
                         {metaItem.itemNames.map(name => {
                             var value = patientInfoMeta[name]

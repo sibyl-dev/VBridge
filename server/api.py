@@ -1,9 +1,10 @@
 import logging
-
+import math
 import json
 import csv
 import numpy as np
 
+import numpy as np
 from flask.json import JSONEncoder
 from flask import request, jsonify, Blueprint, current_app, Response
 
@@ -235,33 +236,42 @@ def get_table_names():
 @api.route('/feature_meta', methods=['GET'])
 def get_feature_meta():
     fl = current_app.fl
-    # TODO: the code may only works for depth<=2 features
+
+    def get_leaf(feature):
+        if len(feature.base_features) > 0:
+            return get_leaf(feature.base_features[0])
+        else:
+            return feature
+    
+    def get_level2_leaf(feature):
+        if len(feature.base_features) == 0:
+            return None
+        elif len(feature.base_features) > 0 and \
+            len(feature.base_features[0].base_features) == 0:
+            return feature
+        else:
+            return get_level2_leaf(feature.base_features[0])
+
     feature_meta = []
     targets = Modeler.prediction_targets()
     for f in fl:
         if f.get_name() in targets:
             continue
+        leaf_node = get_leaf(f)
+        leve2_leaf_node = get_level2_leaf(f)
         info = {
             'name': f.get_name(),
-            'where_item': f.where.get_name().split(' = ') if 'where' in f.__dict__ else [],
-            'primitive': f.primitive.name
+            'where_item': leve2_leaf_node.where.get_name().split(' = ') \
+                if leve2_leaf_node and ('where' in  leve2_leaf_node.__dict__) else [],
+            'primitive': leve2_leaf_node and leve2_leaf_node.primitive.name,
+            'entityId': leaf_node.entity_id,
+            'columnName': leaf_node.get_name()
         }
-        if 'child_entity' in f.__dict__:
-            info['end_entity'] = f.child_entity.id
-        elif 'parent_entity' in f.__dict__:
-            info['end_entity'] = f.parent_entity.id
-        else:
-            info['end_entity'] = 'SURGERY_INFO'
 
-        if len(f.base_features) == 0:
-            alias = f.get_name()
-        elif 'where' in f.__dict__:
-            alias = f.where.get_name().split(' = ')[-1]
+        if len(info['where_item']) > 0:
+            info['alias'] = leve2_leaf_node.primitive.name
         else:
-            alias = f.base_features[0].get_name()
-        if f.primitive.name:
-            alias = "{}({})".format(f.primitive.name, alias)
-        info['alias'] = alias
+            info['alias'] = leaf_node.get_name()
 
         feature_meta.append(info)
     return jsonify(feature_meta)
@@ -280,6 +290,11 @@ def get_prediction():
     return jsonify(predictions)
 
 
+@api.route('/feature_matrix', methods=['GET'])
+def get_feature_matrix():
+    return Response(current_app.fm.to_csv(), mimetype="text/csv")
+
+
 @api.route('/feature_values', methods=['GET'])
 def get_feature_values():
     subject_id = int(request.args.get('subject_id'))
@@ -293,3 +308,35 @@ def get_shap_values():
     target = request.args.get('target')
     shap_values = current_app.model_manager.explain(subject_id, target)
     return jsonify(shap_values.loc[0].to_dict())
+
+
+@api.route('/item_dict', methods=['GET'])
+def get_item_dict():
+    item_dict = {}
+    for group in current_app.es['D_ITEMS'].df.groupby('LINKSTO'):
+        items = group[1].loc[:, ['LABEL', 'LABEL_CN']]
+        table_name = group[0].upper()
+        item_dict[table_name] = items.to_dict('index')
+    
+    item_dict['LABEVENTS'] = current_app.es['D_LABITEMS'].df.loc[:, ['LABEL', 'LABEL_CN']].to_dict('index')
+
+    return jsonify(item_dict)
+
+
+@api.route('/reference_value', methods=['GET'])
+def get_reference_value():
+    table_name = request.args.get('table_name')
+    column_name = request.args.get('column_name')
+    table_info = META_INFO[table_name]
+    references = {}
+    for group in current_app.es[table_name].df.groupby(table_info.get('item_index')):
+        item_name = group[0]
+        mean, count, std = group[1][column_name].agg(['mean', 'count', 'std'])
+        references[item_name] = {
+            'mean': mean,
+            'std': std,
+            'count': count,
+            'ci95': [mean - 1.960 * std, 
+                    mean + 1.960 * std]
+        }
+    return jsonify(references)

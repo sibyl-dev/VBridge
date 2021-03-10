@@ -9,17 +9,20 @@ export type Event = {
 
 export function drawTimeline(params: {
     events: Event[],
-    svg: SVGElement,
+    node: SVGElement|SVGGElement,
 
     width: number,
     height: number,
     margin?: IMargin,
     timeScale?: d3.ScaleTime<number, number>,
     color?: string,
-    onBrush?: (startDate: Date, endDate: Date) => void
+    onBrush?: (startDate: Date, endDate: Date, update: boolean) => void,
+    selectedX?: [Date, Date],
+    onMouseOver?: () => void;
+    onMouseLeave?: () => void;
 }) {
-    const { color, events, svg, timeScale, onBrush } = params
-    const root = d3.select(svg);
+    const { color, events, node, timeScale, onBrush, selectedX, onMouseOver, onMouseLeave} = params
+    const root = d3.select(node);
     const margin = getMargin(params.margin || {});
     const height = params.height - margin.top - margin.bottom;
     const width = params.width - margin.left - margin.right;
@@ -36,20 +39,40 @@ export function drawTimeline(params: {
         .attr("x2", width);
 
     const t = timeScale || getScaleTime(0, width, events.map(e => e.timestamp));
-    const r = getScaleLinear(0, 10, events.map(d => d.count));
+    const r = getScaleLinear(5, 10, events.map(d => d.count));
 
-    const brush = d3.brushX()
+    // getChildOrAppend(base, "rect", "base-rect")
+    //     .attr("width", width)
+    //     .attr("height", height)
+    //     .style("fill", 'none')
+    //     .on("mouseover", e => console.log(e));
+
+    let brush = d3.brushX()
         .extent([[0, 0], [width, height]])
         .on("brush", brushed)
         .on("end", brushend);
 
-    base.call(brush)
-        .on("click", brushed)
+    base.call(brush);
+
+    onMouseOver && base.select(".selection")
+        .on("mouseover", onMouseOver);
+    
+    onMouseLeave && base.select(".selection")
+    .on("mouseleave", onMouseLeave);
+
+
+    const leftTimeAnno = getChildOrAppend(base, "text", "left-time-annotation");
+    const rightTimeAnno = getChildOrAppend(base, "text", "right-time-annotation");
 
     function brushed(event: { selection: [number, number] }) {
         const { selection } = event;
         if (selection) {
             const extent = selection.map(t.invert);
+            updateHandle(extent as [Date, Date]);
+            onBrush && onBrush(extent[0], extent[1], false);
+        }
+        else {
+            updateHandle();
         }
     }
 
@@ -57,11 +80,32 @@ export function drawTimeline(params: {
         const { selection } = event;
         if (selection) {
             const extent = selection.map(t.invert);
-            onBrush && onBrush(extent[0], extent[1]);
+            updateHandle(extent as [Date, Date]);
+            onBrush && onBrush(extent[0], extent[1], true);
+        }
+        else {
+            updateHandle();
         }
     }
 
-    const bubbles = bubbleBase.selectAll(".bubble")
+    function updateHandle(extent?: [Date, Date]) {
+        if (extent) {
+            leftTimeAnno.attr('transform', `translate(${t(extent[0])}, -5)`)
+                .text(`${extent[0].toLocaleTimeString()}`)
+                .attr("display", "block");
+            rightTimeAnno.attr('transform', `translate(${t(extent[1])}, -5)`)
+                .text(`${extent[1].toLocaleTimeString()}`)
+                .attr("display", "block");
+        }
+        else {
+            leftTimeAnno
+                .attr("display", "none");
+            rightTimeAnno
+                .attr("display", "none");
+        }
+    }
+
+    bubbleBase.selectAll(".bubble")
         .data(events)
         .join<SVGCircleElement>(enter => {
             return enter
@@ -73,5 +117,8 @@ export function drawTimeline(params: {
         .attr("cx", d => t(d.timestamp))
         .attr("r", d => r(d.count))
         .style("fill", color || defaultCategoricalColor(0));
+
+    selectedX && base.call(brush.move, [t(selectedX[0]), t(selectedX[1])]);
+    updateHandle(selectedX);
 
 }
