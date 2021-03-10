@@ -2,21 +2,22 @@ import { Button, Card, Divider, Select } from "antd";
 import { PatientMeta } from "data/patient";
 import { Entity, ItemDict } from "data/table";
 import * as React from "react";
-import { DataFrame, IDataFrame, ISeries } from "data-forge"
+import { DataFrame, IDataFrame, ISeries } from "data-forge";
 import { defaultMargin, getMargin, getScaleLinear, IMargin } from "visualization/common";
-import Search from "antd/lib/input/Search";
-import "./index.scss"
 import { CloseOutlined, ExpandAltOutlined, PushpinOutlined, ShrinkOutlined } from "@ant-design/icons";
 import { referenceValue } from "data/common";
 import { getReferenceValues } from "router/api";
 import LineChart from "visualization/lineChart";
 
-export interface RecordTS {
+import "./index.scss";
+
+export interface SignalMeta {
     tableName: string,
     columnName: string,
     itemName: string,
     startTime?: Date,
     endTime?: Date,
+    relatedFeatureNames?: string[]
     // data?: { dates: ISeries<number, Date>, values: ISeries<number, any> },
 }
 
@@ -24,7 +25,7 @@ export interface DynamicViewProps {
     patientMeta: PatientMeta,
     itemDicts?: ItemDict,
     tableRecords: Entity<number, any>[],
-    dynamicRecords: RecordTS[],
+    signalMeta: SignalMeta[],
 }
 
 export interface DynamicViewStates {}
@@ -37,7 +38,7 @@ export default class DynamicView extends React.Component<DynamicViewProps, Dynam
         this.state = {};
     }
 
-    private extractData(record: RecordTS) {
+    private extractData(record: SignalMeta) {
         const { tableName, columnName, itemName, startTime, endTime } = record;
         const { tableRecords } = this.props;
         const entity = tableRecords.find(e => e.name === tableName);
@@ -49,7 +50,7 @@ export default class DynamicView extends React.Component<DynamicViewProps, Dynam
     }
 
     public render() {
-        const { patientMeta, dynamicRecords, itemDicts } = this.props;
+        const { patientMeta, signalMeta: dynamicRecords, itemDicts } = this.props;
 
         const startDate = patientMeta && new Date(patientMeta.startDate);
         const endDate = patientMeta && new Date(patientMeta.endDate);
@@ -70,9 +71,7 @@ export default class DynamicView extends React.Component<DynamicViewProps, Dynam
                             startTime={startDate}
                             endTime={endDate}
                             align={false}
-                            timeSeriesStyle={{
-                                margin: { bottom: 20, left: 25, top: 15, right: 25 }
-                            }}
+                            margin={{ bottom: 20, left: 25, top: 15, right: 25 }}
                         />)}
                 </div>
             </div>
@@ -94,10 +93,12 @@ const defaultTimeSeriesStyle: TimeSeriesStyle = {
     margin: defaultMargin,
 }
 
-export interface DynamicCardProps extends RecordTS {
+type VRecordTS =  SignalMeta & Partial<TimeSeriesStyle>
+
+export interface DynamicCardProps extends VRecordTS {
     data: { dates: ISeries<number, Date>, values: ISeries<number, any> },
     align?: boolean,
-    timeSeriesStyle: Partial<TimeSeriesStyle>,
+    // timeSeriesStyle: Partial<TimeSeriesStyle>,
     itemDicts?: ItemDict
 }
 
@@ -142,7 +143,7 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
     public render() {
         const { tableName, itemName, itemDicts, data } = this.props;
         const { expand, referenceValue } = this.state;
-        const style = { ...defaultTimeSeriesStyle, ...this.props.timeSeriesStyle };
+        const style = { ...defaultTimeSeriesStyle, ...this.props };
         const { width, height, color } = style;
         const margin = getMargin(style.margin);
         const itemLabel = itemDicts && itemDicts(tableName, itemName)?.LABEL;

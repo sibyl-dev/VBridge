@@ -8,14 +8,11 @@ import { DataFrame, IDataFrame } from "data-forge";
 import * as _ from "lodash"
 import { getScaleLinear, beautifulPrinter, defaultCategoricalColor } from "visualization/common";
 import { ArrowDownOutlined, ArrowUpOutlined, CaretRightOutlined, SortAscendingOutlined } from "@ant-design/icons"
-import { ScaleLinear } from "d3";
 import { ItemDict } from "data/table";
 import Histogram from "visualization/Histogram";
 import { confidenceThresholds } from "data/common";
 
 import "./index.scss"
-
-const { Search } = Input;
 
 export interface FeatureViewProps {
     patientMeta?: PatientMeta,
@@ -79,7 +76,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
     }
 
     private async updateFeatures() {
-        const { patientMeta, featureMeta, predictionTargets, itemDicts } = this.props
+        const { patientMeta, featureMeta, itemDicts } = this.props
         const { target } = this.state;
         const subject_id = patientMeta?.subjectId;
         if (subject_id !== undefined) {
@@ -260,7 +257,7 @@ export interface FeatureBlockProps {
     depth: number,
     feature: Feature,
     featureMatrix?: IDataFrame<number, any>,
-    x: ScaleLinear<number, number>,
+    x: d3.ScaleLinear<number, number>,
     cellWidth: (id: number) => number,
     color?: string,
 }
