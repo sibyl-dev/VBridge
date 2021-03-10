@@ -1,19 +1,14 @@
 import * as React from "react";
-import { Row, Col, Select, Card, Divider } from "antd"
-import "./index.css"
+import { Row, Col, Divider } from "antd"
 import { beautifulPrinter } from "visualization/common";
-
-const { Option } = Select;
+import "./index.scss"
 
 export interface MetaViewProps {
     patientIds?: number[],
     patientInfoMeta?: { [key: string]: any },
-    selectPatientId?: (subjectId: number) => void,
 }
 
-export interface MetaViewStates {
-    expandItem?: boolean[],
-}
+export interface MetaViewStates { }
 
 export type MetaItems = {
     name: string,
@@ -23,7 +18,7 @@ export type MetaItems = {
 export default class MetaView extends React.Component<MetaViewProps, MetaViewStates> {
 
     private metaItems: MetaItems[];
-    private layout: number[] = [0, 10, 1, 11, 0];
+    private layout: number[] = [1, 10, 1, 11, 1];
 
     constructor(props: MetaViewProps) {
         super(props);
@@ -48,53 +43,34 @@ export default class MetaView extends React.Component<MetaViewProps, MetaViewSta
                 ]
             }
         ]
-        this.handleClick = this.handleClick.bind(this);
-    }
-
-    handleClick(i: number) {
-        const expandItem: any = this.state.expandItem;
-        expandItem[i] = !expandItem[i]
-        this.setState({
-            expandItem: expandItem,
-        });
     }
 
     public render() {
-        const { selectPatientId, patientIds, patientInfoMeta } = this.props
-        const { expandItem } = this.state;
+        const { patientInfoMeta } = this.props
 
         return (
-            <div>
-                <Row>
-                    <Col span={10}><span className="meta-info">PatientId: </span></Col>
-                    <Col span={2} />
-                    <Col span={12}>
-                        <Select style={{ width: 120 }} onChange={selectPatientId}>
-                            {patientIds && patientIds.map((id, i) =>
-                                <Option value={id} key={i}>{id}</Option>
-                            )}
-                        </Select>
-                    </Col>
-                </Row>
+            <div className={"meta-view"}>
                 {patientInfoMeta && this.metaItems.map(metaItem => <div key={metaItem.name}>
                     <Divider className='metaInfoTitle' orientation="center"> {metaItem.name} </Divider>
-                        {metaItem.itemNames.map(name => {
-                            var value = patientInfoMeta[name]
-                            if (name.indexOf("TIME") != -1) {
-                                // console.log('TIME', name);
-                                value = value.substr(11, 8);
-                            }
-                            name = name.replace(/_/g, " ");
-                            return <Row key={name}>
-                                <Col span={this.layout[0]} />
-                                <Col span={this.layout[1]}><span className="details-title"> {name}: </span></Col>
-                                <Col span={this.layout[2]} />
-                                <Col span={this.layout[3]}>
-                                    <div className='value' >{value}</div>
-                                </Col>
-                                <Col span={this.layout[4]} />
-                            </Row>
-                        })}
+                    {metaItem.itemNames.map(name => {
+                        var value = patientInfoMeta[name]
+                        if (name.indexOf("TIME") != -1) {
+                            // console.log('TIME', name);
+                            value = value.substr(11, 8);
+                        }
+                        name = name.replace(/_/g, " ");
+                        return <Row key={name}>
+                            <Col span={this.layout[0]} />
+                            <Col span={this.layout[1]}>
+                                <span className="details-title"> {name}: </span>
+                            </Col>
+                            <Col span={this.layout[2]} />
+                            <Col span={this.layout[3]}>
+                                <div className={`value ${metaItem.name}`} >{value}</div>
+                            </Col>
+                            <Col span={this.layout[4]} />
+                        </Row>
+                    })}
                 </div>
                 )}
             </div>

@@ -1,22 +1,25 @@
 import { Feature, FeatureMeta } from "data/feature";
 import { PatientMeta } from "data/patient";
 import * as React from "react";
+import * as d3 from "d3";
 import { Badge, Button, Divider, Tooltip, Input } from "antd"
-import "./index.css"
-import { getFeatureValues, getPrediction, getSHAPValues } from "router/api";
+import { getFeatureMatrix, getFeatureValues, getPrediction, getSHAPValues } from "router/api";
 import { DataFrame, IDataFrame } from "data-forge";
 import * as _ from "lodash"
 import { getScaleLinear, beautifulPrinter, defaultCategoricalColor } from "visualization/common";
 import { ArrowDownOutlined, ArrowUpOutlined, CaretRightOutlined, SortAscendingOutlined } from "@ant-design/icons"
-import { ScaleLinear } from "d3";
+import { ItemDict } from "data/table";
+import Histogram from "visualization/Histogram";
+import { confidenceThresholds } from "data/common";
 
-const { Search } = Input;
+import "./index.scss"
 
 export interface FeatureViewProps {
     patientMeta?: PatientMeta,
     tableNames?: string[],
     featureMeta: IDataFrame<number, FeatureMeta>,
-    predictionTargets: string[]
+    predictionTargets: string[],
+    itemDicts?: ItemDict
 }
 
 export interface FeatureViewStates {
@@ -24,6 +27,7 @@ export interface FeatureViewStates {
     predictions?: (target: string) => number,
     featureDisplayValues?: DataFrame,
     features?: IDataFrame<number, Feature>,
+    featureMatrix?: IDataFrame<number, any>
 }
 
 export default class FeatureView extends React.Component<FeatureViewProps, FeatureViewStates> {
@@ -37,6 +41,15 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
         this.defaultCellWidth = this.defaultCellWidth.bind(this);
         this.onSelectTarget = this.onSelectTarget.bind(this);
         this.color = this.color.bind(this);
+    }
+
+    componentDidMount() {
+        this.loadFeatureMatrix();
+    }
+
+    private async loadFeatureMatrix() {
+        const featureMatrix = await getFeatureMatrix();
+        this.setState({ featureMatrix });
     }
 
     private async updatePrediction() {
@@ -57,13 +70,13 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
     }
 
     private color(entityName: string) {
-        const {tableNames} = this.props;
+        const { tableNames } = this.props;
         const i = tableNames?.indexOf(entityName);
-        return (i !== undefined) ? defaultCategoricalColor(i): '#aaa';
+        return (i !== undefined) ? defaultCategoricalColor(i) : '#aaa';
     }
 
     private async updateFeatures() {
-        const { patientMeta, featureMeta, predictionTargets } = this.props
+        const { patientMeta, featureMeta, itemDicts } = this.props
         const { target } = this.state;
         const subject_id = patientMeta?.subjectId;
         if (subject_id !== undefined) {
@@ -81,9 +94,11 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
             const groups = whereFeatures.groupBy(row => row.where_item[1]).toArray();
             const groupedFeature: IDataFrame<number, Feature> = new DataFrame(groups.map(group => {
                 const sample = group.first();
+                const itemName = sample.where_item![1] as string;
+                const itemLabel = itemDicts && itemDicts(sample.entityId, itemName)?.LABEL;
                 return {
                     ...sample,
-                    alias: sample.where_item![1] as string,
+                    alias: itemLabel || itemName,
                     value: undefined,
                     primitive: undefined,
                     contribution: _.sum(group.getSeries('contribution').toArray()),
@@ -105,10 +120,10 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
 
     public render() {
         const { predictionTargets } = this.props;
-        const { predictions, features, target } = this.state;
+        const { predictions, features, target, featureMatrix } = this.state;
 
         return (
-            <div style={{ height: "100%", width: "100%" }}>
+            <div style={{ height: "100%", width: "100%" }} className="feature-view">
                 {predictionTargets && ProbaList({
                     predictionTargets, predictions,
                     selected: target, onClick: this.onSelectTarget
@@ -118,6 +133,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                     features={features}
                     cellWidth={this.defaultCellWidth}
                     color={this.color}
+                    featureMatrix={featureMatrix}
                 />}
             </div>
         )
@@ -147,6 +163,7 @@ export interface FeatureListProps {
     features: IDataFrame<number, Feature>,
     cellWidth: (id: number) => number,
     color?: (entityName: string) => string,
+    featureMatrix?: IDataFrame<number, any>
 }
 
 export interface FeatureListStates {
@@ -197,16 +214,15 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
     }
 
     public render() {
-        const { features, cellWidth, color } = this.props;
+        const { features, cellWidth, color, featureMatrix } = this.props;
         const { order } = this.state;
         const sortedFeatures = this.sortFeatures(features);
         const x = getScaleLinear(0, cellWidth(2), this.getContributions(sortedFeatures));
 
         return <div style={{ width: "100%" }}>
-            <Search placeholder="input search text" style={{ marginLeft: 10, marginRight: 10, width: "90%" }} enterButton />
+            {/* <Search placeholder="input search text" style={{ marginLeft: 10, marginRight: 10, width: "90%" }} enterButton /> */}
             <div style={{ width: "100%" }}>
                 <div className="feature-header">
-                    <div style={{ width: 20 }} />
                     <div className="feature-header-cell" style={{ width: cellWidth(0) }}>
                         <span>Name</span>
                         <SortAscendingOutlined />
@@ -227,6 +243,7 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
                             cellWidth={cellWidth}
                             key={row.name}
                             color={color && color(row.end_entity)}
+                            featureMatrix={featureMatrix}
                         />
                     )}
                 </div>
@@ -239,7 +256,8 @@ export interface FeatureBlockProps {
     className?: string,
     depth: number,
     feature: Feature,
-    x: ScaleLinear<number, number>,
+    featureMatrix?: IDataFrame<number, any>,
+    x: d3.ScaleLinear<number, number>,
     cellWidth: (id: number) => number,
     color?: string,
 }
@@ -275,28 +293,49 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
     }
 
     render() {
-        const { feature, x, cellWidth, color, className, depth } = this.props;
+        const { feature, x, cellWidth, color, className, depth, featureMatrix } = this.props;
         const { collapsed, expanded } = this.state
         const { name, alias, value, contribution, children } = feature;
+        let series = undefined;
+        let thresholds = [];
+        let colorIndex = 3;
+        // const barColor = d3.scaleSequential(d3.interpolateRdYlGn).domain([0, 6]);
+        const barColor = (id: number) => {
+            if (id > 3)
+                return d3.interpolateReds((id / 3 - 1) * 0.5);
+            else if (id < 3)
+                return d3.interpolateBlues((1 - id / 3) * 0.5);
+        }
+
+        if (typeof (value) === typeof (0.0)) {
+            series = featureMatrix?.getSeries(name).parseFloats().toArray();
+            if (series) {
+                // console.log(series.where(row => row > (value as number)).count() / series.count());
+                thresholds = confidenceThresholds(series);
+                colorIndex = _.sum(thresholds.map(t => t < value!));
+            }
+        }
+
         return <div className={className}>
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", position: "relative" }}>
                 <div style={{ width: 20 }}>
                     {children && <CaretRightOutlined className="right-button"
                         onClick={this.onClickButton} rotate={collapsed ? 0 : 90} />}
                 </div>
-                <Badge count={0}>
-                    <div className="feature-block" key={name}
-                        style={{ height: expanded ? 100 : 30, }}
-                        onClick={children ? this.onClickButton : this.onClickDiv}>
+                <div className={(children ? "feature-group-block" : "feature-block") +
+                    ((depth === 0) ? " feature-top-block" : "")} key={name}
+                    style={{ height: expanded ? 100 : 30, }}
+                    onClick={children ? this.onClickButton : this.onClickDiv}>
+                    <div className="feature-block-inner">
                         <Tooltip title={alias}>
                             <div className="feature-block-cell feature-name" style={{ width: cellWidth(0) - depth * 10 }}>
-                                <p className={"feature-block-cell-text"}>{beautifulPrinter(alias)}</p>
+                                <span className={"feature-block-cell-text"}>{beautifulPrinter(alias)}</span>
                             </div>
                         </Tooltip>
                         <Tooltip title={value}>
-                            <div className={"feature-block-cell" + (children ? " feature-group-value" : " feature-value")}
-                                style={{ width: cellWidth(1) }}>
-                                <p className={"feature-block-cell-text"}>{beautifulPrinter(value)}</p>
+                            <div className={"feature-block-cell feature-value"}
+                                style={{ width: cellWidth(1), backgroundColor: barColor(colorIndex) }}>
+                                <span className={"feature-block-cell-text"}>{beautifulPrinter(value)}</span>
                             </div>
                         </Tooltip>
                         <div className={"feature-block-cell feature-contribution"}
@@ -314,10 +353,20 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                                     }} />
                             }
                         </div>
-                        <span className={"feature-block-dot"} style={{backgroundColor: color || '#aaa'}}/>
-
                     </div>
-                </Badge>
+                    {series && expanded && <div className="feature-block-hist">
+                        <Histogram
+                            data={series}
+                            height={60}
+                            width={cellWidth(1) + 20}
+                            drawAxis={false}
+                            margin={{ left: 10, bottom: 15 }}
+                            referenceValue={value as number}
+                        />
+                    </div>}
+                </div>
+                <span className={"feature-block-dot"} style={{ backgroundColor: color || '#aaa' }} />
+
             </div>
             {!collapsed && children?.toArray().map(feature =>
                 <FeatureBlock
@@ -328,6 +377,7 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                     cellWidth={cellWidth}
                     color={color}
                     key={feature.name}
+                    featureMatrix={featureMatrix}
                 />)}
         </div>
     }

@@ -3,13 +3,14 @@ import Panel from "../Panel"
 import { Row, Col, Select, Card, Divider, Slider, Checkbox, Switch, InputNumber} from "antd"
 import "./index.css" 
 import {filterType} from 'data/filterType';
+import {beautifulPrinter} from 'visualization/common'
 
-
+const { Option } = Select
 
 export interface FliterViewProps {
     patientIds?: number[],
     filterRange?: { [key: string]: any },
-    filterPatients?: (condition: {[key: string]: any }) => void,
+    filterPatients?: (condition: {[key: string]: any}, checkedAll:boolean) => void,
 }
 
 export interface FilterViewStates { 
@@ -44,29 +45,32 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
             filter_name: ['Age',  'Height', 'Weight', 'Surgical time (minutes)','GENDER', 
                             // 'LANGUAGE', 'RELIGION', 'MARITAL_STATUS', 
                             'ETHNICITY',
-                            'ADMISSION_DEPARTMENT', 'INSURANCE', 'DIAGNOSIS', 'ICD10_CODE_CN', 
+                            'ADMISSION_DEPARTMENT', 
+                            // 'INSURANCE', 
+                            'DIAGNOSIS', 'ICD10_CODE_CN', 
                             'SURGERY_NAME', 'ANES_METHOD','SURGERY_POSITION', 
                                 // 'Preoperative oxygen saturation (%)',
                               // 'Oxygen saturation (%)',
                               
                               // 'CPB time (minutes)',
                               // 'Aortic cross-clamping time (times)',
-                              'complication',
-                              'lung complication',
-                              'cardiac complication',
-                              'arrhythmia complication',
-                              'infectious complication',
-                              'other complication',], 
+                              // 'complication',
+                              // 'lung complication',
+                              // 'cardiac complication',
+                              // 'arrhythmia complication',
+                              // 'infectious complication',
+                              // 'other complication',
+                              ], 
 
         };
 
-
-        this.handleClick = this.handleClick.bind(this);
         this.onCheckAllChange = this.onCheckAllChange.bind(this)
-        this.onChangeInputValue = this.onChangeInputValue.bind(this)
-        this.handleCheckBox = this.handleCheckBox.bind(this)
+        this.handleMultiSelect = this.handleMultiSelect.bind(this)
 
-        
+        this.onChangeInputValue = this.onChangeInputValue.bind(this)
+        this.onInputValueAfterChange = this.onInputValueAfterChange.bind(this)
+
+        this.onCheckGender = this.onCheckGender.bind(this)
     }
     public init() {
         var inputValues: number[] = []
@@ -94,12 +98,19 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
         this.init();
     }
 
-    public conveyConditions(name: string, range:any){
+    public conveyConditions(name: string, range:any, coverAll: boolean){
         const { filterPatients } = this.props
         const condition:{[key: string]: any} = {}
         condition[name] = range
+        console.log('conveyConditions', condition, coverAll)
         if(filterPatients)
-         filterPatients(condition)
+             filterPatients(condition, coverAll)
+    }
+    onCheckGender(value:any){
+        var coverAll = false
+        if(value.length == 2)
+            coverAll = true
+        this.conveyConditions('GENDER', value, coverAll)
     }
 
     onCheckAllChange(idx:any, event:any){
@@ -120,59 +131,75 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
         if(indeterminate)
             indeterminate[idx] = false
         this.setState({checkedList, checkedAll, indeterminate})
+        console.log('onCheckAllChange', checkedList && checkedList[idx])
 
         if(checkedList && this.state.filter_name)
-            this.conveyConditions(this.state.filter_name[idx+5], checkedList[idx])
+            this.conveyConditions(this.state.filter_name[idx+5], checkedList[idx], event.target.checked)
    }
 
-   handleCheckBox(idx:any, listV:any){
+   handleMultiSelect(idx: number, listV:string []){
         console.log('onCheckAllChange', idx, listV)
         var checkedList  = this.state.checkedList;
         var checkedAll = this.state.checkedAll
         var indeterminate = this.state.indeterminate
-        if(checkedList && this.state.filter_name && this.props.filterRange)
+        if(checkedList)
             checkedList[idx] = listV
-        if(this.state.filter_name && this.props.filterRange) 
-            if(indeterminate && listV.length < this.props.filterRange[this.state.filter_name[idx+5]].length && listV.length)
+        if(this.state.filter_name && this.props.filterRange && checkedAll && indeterminate){ 
+            if(listV.length < this.props.filterRange[this.state.filter_name[idx+5]].length && listV.length){
                 indeterminate[idx] = true
-            else if(checkedAll && listV.length == this.props.filterRange[this.state.filter_name[idx+5]].length )
+                checkedAll[idx] = false
+            }
+            else if(listV.length == this.props.filterRange[this.state.filter_name[idx+5]].length){
+                indeterminate[idx] = false
                 checkedAll[idx] = true
+            }
+            else if(listV.length == 0){
+                indeterminate[idx] = false
+                checkedAll[idx] = false
+            }
+        }
         this.setState({checkedList, checkedAll, indeterminate})
 
-        if(checkedList && this.state.filter_name)
-            this.conveyConditions(this.state.filter_name[idx+5], checkedList[idx])
+        if(checkedList && this.state.filter_name && checkedAll)
+            this.conveyConditions(this.state.filter_name[idx+5], checkedList[idx], checkedAll[idx])
     }
 
-
-    handleClick(i:number){
-        var expandItem:any  = this.state.expandItem;
-        expandItem[i] = !expandItem[i]
-        this.setState({
-          expandItem: expandItem,
-        });
-    }
-
-    
     onChangeInputValue(idx:number, value: any){
-
         const inputValues:any  = this.state.inputValues;
+        const filterRange = this.props.filterRange
         console.log('onChangeInputValue', value, idx, typeof(value)=='number')
-        // console.log('before', inputValues)
         if(typeof(value) == 'number'){
             inputValues[idx] = value
             const trueIdx = idx%2?(idx-1)/2:idx/2            
-            if(inputValues && this.state.filter_name)
-                this.conveyConditions(this.state.filter_name[trueIdx], [inputValues[trueIdx*2], inputValues[trueIdx*2+1]])
+            if(inputValues && this.state.filter_name && filterRange){
+                const name = this.state.filter_name[trueIdx]
+                var coverAll = false
+                if(inputValues[trueIdx*2] <= filterRange[name][0] && inputValues[trueIdx*2+1] >= filterRange[name][1])
+                    coverAll = true
+                this.conveyConditions(name, [inputValues[trueIdx*2], inputValues[trueIdx*2+1]], coverAll)
+            }
         }
         else{
             inputValues[idx*2] = value[0]
             inputValues[idx*2+1] = value[1]
         }
         this.setState({inputValues})
-        // console.log('after', this.state.inputValues)
-
 
     }
+    onInputValueAfterChange(trueIdx: number, value: any){
+        console.log('onInputValueAfterChange', trueIdx, value)
+        const inputValues:any  = this.state.inputValues;
+        const filterRange = this.props.filterRange
+        if(inputValues && this.state.filter_name && filterRange){
+            const name = this.state.filter_name[trueIdx]
+            var coverAll = false
+            if(inputValues[trueIdx*2] <= filterRange[name][0] && inputValues[trueIdx*2+1] >= filterRange[name][1])
+                coverAll = true
+            this.conveyConditions(name, [inputValues[trueIdx*2], inputValues[trueIdx*2+1]], coverAll)
+            console.log('coverAll', coverAll, name, filterRange[name])
+       }
+    }
+
 
     public render() {
         const { filterRange, patientIds,  } = this.props
@@ -185,13 +212,11 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
         
         return (
             <div id='FilterView'>
-                
              { filter_name && filterRange && filter_name.map((name,idx) => {
-
                 if(name == 'GENDER'){
                     return <>
                         <Divider orientation="center"></Divider>
-                        <Checkbox.Group style={{ width: '100%' }} defaultValue={filterRange[name]} onChange={this.conveyConditions.bind(this,name)}>
+                        <Checkbox.Group style={{ width: '100%' }} defaultValue={filterRange[name]} onChange={this.onCheckGender}>
                             <Row>
                                   <Col span={6} className='filterName'>{name}:</Col>
                                   <Col span={2}/>
@@ -209,63 +234,49 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
                 }
                 else if(typeof(filterRange[name][0]) == 'string'){
                     const contents:string [] =  filterRange[name]
-                    // contents.filter((x) => x != '')
-                    name = name.replace(/_/g," ")
+                    const name1 = name.replace(/_/g," ")
                     var value: any = ['Empty']
                     if(checkedList){
                         value = checkedList[idx-5]
-                        // console.log('here', value, checkedList)
+                        // for(let i in value)
+                            // value[i] = beautifulPrinter(value[i], 30)                        
                     }
+                    // for(let i in contents)
+                        // contents[i] = beautifulPrinter(contents[i], 30)
                     return <>
                         <Divider orientation="center"></Divider>
                         <Row>
-                           <Col span={6} className='filterName' > {name}: </Col>
+                           <Col span={6} className='filterName' > {name1}: </Col>
                            <Col span={2}/>
-                           <Col span={14}>
-                               <div className='firstRow'  onClick={this.handleClick.bind(this,idx-5)}>
-                                       {expandItem && expandItem[idx-5]? <img src='tri_fold.png' className='dropDownImg' width='15px'/> : <img src='tri_unfold.png' className='dropDownImg' width='15px'/>} 
-                               </div>
-                               <Checkbox indeterminate={indeterminate&&indeterminate[idx-5]}  checked={checkedAll&&checkedAll[idx-5]} style={{fontWeight:'bold'}} onChange={this.onCheckAllChange.bind(this,idx-5)}>
-                                    Check All
-                                </Checkbox>
-                               {expandItem&& expandItem[idx-5]?
-                                   <>
-                                       
-                                       <div className='dropDownList'> 
-                                               <Checkbox.Group options={filterRange[name]} value={value} onChange={this.handleCheckBox.bind(this, idx-5)}>
-                                                    <Row>
-                                                        {contents.map(content =>{
-                                                            return <>
-                                                                    <Col span={20}>
-                                                                        <Checkbox key={content} value={content}>{content}</Checkbox>
-                                                                    </Col>
-                                                                </>
-                                                        })}
-                                                    </Row>
-                                                </Checkbox.Group>     
-                                       </div>
-                                   </>
-                                :''}
+                           <Col span={14}>  
+                                   <Select
+                                      mode="multiple"
+                                      allowClear
+                                      style={{ width: '100%' }}
+                                      placeholder="Please select"
+                                      maxTagCount='responsive'
+                                      dropdownMatchSelectWidth={true}
+                                      value={value}
+                                      onChange={this.handleMultiSelect.bind(this, idx-5)}
+                                    >
+                                       {contents.map((content,i) =>{
+                                          return <>
+                                                <Select.Option key={i} value={content}>
+                                                    {content} 
+                                                 </Select.Option>
+                                             </>
+                                        })}
+                                    </Select> 
 
+                           </Col>
+                           <Col span={2}>
+                               <Checkbox indeterminate={indeterminate&&indeterminate[idx-5]} style={{ marginLeft: '10px' }} checked={checkedAll&&checkedAll[idx-5]} onChange={this.onCheckAllChange.bind(this,idx-5)}/>
                            </Col>
                         </Row>
                         <Row>
                         </Row>
                     </>
    
-                }
-                else if(name.indexOf("complication") != -1) {
-                    return <>
-                          <Divider orientation="center"></Divider>
-                          <Row>
-                              <Col span={12} className='complicationName filterName'>{name}:</Col>
-
-                              <Col span={4}/>
-                              <Col span={8}>
-                                    <Switch key={name} checkedChildren="Yes" unCheckedChildren="No" defaultChecked onChange={this.conveyConditions.bind(this, name)} />
-                               </Col>
-                           </Row>
-                        </>
                 }
                 else{
                     const max = filterRange[name][1]
@@ -294,7 +305,7 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
                                     value={inputValues? [inputValues[idx*2],inputValues[idx*2+1]]:[0,100]}
                                     defaultValue={[min, max]}
                                     onChange={this.onChangeInputValue.bind(this, idx)}
-                                    onAfterChange={this.conveyConditions.bind(this, name)}
+                                    onAfterChange={this.onInputValueAfterChange.bind(this, idx)}
                                 />
                               </Col>
                               <Col span={3} className='rightValue'>
@@ -318,9 +329,3 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
         )
     }
 }
-
-                            // tooltipVisible
-
-                            // getTooltipPopupContainer={document.querySelector==null ? () => document.body : () => document.querySelector(".ant-slider-step")}
-                    
-

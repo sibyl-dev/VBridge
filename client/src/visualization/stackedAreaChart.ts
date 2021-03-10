@@ -42,8 +42,6 @@ export function drawStackedAreaChart(params: {
         accuCount: 0,
     })));
 
-    console.log(bins);
-
     for(let i = 0; i < events.length; i++) {
         if (i > 0) {
             _.range(0, nbins).forEach(binId => {

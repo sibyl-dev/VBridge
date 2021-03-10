@@ -1,11 +1,13 @@
 import axios, { AxiosResponse } from "axios";
 import * as dataForge from "data-forge"
+import * as _ from "lodash"
 import { FeatureMeta } from "data/feature";
 import { PatientMeta } from "data/patient";
-import { Entity } from "data/table";
+import { Entity, ItemDict } from "data/table";
 import { ROOT_URL, DEV_MODE } from "./env";
-import {patientInfoMeta} from 'data/metaInfo';
-import {filterType} from 'data/filterType';
+import { patientInfoMeta } from 'data/metaInfo';
+import { filterType } from 'data/filterType';
+import { referenceValue } from "data/common";
 
 
 const API = `${ROOT_URL}/api`;
@@ -15,8 +17,8 @@ function checkResponse<T>(response: AxiosResponse<T>, fallback: T): T {
     if (response.status === 200) return response.data;
     console.error(`Data fetching error: ${response.status}`);
     if (DEV_MODE) {
-      console.error(response);
-      throw response;
+        console.error(response);
+        throw response;
     }
     return fallback;
 }
@@ -38,7 +40,7 @@ export async function getPatientRecords(params: {
     return table;
 }
 
-export async function getTableNames(): Promise<string[]>{
+export async function getTableNames(): Promise<string[]> {
     const url = `${API}/table_names`;
     const response = await axios.get(url);
     const tableNames = checkResponse(response, []);
@@ -53,20 +55,20 @@ export async function getPatientIds(): Promise<number[]> {
 
 export async function getPatientInfoMeta(params: {
     subject_id: number
-}): Promise<patientInfoMeta>{
+}): Promise<patientInfoMeta> {
     const url = `${API}/patientinfo_meta`;
     const response = await axios.get(url, { params });
     return checkResponse(response, []);
 }
 
-export async function getPatientFilterRange(): Promise<filterType>{
+export async function getPatientFilterRange(): Promise<filterType> {
     const url = `${API}/record_filterrange`;
     const response = await axios.get(url);
     return checkResponse(response, []);
 }
 export async function getPatientGroup(params: {
     filterConditions: {[key: string]: any}
-}): Promise<patientInfoMeta>{
+}): Promise<{[key: string]: any}>{
     const url = `${API}/patient_group`;
     const response = await axios.get(url, { params });
     return checkResponse(response, []);
@@ -75,7 +77,7 @@ export async function getPatientGroup(params: {
 
 export async function getPatientMeta(params: {
     subject_id: number
-}): Promise<PatientMeta>{
+}): Promise<PatientMeta> {
     const url = `${API}/patient_meta`;
     const response = await axios.get(url, { params });
     let meta: PatientMeta = checkResponse(response, []);
@@ -84,13 +86,13 @@ export async function getPatientMeta(params: {
     return meta;
 }
 
-export async function getFeatureMate(): Promise<FeatureMeta[]>{
+export async function getFeatureMate(): Promise<FeatureMeta[]> {
     const url = `${API}/feature_meta`;
     const response = await axios.get(url);
     return checkResponse(response, []);
 }
 
-export async function getPredictionTargets(): Promise<string[]>{
+export async function getPredictionTargets(): Promise<string[]> {
     const url = `${API}/prediction_target`;
     const response = await axios.get(url);
     return checkResponse(response, []);
@@ -98,16 +100,24 @@ export async function getPredictionTargets(): Promise<string[]>{
 
 export async function getPrediction(params: {
     subject_id: number
-}): Promise<(target: string) => number>{
+}): Promise<(target: string) => number> {
     const url = `${API}/prediction`;
     const response = await axios.get(url, { params });
     const predictions = checkResponse(response, []);
     return (target: string) => predictions[target];
 }
 
+export async function getFeatureMatrix(): Promise<dataForge.IDataFrame<number, any>> {
+    const url = `${API}/feature_matrix`;
+    const response = await axios.get(url);
+    const checked = checkResponse(response, []);
+    const fm = dataForge.fromCSV(checked);
+    return fm;
+}
+
 export async function getFeatureValues(params: {
     subject_id: number
-}): Promise<(featureName: string) => number>{
+}): Promise<(featureName: string) => number> {
     const url = `${API}/feature_values`;
     const response = await axios.get(url, { params });
     const featureValues = checkResponse(response, []);
@@ -117,9 +127,36 @@ export async function getFeatureValues(params: {
 export async function getSHAPValues(params: {
     subject_id: number,
     target: string,
-}): Promise<(featureName: string) => number>{
+}): Promise<(featureName: string) => number> {
     const url = `${API}/shap_values`;
     const response = await axios.get(url, { params });
     const shapValues = checkResponse(response, []);
     return (featureName: string) => shapValues[featureName];
+}
+
+export async function getItemDict(): Promise<ItemDict> {
+    const url = `${API}/item_dict`;
+    const response = await axios.get(url);
+    const checked = checkResponse(response, []);
+    return (tableName: string, itemName: string) => {
+        if (_.has(checked, tableName)) {
+            return checked[tableName][itemName];
+        }
+        else return undefined;
+    }
+}
+
+export async function getReferenceValues(params: {
+    table_name: string,
+    column_name: string,
+}): Promise<(itemName: string) => (referenceValue|undefined)> {
+    const url = `${API}/reference_value`
+    const response = await axios.get(url, { params });
+    const checked = checkResponse(response, []);
+    return (itemName: string) => {
+        if (_.has(checked, itemName)){
+            return checked[itemName];
+        }
+        return undefined;
+    }
 }

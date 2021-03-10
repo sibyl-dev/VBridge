@@ -1,0 +1,51 @@
+.ts-card {
+    border: 1px solid rgba(220, 225, 230, 0.7);
+    margin: 10px 20px 10px 20px;
+    border-radius: 5px;
+    position: relative;
+    transition: all 0.5s ease;
+    .ts-title-float {
+        button.ant-btn {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+    }
+}
+
+.ts-title {
+    border-bottom: 1px solid #bbb;
+    /* display: flex; */
+    margin: 3px 0px 3px 0px;
+    font-size: 12px;
+    height: 30px;
+}
+
+.ts-title-text {
+    margin-top: 3px;
+    margin-left: 5px;
+    float: left;
+}
+
+.ts-title-button {
+    /* margin-left: 2px; */
+    margin-right: 2px;
+    float: right;
+}
+
+.ts-title-float {
+    position: absolute;
+    top: -10px;
+    left: 15px;
+    width: inherit;
+}
+
+.ts-title-float-text {
+    font-size: 14px;
+    background-color: #fff;
+    padding-left: 10px;
+    padding-right: 10px;
+    float: left;
+}

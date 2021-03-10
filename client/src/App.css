@@ -25,3 +25,11 @@
     float: left;
     font-size: 30px;
 }
+
+.patient-selector-title {
+    color: #fff;
+    font-size: 18px;
+    font-weight: bold;
+    line-height: 30px;
+    margin-right: 20px;
+}
