@@ -2,6 +2,7 @@
 @import 'react-virtualized/styles.css';
 .App {
     text-align: center;
+    background-color : rgba(150, 150, 150, 1);
 }
 
 .App-header {
@@ -24,4 +25,18 @@
     color: white;
     float: left;
     font-size: 30px;
+}
+#Filter{
+    border: 2px solid black;
+}
+#Filter .panel-header{
+    background-color: #4682B4;
+}
+.ant-drawer-header{
+    background-color: #e8f0fa;
+}
+.ant-drawer-title{
+    font-weight: bold;
+    float: left;
+    margin-left: 10px;
 }

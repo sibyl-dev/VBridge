@@ -66,8 +66,9 @@ export default class MetaView extends React.Component<MetaViewProps, MetaViewSta
         return (
             <div>
                 <Row>
-                    <Col span={10}><span className="meta-info">PatientId: </span></Col>
-                    <Col span={2} />
+                    <Col span={1} />
+                    <Col span={6}><span className="meta-info">PatientId: </span></Col>
+                    <Col span={1} />
                     <Col span={12}>
                         <Select style={{ width: 120 }} onChange={selectPatientId}>
                             {patientIds && patientIds.map((id, i) =>
@@ -75,6 +76,7 @@ export default class MetaView extends React.Component<MetaViewProps, MetaViewSta
                             )}
                         </Select>
                     </Col>
+                    <Col span={2}/>
                 </Row>
                 {patientInfoMeta && this.metaItems.map(metaItem => <div key={metaItem.name} id={metaItem.name}>
                     <Divider className='metaInfoTitle' orientation="center"> {metaItem.name} </Divider>

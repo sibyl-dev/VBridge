@@ -1,6 +1,7 @@
 import React from 'react';
 
-import { Layout } from 'antd'
+import { Layout, Drawer, Tooltip, Button } from 'antd'
+import { FilterOutlined} from '@ant-design/icons'
 import './App.css';
 
 import FeatureView from "./components/FeatureView"
@@ -48,6 +49,8 @@ interface AppStates {
   filterRange?: filterType,
   filterConditions?: {[key: string]: any},
   subjectIdG?: object,
+
+  visible?: boolean,
 }
 
 class App extends React.Component<AppProps, AppStates>{
@@ -60,6 +63,8 @@ class App extends React.Component<AppProps, AppStates>{
     this.filterPatients = this.filterPatients.bind(this)
     this.buildRecordTS = this.buildRecordTS.bind(this);
     this.updateRecordTS = this.updateRecordTS.bind(this);
+    this.showDrawer = this.showDrawer.bind(this)
+    this.onClose = this.onClose.bind(this)
   }
 
   public async init() {
@@ -156,9 +161,17 @@ class App extends React.Component<AppProps, AppStates>{
     const newRecords = this.buildRecordTS(entityName, startDate, endDate);
     this.setState({ dynamicRecords: newRecords });
   }
+  private showDrawer = () => {
+    const visible = true
+    this.setState({visible})
+  };
+  private onClose = () => {
+    const visible = false
+    this.setState({visible})
+  };
 
   public render() {
-    const { subjectIds, patientMeta, tableNames, tableRecords, featureMeta, predictionTargets, dynamicRecords, patientInfoMeta, filterRange } = this.state
+    const { subjectIds, patientMeta, tableNames, tableRecords, featureMeta, predictionTargets, dynamicRecords, patientInfoMeta, filterRange, visible } = this.state
     return (
       <div className='App'>
         <Layout>
@@ -182,6 +195,9 @@ class App extends React.Component<AppProps, AppStates>{
               />
             </Panel>
             {tableNames && <Panel initialWidth={300} initialHeight={840} x={1110} y={0} title="Patient View">
+              <Tooltip title="search">
+                <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={this.showDrawer} style={{position:'absolute', right: 10, top: 39}}/>
+              </Tooltip>
               <MetaView
                 patientIds={subjectIds}
                 patientInfoMeta={patientInfoMeta}
@@ -204,13 +220,28 @@ class App extends React.Component<AppProps, AppStates>{
               />
             </Panel>
             }*/}
-             {tableNames && <Panel initialWidth={400} initialHeight={835} x={1410} y={0}>
-              <FilterView
-                patientIds={subjectIds}
-                filterRange={filterRange}
-                filterPatients={this.filterPatients}
-              />
-            </Panel>
+             {tableNames && 
+              <Drawer
+                title="Filter View"
+                placement="right"
+                closable={false}
+                onClose={this.onClose}
+                visible={visible}
+                width={450}
+              >
+              <p>
+            {/*
+                 <Panel initialWidth={600} initialHeight={755} x={450} y={50} title="Filter View" id='Filter'>
+                </Panel>
+               
+               */}
+                  <FilterView
+                    patientIds={subjectIds}
+                    filterRange={filterRange}
+                    filterPatients={this.filterPatients}
+                  />
+               </p>
+             </Drawer>
             } 
           </Content>
         </Layout>

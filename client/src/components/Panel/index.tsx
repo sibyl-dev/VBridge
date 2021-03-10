@@ -15,6 +15,7 @@ export interface IPanelProps {
   title?: string;
   resizable?: boolean;
   draggable?: boolean;
+  id?: string;
 }
 
 export interface IPanelState {
@@ -71,11 +72,12 @@ export default class Panel extends React.Component<IPanelProps, IPanelState> {
   }
 
   public render() {
-    const { title } = this.props;
+    const { title,id} = this.props;
     const { x, y, width, height } = this.state;
     return (
       <Rnd
         className="panel-wrapper"
+        id={id}
         size={{ width, height }}
         position={{ x, y }}
         minWidth={100}
