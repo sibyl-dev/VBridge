@@ -33,16 +33,18 @@ def load_fm(token=''):
     df = pd.read_csv(os.path.join(output_dir, 'fm{}.csv'.format(token)), index_col=0)
     return df, fm_list
 
+
 def exist_fm(token=''):
     if str(token) != '':
         token = '_' + str(token)
     return os.path.exists(os.path.join(output_dir, 'fl{}.pkl'.format(token))) and \
-        os.path.exists(os.path.join(output_dir, 'fl{}.csv'.format(token)))
+           os.path.exists(os.path.join(output_dir, 'fm{}.csv'.format(token)))
+
 
 def remove_nan_entries(df, key_columns, verbose=True):
     n_row = len(df)
     for column in key_columns:
         df = df[df[column] == df[column]]
     if verbose:
-        print("Prune ({}/{}) rows.".format(n_row-len(df), n_row))
+        print("Prune ({}/{}) rows.".format(n_row - len(df), n_row))
     return df
