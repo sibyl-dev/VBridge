@@ -69,23 +69,21 @@ class App extends React.Component<AppProps, AppStates>{
   public componentDidUpdate(prevProps: AppProps, prevState: AppStates) {
     if (prevState.patientMeta?.subjectId !== this.state.patientMeta?.subjectId) {
       const { featureMeta } = this.state;
-      if (featureMeta) {
-        const signalMetaDF = featureMeta.select(row => this.buildRecordTSFromFeature(row));
-        console.log(signalMetaDF.toArray());
-        const signalMetaGroups = signalMetaDF.groupBy(row => `${row?.tableName}.${row?.itemName}`);
-        console.log(signalMetaGroups.toArray());
-        const signalMeta: SignalMeta[] = signalMetaGroups.select(group => {
-          const sample = group.first();
-          if (sample)
-            return {
-              ...sample,
-              relatedFeatureNames: group.getSeries('relatedFeatureNames').toArray() as string[]
-            }
-          else
-            return undefined
-        }).toArray().filter(isDefined);
-        this.setState({ signalMeta });
-      }
+      // if (featureMeta) {
+      //   const signalMetaDF = featureMeta.select(row => this.buildRecordTSFromFeature(row));
+      //   const signalMetaGroups = signalMetaDF.groupBy(row => `${row?.tableName}.${row?.itemName}`);
+      //   const signalMeta: SignalMeta[] = signalMetaGroups.select(group => {
+      //     const sample = group.first();
+      //     if (sample)
+      //       return {
+      //         ...sample,
+      //         relatedFeatureNames: group.getSeries('relatedFeatureNames').toArray() as string[]
+      //       }
+      //     else
+      //       return undefined
+      //   }).toArray().filter(isDefined);
+      //   this.setState({ signalMeta });
+      // }
     }
   }
 

@@ -146,7 +146,8 @@ function ProbaList(params: {
     selected?: string,
     onClick?: (value: string) => void,
 }) {
-    const { predictionTargets, predictions, selected, onClick } = params
+    const { predictions, selected, onClick } = params;
+    const predictionTargets = params.predictionTargets.filter(t => t !== 'complication');
     return <div className="proba-list">
         {predictionTargets.map(target =>
             <Button block key={target} className={"proba-item" + (selected && target === selected ? " proba-selected" : "")}
@@ -242,7 +243,7 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
                             x={x!}
                             cellWidth={cellWidth}
                             key={row.name}
-                            color={color && color(row.end_entity)}
+                            color={color && color(row.entityId)}
                             featureMatrix={featureMatrix}
                         />
                     )}

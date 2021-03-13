@@ -42,7 +42,7 @@ export function drawLineChart(params: LineChartParams) {
 
     let maxValue = d3.max(values);
     let minValue = d3.min(values);
-    if (referenceValue) {
+    if (referenceValue && referenceValue.ci95) {
         maxValue = Math.max(maxValue, referenceValue.ci95[1]);
         minValue = Math.min(minValue, referenceValue.ci95[0]);
     }
@@ -60,7 +60,7 @@ export function drawLineChart(params: LineChartParams) {
     const points: [number, number][] = dates.map((date, i) => [t(date), y(values[i])] as [number, number])
         .filter(d => (d[0] === d[0]) && (d[1] === d[1]));
 
-    const outofCI = referenceValue && ((value: number) => value < referenceValue.ci95[0] || value > referenceValue.ci95[1]);
+    const outofCI = referenceValue && referenceValue.ci95 && ((value: number) => value < referenceValue.ci95[0] || value > referenceValue.ci95[1]);
 
     getChildOrAppend(base, 'path', 'line')
         .datum(points)
@@ -89,6 +89,7 @@ export function drawLineChart(params: LineChartParams) {
             .attr("y1", y(referenceValue.mean))
             .attr("y2", y(referenceValue.mean))
             .attr("display", drawReferences ? 'block' : 'none');
+        if (referenceValue.ci95)
         getChildOrAppend<SVGRectElement, SVGGElement>(base, "rect", "reference-area")
             .attr("width", width)
             .attr("height", y(referenceValue.ci95[0]) - y(referenceValue.ci95[1]))
