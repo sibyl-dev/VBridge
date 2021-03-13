@@ -27,6 +27,11 @@ RELATIONSHIPS = [
     ('D_ICD_DIAGNOSES', 'ICD10_CODE_CN', 'DIAGNOSES_ICD', 'ICD10_CODE_CN'),
 ]
 
+complication_type = ['complication', 'lung complication','cardiac complication','arrhythmia complication','infectious complication','other complication']
+fm_category_name= [ 'SURGERY_NAME','SURGERY_POSITION',
+                    'ADMISSIONS.ADMISSION_DEPARTMENT','ADMISSIONS.INSURANCE','ADMISSIONS.LANGUAGE',
+                    'ADMISSIONS.RELIGION','ADMISSIONS.MARITAL_STATUS','ADMISSIONS.ETHNICITY',
+                    'ADMISSIONS.ICD10_CODE_CN','ADMISSIONS.HAS_CHARTEVENTS_DATA','ADMISSIONS.PATIENTS.GENDER',]
 META_INFO = {
     'PATIENTS': {
         'index': 'SUBJECT_ID',

@@ -67,7 +67,7 @@ export async function getPatientFilterRange(): Promise<filterType> {
     return checkResponse(response, []);
 }
 export async function getPatientGroup(params: {
-    filterConditions: {[key: string]: any}
+    filterConditions: {[key: string]: any}, subject_id: number
 }): Promise<{[key: string]: any}>{
     const url = `${API}/patient_group`;
     const response = await axios.get(url, { params });
@@ -154,8 +154,18 @@ export async function getReferenceValues(params: {
     const response = await axios.get(url, { params });
     const checked = checkResponse(response, []);
     return (itemName: string) => {
-        if (_.has(checked, itemName)){
-            return checked[itemName];
+        // const res = JSON.parse(checked)
+        var res = checked
+        // if(typeof(checked) == 'string'){
+        //     res = res.replace(/NaN/g, '0')
+        //     console.log(res, typeof(res))
+        //     res = JSON.parse(checked)
+        // }
+        // console.log('getReferenceValues',itemName, _.has(res, itemName))
+        // console.log(res)
+
+        if (_.has(res, itemName)){
+            return res[itemName];
         }
         return undefined;
     }

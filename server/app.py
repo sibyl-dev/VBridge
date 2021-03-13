@@ -40,6 +40,7 @@ def create_app():
         model_manager.fit_all()
         print(model_manager.evaluate())
     app.model_manager = model_manager
+    app.subject_idG = fm.index
 
 
     # load explainer

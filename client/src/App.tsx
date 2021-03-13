@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Layout, Drawer, Tooltip, Button, Select} from 'antd'
+import { Layout, Drawer, Tooltip, Button, Select, Avatar, Divider, Row, Col} from 'antd'
 import { FilterOutlined} from '@ant-design/icons'
 import './App.css';
 
@@ -17,12 +17,17 @@ import { PatientMeta } from 'data/patient';
 import { Entity, ItemDict } from 'data/table';
 import { patientInfoMeta } from 'data/metaInfo';
 import { filterType } from 'data/filterType';
+import ReactEcharts  from 'echarts-for-react';
+
 
 import Panel from 'components/Panel';
 import { FeatureMeta } from 'data/feature';
 import { DataFrame } from 'data-forge';
 import { isUndefined } from 'lodash';
 import { isDefined } from 'data/common';
+
+import Histogram from "visualization/Histogram";
+
 
 const { Header, Content } = Layout;
 const { Option } = Select;
@@ -46,18 +51,19 @@ interface AppStates {
 
   patientInfoMeta?: { [key: string]: any },
   filterRange?: filterType,
-  filterConditions?: {[key: string]: any},
-  subjectIdG?: object,
-
+  subjectIdG?: {[key: string]: any},
+  selectedsubjectId?: number,
+  conditions?: {[key: string]: any},
   visible?: boolean,
 }
 
 class App extends React.Component<AppProps, AppStates>{
   constructor(props: AppProps) {
     super(props);
-    this.state = { dynamicRecords: [] };
+    this.state = { dynamicRecords: [], conditions:{'':''}};
 
     this.selectPatientId = this.selectPatientId.bind(this);
+    this.selectComparePatientId = this.selectComparePatientId.bind(this)
     this.loadPatientRecords = this.loadPatientRecords.bind(this);
     this.filterPatients = this.filterPatients.bind(this)
     this.buildRecordTS = this.buildRecordTS.bind(this);
@@ -67,11 +73,11 @@ class App extends React.Component<AppProps, AppStates>{
     this.buildRecordTSFromFeature = this.buildRecordTSFromFeature.bind(this);
   }
 
-  public componentDidMount() {
+  componentDidMount() {
     this.init();
   }
 
-  public componentDidUpdate(prevProps: AppProps, prevState: AppStates) {
+  componentDidUpdate(prevProps: AppProps, prevState: AppStates) {
     if (prevState.patientMeta?.subjectId !== this.state.patientMeta?.subjectId) {
       const { featureMeta } = this.state;
       if (featureMeta) {
@@ -86,42 +92,36 @@ class App extends React.Component<AppProps, AppStates>{
     const tableNames = await getTableNames();
     const filterRange = await getPatientFilterRange();
     const itemDicts = await getItemDict();
-    const filterConditions = { '': '' }
 
     const featureMeta = new DataFrame(await getFeatureMate());
     const predictionTargets = await getPredictionTargets();
 
-    const subjectIdG = (await getPatientGroup({ filterConditions: filterConditions })).subject_idG
-
-    this.setState({ subjectIds, tableNames, filterRange, filterConditions, featureMeta, predictionTargets, itemDicts });
+    const subjectIdG = (await getPatientGroup({filterConditions: { '': '' }, subject_id:0}))
+    // const prediction = (await getPatientGroup({ filterConditions: filterConditions })).prediction
+    console.log('init', subjectIdG)
+    this.setState({ subjectIds, tableNames, filterRange, featureMeta, predictionTargets, itemDicts, subjectIdG});
   }
 
   public async selectPatientId(subjectId: number) {
+    const selectedsubjectId = subjectId
     const patientMeta = await getPatientMeta({ subject_id: subjectId });
     const patientInfoMeta = await getPatientInfoMeta({ subject_id: subjectId });
     const tableRecords = await this.loadPatientRecords(subjectId);
-    this.setState({ patientMeta, tableRecords, patientInfoMeta });
-  }
-
-  public async filterPatients(conditions: {[key: string]: any}, checkedAll: boolean) {
-    const {filterConditions, filterRange} = this.state
-    for(var key in conditions)
-      if(filterConditions){
-        var value = conditions[key]=='Yes'?1: conditions[key]
-        value = conditions[key]=='No'?0: conditions[key]
-        filterConditions[key] = value
-
-      if(checkedAll)
-          delete filterConditions[key]
-      }
-    this.setState({ filterConditions })
-
-    var subjectIdG:{[key: string]: any} = {}
-    if(filterConditions){
-      subjectIdG = (await getPatientGroup({ filterConditions: filterConditions })).subject_idG
+    if(this.state.conditions){
+      const subjectIdG = (await getPatientGroup({filterConditions: this.state.conditions, subject_id: subjectId}))
       this.setState({subjectIdG})
     }
+    this.setState({ patientMeta, tableRecords, patientInfoMeta, selectedsubjectId});
+  }
+  public async selectComparePatientId(subjectId: number){
 
+  }
+
+  private async filterPatients(conditions: {[key: string]: any}, changeornot:boolean) {
+    if(changeornot && this.state.selectedsubjectId){
+        const subjectIdG = (await getPatientGroup({filterConditions: conditions, subject_id: this.state.selectedsubjectId}))
+        this.setState({subjectIdG, conditions})
+    }
   }
 
   private async loadPatientRecords(subjectId: number) {
@@ -189,13 +189,29 @@ class App extends React.Component<AppProps, AppStates>{
   private onClose = () => {
     const visible = false
     this.setState({visible})
+    // console.log('onClose', this.state.filterConditions)
   };
 
   public render() {
 
     const { subjectIds, patientMeta, tableNames, tableRecords, featureMeta, predictionTargets,
-      itemDicts, dynamicRecords, patientInfoMeta, filterRange, visible } = this.state
+      itemDicts, dynamicRecords, patientInfoMeta, filterRange, visible, subjectIdG } = this.state
+    const idGs: number [] = subjectIdG && subjectIdG.subject_idG.slice(0, 100)
+    const predictionG: string[] = subjectIdG && subjectIdG.predictionG.slice(0, 100)  
+    const similarityG:number [] = subjectIdG && subjectIdG.similarity && subjectIdG.similarity.slice(0, 100)
+    console.log('predictionG', predictionG)
+    const complicationtypes = ['lung complication','cardiac complication','arrhythmia complication','infectious complication','other complication']
+    const brieftcomplitype = ['L', 'C', 'A', 'I', 'O']
+    const series:number [] = subjectIdG && subjectIdG.distribution
+    console.log('app', series)
 
+     const option={
+                tooltip:{trigger: 'axis'},
+                xAxis: {data: ['No complication','lung complication','cardiac complication','arrhythmia complication','infectious complication','other complication']},
+                yAxis: {type: 'value'},
+                series : [{ name:'Patient Numer', type:'bar',barWidth: '50%',data: series, itemStyle: { color: 'blue'} }]
+                }
+    // const series:number [] = subjectIdG && [subjectIdG.lung_num, subjectIdG.cardiac_num, subjectIdG.arrhythmia_num, subjectIdG.infectious_num, subjectIdG.other_num]
     return (
       <div className='App'>
         <Layout>
@@ -207,6 +223,44 @@ class App extends React.Component<AppProps, AppStates>{
                 <Option value={id} key={i}>{id}</Option>
               )}
             </Select>
+            <span className="patient-selector-title" style={{marginLeft:'20px'}}>Compared PatientId: </span>
+            <Select style={{ width: 200 }} onChange={this.selectComparePatientId} className="compare-patient-selector">
+              {/*series && series.length? 
+                  <div className='echart'>
+                     <ReactEcharts option={option}/>
+                   </div>
+               :''*/}
+              {idGs && idGs.map((id, i) =>
+                <>
+                  <Option value={id} key={i} >
+                    <Row style={{width:'100%'}}>
+                      <Col span={4}> {id}</Col>
+                      <Col span={2}/> 
+                      <Col span={14}>
+                        <Avatar.Group size={27}>
+                         { predictionG && predictionG[i].split('-').map((complicationtype,idx) => 
+                            complicationtype=='1'? <Avatar style={{ backgroundColor: '#eaf0f9', color:'black' }}> {brieftcomplitype[idx]} </Avatar> :''
+                          )}
+                        </Avatar.Group>
+                      </Col>
+                     <Col span={2}> {similarityG?similarityG[i]:0} </Col>
+                     <Col span={2}/>
+                    </Row>
+                  </Option>
+
+                 </>
+              )}
+            </Select>
+            <Tooltip title="Filter">
+              <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={this.showDrawer} style={{marginLeft:'20px', zIndex:1}}/>
+            </Tooltip>
+            <span className="patient-selector-title" style={{marginLeft:'20px'}}> Filtred Result: {subjectIdG && subjectIdG.subject_idG? subjectIdG.subject_idG.length:0} </span>
+
+           {/*series && series.length?
+             <div className='echart' style={{float:'right', width: '100px', height:'30px', background:'white'}}>
+               <ReactEcharts option={option}/>
+             </div>
+             :''*/}
           </Header>
           <Content>
             <Panel initialWidth={400} initialHeight={840} x={0} y={0} title="Feature View">
@@ -215,6 +269,7 @@ class App extends React.Component<AppProps, AppStates>{
                 featureMeta={featureMeta}
                 predictionTargets={predictionTargets}
                 tableNames={tableNames}
+                subjectIdG={subjectIdG && subjectIdG.subject_idG}
                 itemDicts={itemDicts}
               />}
             </Panel>
@@ -232,12 +287,11 @@ class App extends React.Component<AppProps, AppStates>{
                 tableRecords={tableRecords}
                 dynamicRecords={dynamicRecords}
                 itemDicts={itemDicts}
+                subjectIdG={subjectIdG && subjectIdG.subject_idG}
               />}
             </Panel>
             {tableNames && <Panel initialWidth={300} initialHeight={840} x={1210} y={0} title="Patient View">
-              <Tooltip title="search">
-                <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={this.showDrawer} style={{position:'absolute', right: 10, top: 39}}/>
-              </Tooltip>
+              
               <MetaView
                 patientIds={subjectIds}
                 patientInfoMeta={patientInfoMeta}
@@ -254,15 +308,12 @@ class App extends React.Component<AppProps, AppStates>{
              {tableNames && 
               <Drawer title="Filter View" placement="right" closable={false} onClose={this.onClose} visible={visible} width={450} >
               <p>
-                {/*
-                 <Panel initialWidth={600} initialHeight={755} x={450} y={50} title="Filter View" id='Filter'>
-                </Panel>
-               
-               */}
                   <FilterView
                     patientIds={subjectIds}
                     filterRange={filterRange}
                     filterPatients={this.filterPatients}
+                    onClose={this.onClose}
+                    contribution={series}
                   />
                </p>
              </Drawer>

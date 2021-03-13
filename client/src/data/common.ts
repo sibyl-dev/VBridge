@@ -70,6 +70,8 @@ export function transMax<T>(matrix: T[][]): T[][] {
 }
 
 export function confidenceInterval(data: number[], z_value: number) {
+    if(data.length == 0)
+        return [0, 0]
     const mean = _.mean(data);
     const std = Math.sqrt(data.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b));
     const n = data.length;

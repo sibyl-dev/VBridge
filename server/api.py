@@ -10,7 +10,8 @@ from flask import request, jsonify, Blueprint, current_app, Response
 
 from model.data import get_patient_records
 from model.modeler import Modeler
-from model.settings import interesting_variables, META_INFO, filter_variable
+from model.settings import interesting_variables, META_INFO, filter_variable,fm_category_name,complication_type
+from sklearn.metrics.pairwise import cosine_similarity
 
 api = Blueprint('api', __name__)
 
@@ -52,6 +53,9 @@ class ApiError(Exception):
         rv = dict(self.payload or ())
         rv['message'] = self.message
         return rv
+
+def formalize(x):
+    x1 =  x.copy(deep=True)
 
 
 @api.errorhandler(ApiError)
@@ -112,7 +116,7 @@ def get_patientinfo_meta():
         hadm_df = es[table_name].df
         record = hadm_df[hadm_df['SUBJECT_ID'] == subject_id]
         column_names = interesting_variables[table_name]
-        print('column_names', column_names)
+        # print('column_names', column_names)
         for i, col in enumerate(column_names):
             info[col] = str(record[col].values[0])
     # print('patientinfo_meta', info)
@@ -152,26 +156,34 @@ def get_record_filterrange():
 
     return jsonify(info)
 
+
+
+# def cmp(a, b):
+#     if b[3]<a[3]:
+#         return -1
+#     if b[3]>a[3]:
+#         return 1
+#     return 0
+
+
+
 @api.route('/patient_group', methods=['GET'])
 def get_patient_group():
     conditions = json.loads(request.args.get('filterConditions'))
+    subject_id = int(request.args.get('subject_id'))
 
     table_names = ['PATIENTS', 'SURGERY_INFO', 'ADMISSIONS']
     number_vari = ['Age',  'Height', 'Weight', 'Surgical time (minutes)']
 
     es = current_app.es
-
-    subject_idG = []
-    hasFilter = False
-    print('conditions', conditions)
-    info = {'subject_idG' : []}
+    subject_idG = list(current_app.fm.index)
+    info = {'subject_idG' : subject_idG}
+    
+    # filter subject_idG according to the conditions
     for i, table_name in enumerate(table_names):
-        
         column_names = filter_variable[table_name]
         hadm_df = es[table_name].df
-
         tableFlag = False
-
         for condition_name in conditions:
             if(condition_name in column_names):
                 tableFlag = True
@@ -190,17 +202,44 @@ def get_patient_group():
         if(tableFlag):
             if(len(subject_idG) != 0):
                 hadm_df = hadm_df[hadm_df['SUBJECT_ID'].isin(subject_idG)]
-
             subject_idG = hadm_df['SUBJECT_ID'].drop_duplicates().values.tolist()
-            # print('subject_idG',  len(subject_idG))
 
-    if(hasFilter == False):
-        hadm_df = es['PATIENTS'].df
-        subject_idG = hadm_df['SUBJECT_ID']
-        # print('subject_idG',  len(subject_idG))
+    
+    fm_ = current_app.fm
+    r = fm_.loc[8511]
+    if subject_id:
+        r = fm_.loc[subject_id]
+        r = r.drop(complication_type)
+    fm = fm_[fm_.index.isin(subject_idG)]
+    fm = fm.fillna(0)
 
+    # contact the prediction result, calculate the prediction truth
+    info['distribution']= list([np.sum(fm['lung complication']), np.sum(fm['cardiac complication']), np.sum(fm['arrhythmia complication']), np.sum(fm['infectious complication']), np.sum(fm['other complication']) ])
+    info['predictionG'] = list((fm['lung complication'].astype('str')).str.cat([fm['cardiac complication'].astype('str'),fm['arrhythmia complication'].astype('str'), fm['infectious complication'].astype('str'), fm['other complication'].astype('str')],sep='-'))
     info['subject_idG'] = list(subject_idG)
 
+    # calculate the similarty
+    if subject_id!=0:
+        similarity = fm.copy(deep=True)
+        similarity = similarity.fillna(0)
+        similarity = similarity.drop(complication_type, axis=1)
+        for t in fm_category_name:
+            r[t] = 1
+            similarity[t] = similarity[t].apply(lambda x: 1 if x==r[t] else 0)
+
+        x = similarity.apply(lambda x: cosine_similarity(np.array(x).reshape(1,-1), np.array(r).reshape(1,-1))[0][0], axis=1)
+        
+        info['similarty'] = list(x)
+
+        # sort by the similarity
+        list_of_tuples = list(zip(list(subject_idG), info['predictionG'], list(x)))
+        list_of_tuples = sorted(list_of_tuples, key=lambda s: s[2], reverse=True)
+        subject_idG, predictionG, x = zip(*list_of_tuples)
+        info['subject_idG'] = list(subject_idG)
+        info['predictionG'] = list(predictionG)
+        info['similarity'] = list(x)
+    
+    current_app.subject_idG = subject_idG
     return jsonify(info)
 
 
@@ -292,7 +331,7 @@ def get_prediction():
 
 @api.route('/feature_matrix', methods=['GET'])
 def get_feature_matrix():
-    return Response(current_app.fm.to_csv(), mimetype="text/csv")
+    return Response(current_app.fm[current_app.fm.index.isin(current_app.subject_idG)].to_csv(), mimetype="text/csv")
 
 
 @api.route('/feature_values', methods=['GET'])
@@ -329,14 +368,18 @@ def get_reference_value():
     column_name = request.args.get('column_name')
     table_info = META_INFO[table_name]
     references = {}
-    for group in current_app.es[table_name].df.groupby(table_info.get('item_index')):
+    df = current_app.es[table_name].df
+    filter_df = df[df['SUBJECT_ID'].isin(current_app.subject_idG)]
+    print('filter_df', len(filter_df))
+    for group in filter_df.groupby(table_info.get('item_index')):
         item_name = group[0]
         mean, count, std = group[1][column_name].agg(['mean', 'count', 'std'])
         references[item_name] = {
-            'mean': mean,
-            'std': std,
-            'count': count,
-            'ci95': [mean - 1.960 * std, 
-                    mean + 1.960 * std]
+            'mean': 0 if np.isnan(mean) else mean,
+            'std':  0 if np.isnan(std) else std,
+            'count': 0 if np.isnan(count) else count,
+            'ci95': [0 if np.isnan(mean - 1.960 * std) else (mean - 1.960 * std), 
+                     0 if np.isnan(mean + 1.960 * std) else (mean + 1.960 * std)]
         }
+    # print('final reference_value', references)
     return jsonify(references)
