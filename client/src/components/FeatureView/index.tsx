@@ -19,6 +19,7 @@ export interface FeatureViewProps {
     tableNames?: string[],
     featureMeta: IDataFrame<number, FeatureMeta>,
     predictionTargets: string[],
+    subjectIdG: number[],
     itemDicts?: ItemDict
 }
 
@@ -115,6 +116,9 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
             || prevState.target !== this.state.target) {
             this.updatePrediction();
             this.updateFeatures();
+        }
+        if (prevProps.subjectIdG?.sort().toString() !== this.props.subjectIdG.sort().toString()){
+        	this.loadFeatureMatrix()
         }
     }
 
@@ -355,7 +359,8 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                             }
                         </div>
                     </div>
-                    {series && expanded && <div className="feature-block-hist">
+                    {series && series.length && expanded?  
+                    	<div className="feature-block-hist">
                         <Histogram
                             data={series}
                             height={60}
@@ -364,7 +369,7 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                             margin={{ left: 10, bottom: 15 }}
                             referenceValue={value as number}
                         />
-                    </div>}
+                    </div>: ''}
                 </div>
                 <span className={"feature-block-dot"} style={{ backgroundColor: color || '#aaa' }} />
 

@@ -26,6 +26,7 @@ export interface DynamicViewProps {
     itemDicts?: ItemDict,
     tableRecords: Entity<number, any>[],
     signalMeta: SignalMeta[],
+    subjectIdG?: number[],
 }
 
 export interface DynamicViewStates {}
@@ -50,7 +51,7 @@ export default class DynamicView extends React.Component<DynamicViewProps, Dynam
     }
 
     public render() {
-        const { patientMeta, signalMeta: dynamicRecords, itemDicts } = this.props;
+        const { patientMeta, signalMeta, itemDicts, subjectIdG } = this.props;
 
         const startDate = patientMeta && new Date(patientMeta.startDate);
         const endDate = patientMeta && new Date(patientMeta.endDate);
@@ -62,7 +63,7 @@ export default class DynamicView extends React.Component<DynamicViewProps, Dynam
                 </div>
                 <Divider />
                 <div>
-                    {dynamicRecords.map((records, i) =>
+                    {signalMeta.map((records, i) =>
                         <DynamicCard
                             {...records}
                             data={this.extractData(records)}
@@ -72,6 +73,7 @@ export default class DynamicView extends React.Component<DynamicViewProps, Dynam
                             endTime={endDate}
                             align={false}
                             margin={{ bottom: 20, left: 25, top: 15, right: 25 }}
+                            subjectIdG={subjectIdG}
                         />)}
                 </div>
             </div>
@@ -99,7 +101,8 @@ export interface DynamicCardProps extends VRecordTS {
     data: { dates: ISeries<number, Date>, values: ISeries<number, any> },
     align?: boolean,
     // timeSeriesStyle: Partial<TimeSeriesStyle>,
-    itemDicts?: ItemDict
+    itemDicts?: ItemDict,
+    subjectIdG?:number[],
 }
 
 export interface DynamicCardStates {
@@ -122,6 +125,11 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
     componentDidMount() {
         this.loadReferenceValues();
     }
+    componentDidUpdate(prevProps: DynamicCardProps, prevState: DynamicCardStates) {
+        if (prevProps.subjectIdG?.sort().toString() !== this.props.subjectIdG?.sort().toString()){
+            this.loadReferenceValues()
+        }
+    }
 
     private async loadReferenceValues() {
         const { tableName, columnName, itemName } = this.props;
@@ -131,6 +139,7 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
         });
         const referenceValue = valueFn(itemName);
         this.setState({ referenceValue });
+        console.log('loadReferenceValues', this.state.referenceValue)
     }
 
     private onExpand() {
@@ -167,7 +176,7 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
                 yScale={expand ? undefined : getScaleLinear(0, 0, undefined, [-1, 1])}
                 drawXAxis={expand}
                 drawYAxis={expand}
-                drawReferences={expand}
+                drawReferences={expand && referenceValue!=undefined}
             />
         </div>
     }
