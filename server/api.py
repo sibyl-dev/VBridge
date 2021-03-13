@@ -65,7 +65,8 @@ def handle_invalid_usage(error):
 @api.route('available_ids', methods=['GET'])
 def get_available_ids():
     es = current_app.es
-    subjects_ids = es["SURGERY_INFO"].df["SUBJECT_ID"].values[-20:].tolist()
+    df = es["SURGERY_INFO"].df
+    subjects_ids = df[df['complication'] == 1]["SUBJECT_ID"].values[:30].tolist()
     return jsonify(subjects_ids)
 
 
