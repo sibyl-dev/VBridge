@@ -110,32 +110,17 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
         else return '> 1 year'
     }
 
-
     onClickToConfirm(){
         const { filterPatients, onClose,  } = this.props
         const {tmpConditions} = this.state
         if(filterPatients && tmpConditions && onClose){
              filterPatients(tmpConditions, true)
-             var filterConditions = tmpConditions
-             this.setState({filterConditions}, ()=>onClose())
+             const filterConditions = Object.assign({}, tmpConditions)
+             console.log('onClickToConfirm', filterConditions === tmpConditions)
+             this.setState({filterConditions: filterConditions, cancel: false}, ()=>onClose())
         }
     }
     onClickToCancel(){
-        const { onClose, filterPatients, filterRange} = this.props
-        const {filterConditions, filter_name, tmpConditions} = this.state
-        var {checkedList, inputValues, checkedAll, indeterminate, genderV} = this.state
-
-        if(filterPatients && filterConditions && onClose && filter_name && tmpConditions && filterRange){
-             filterPatients({'':''},false)
-
-             filter_name.map((names:string,idx)=>{
-                 if(tmpConditions.hasOwnProperty(names)){
-                     // happen this time
-                     if(!filterConditions.hasOwnProperty(names)){
-                         if(names=='GENDER'){
-                             genderV = filterRange[names]
-                         }
-                         else if(typeof(filterRange[names][0]) == 'string' && checkedList && checkedAll){
         const { onClose, filterPatients, filterRange, patientInfoMeta} = this.props
         var {filterConditions, filter_name, tmpConditions, defaultValue} = this.state
         var tmpConditions1 = Object.assign({}, filterConditions)
