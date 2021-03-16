@@ -20,7 +20,8 @@ export interface FeatureViewProps {
     featureMeta: IDataFrame<number, FeatureMeta>,
     predictionTargets: string[],
     subjectIdG: number[],
-    itemDicts?: ItemDict
+    itemDicts?: ItemDict,
+    color?: (entityName: string) => string,
 }
 
 export interface FeatureViewStates {
@@ -37,11 +38,10 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
         super(props);
 
         this.state = {
-            target: this.props.predictionTargets[0]
+            target: this.props.predictionTargets[1]
         };
         this.defaultCellWidth = this.defaultCellWidth.bind(this);
         this.onSelectTarget = this.onSelectTarget.bind(this);
-        this.color = this.color.bind(this);
     }
 
     componentDidMount() {
@@ -62,18 +62,12 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
     }
 
     private defaultCellWidth(id: number) {
-        const width = [120, 100, 120];
+        const width = [150, 100, 150];
         return width[id];
     }
 
     private onSelectTarget(target: string) {
         this.setState({ target });
-    }
-
-    private color(entityName: string) {
-        const { tableNames } = this.props;
-        const i = tableNames?.indexOf(entityName);
-        return (i !== undefined) ? defaultCategoricalColor(i) : '#aaa';
     }
 
     private async updateFeatures() {
@@ -83,19 +77,21 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
         if (subject_id !== undefined) {
             const featureValues = await getFeatureValues({ subject_id });
             const shapValues = await getSHAPValues({ subject_id, target });
-            const rawFeatures: IDataFrame<number, Feature> = featureMeta.select(row => {
+            // level-1: individual features
+            const L1Features: IDataFrame<number, Feature> = featureMeta.select(row => {
                 return {
                     ...row,
                     value: featureValues(row['name']),
                     contribution: shapValues(row['name']),
                 };
             });
-            const individualFeatures = rawFeatures.where(row => row.where_item.length == 0);
-            const whereFeatures = rawFeatures.where(row => row.where_item.length > 0);
-            const groups = whereFeatures.groupBy(row => row.where_item[1]).toArray();
+            // level-2: group-by item
+            const individualFeatures = L1Features.where(row => row.whereItem.length == 0);
+            const whereFeatures = L1Features.where(row => row.whereItem.length > 0);
+            const groups = whereFeatures.groupBy(row => row.whereItem[1]).toArray();
             const groupedFeature: IDataFrame<number, Feature> = new DataFrame(groups.map(group => {
                 const sample = group.first();
-                const itemName = sample.where_item![1] as string;
+                const itemName = sample.whereItem![1] as string;
                 const itemLabel = itemDicts && itemDicts(sample.entityId, itemName)?.LABEL;
                 return {
                     ...sample,
@@ -106,7 +102,19 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                     children: group
                 };
             }));
-            const features = individualFeatures.concat(groupedFeature);
+            // level-3: group-by period
+            const L2Features = individualFeatures.concat(groupedFeature);
+            const features = new DataFrame(L2Features.groupBy(row => row.type).toArray().map(group => {
+                const sample = group.first();
+                return {
+                    ...sample,
+                    alias: sample.type,
+                    value: undefined,
+                    primitive: undefined,
+                    contribution: _.sum(group.getSeries('contribution').toArray()),
+                    children: group
+                }
+            }))
             this.setState({ features })
         }
     }
@@ -117,17 +125,17 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
             this.updatePrediction();
             this.updateFeatures();
         }
-        if (prevProps.subjectIdG?.sort().toString() !== this.props.subjectIdG.sort().toString()){
-        	this.loadFeatureMatrix()
+        if (prevProps.subjectIdG?.sort().toString() !== this.props.subjectIdG.sort().toString()) {
+            this.loadFeatureMatrix()
         }
     }
 
     public render() {
-        const { predictionTargets } = this.props;
+        const { predictionTargets, color } = this.props;
         const { predictions, features, target, featureMatrix } = this.state;
 
         return (
-            <div style={{ height: "100%", width: "100%" }} className="feature-view">
+            <div className="feature-view">
                 {predictionTargets && ProbaList({
                     predictionTargets, predictions,
                     selected: target, onClick: this.onSelectTarget
@@ -136,7 +144,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                 {features && <FeatureList
                     features={features}
                     cellWidth={this.defaultCellWidth}
-                    color={this.color}
+                    color={color}
                     featureMatrix={featureMatrix}
                 />}
             </div>
@@ -180,7 +188,7 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
     constructor(props: FeatureListProps) {
         super(props);
 
-        this.state = {};
+        this.state = { order: 'dscending' };
 
         this.onClick = this.onClick.bind(this);
         this.getContributions = this.getContributions.bind(this);
@@ -222,7 +230,8 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
         const { features, cellWidth, color, featureMatrix } = this.props;
         const { order } = this.state;
         const sortedFeatures = this.sortFeatures(features);
-        const x = getScaleLinear(0, cellWidth(2), this.getContributions(sortedFeatures));
+        const maxAbsCont = _.max(this.getContributions(sortedFeatures).map(v => Math.abs(v))) as number;
+        const x = getScaleLinear(0, cellWidth(2), undefined, [-maxAbsCont, maxAbsCont]);
 
         return <div style={{ width: "100%" }}>
             {/* <Search placeholder="input search text" style={{ marginLeft: 10, marginRight: 10, width: "90%" }} enterButton /> */}
@@ -247,7 +256,7 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
                             x={x!}
                             cellWidth={cellWidth}
                             key={row.name}
-                            color={color && color(row.entityId)}
+                            color={color}
                             featureMatrix={featureMatrix}
                         />
                     )}
@@ -264,7 +273,7 @@ export interface FeatureBlockProps {
     featureMatrix?: IDataFrame<number, any>,
     x: d3.ScaleLinear<number, number>,
     cellWidth: (id: number) => number,
-    color?: string,
+    color?: (entityName: string) => string,
 }
 export interface FeatureBlockStates {
     collapsed: boolean,
@@ -300,16 +309,16 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
     render() {
         const { feature, x, cellWidth, color, className, depth, featureMatrix } = this.props;
         const { collapsed, expanded } = this.state
-        const { name, alias, value, contribution, children } = feature;
+        const { name, alias, value, contribution, children, entityId } = feature;
         let series = undefined;
         let thresholds = [];
         let colorIndex = 3;
         // const barColor = d3.scaleSequential(d3.interpolateRdYlGn).domain([0, 6]);
         const barColor = (id: number) => {
             if (id > 3)
-                return d3.interpolateReds((id / 3 - 1) * 0.5);
+                return d3.interpolateReds((id / 3 - 1) * 0.3);
             else if (id < 3)
-                return d3.interpolateBlues((1 - id / 3) * 0.5);
+                return d3.interpolateBlues((1 - id / 3) * 0.3);
         }
 
         if (typeof (value) === typeof (0.0)) {
@@ -322,29 +331,35 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
         }
 
         return <div className={className}>
-            <div style={{ display: "flex", justifyContent: "flex-end", position: "relative" }}>
+            <div style={{
+                display: "flex", justifyContent: "flex-end", position: "relative",
+                width: `calc(100% - ${depth * 10}px)`, left: `${depth * 10}px`
+            }}>
                 <div style={{ width: 20 }}>
                     {children && <CaretRightOutlined className="right-button"
                         onClick={this.onClickButton} rotate={collapsed ? 0 : 90} />}
                 </div>
                 <div className={(children ? "feature-group-block" : "feature-block") +
                     ((depth === 0) ? " feature-top-block" : "")} key={name}
-                    style={{ height: expanded ? 100 : 30, }}
+                    style={{
+                        height: expanded ? 100 : 30,
+                        borderRightColor: (color && color(entityId)) || '#aaa', borderRightWidth: 4
+                    }}
                     onClick={children ? this.onClickButton : this.onClickDiv}>
                     <div className="feature-block-inner">
                         <Tooltip title={alias}>
-                            <div className="feature-block-cell feature-name" style={{ width: cellWidth(0) - depth * 10 }}>
-                                <span className={"feature-block-cell-text"}>{beautifulPrinter(alias)}</span>
+                            <div className="feature-block-cell feature-name" style={{ width: cellWidth(0) - 10 * depth }}>
+                                <span className={"feature-block-cell-text"}>{beautifulPrinter(alias, 25)}</span>
                             </div>
                         </Tooltip>
-                        <Tooltip title={value}>
+                        <Tooltip title={typeof (value) == typeof (0.0) ? beautifulPrinter(value) : value}>
                             <div className={"feature-block-cell feature-value"}
                                 style={{ width: cellWidth(1), backgroundColor: barColor(colorIndex) }}>
                                 <span className={"feature-block-cell-text"}>{beautifulPrinter(value)}</span>
                             </div>
                         </Tooltip>
                         <div className={"feature-block-cell feature-contribution"}
-                            style={{ width: cellWidth(2), opacity: Math.max(1 - 0.5 * depth, 0.5) }}>
+                            style={{ width: cellWidth(2), opacity: Math.max(1 - 0.3 * depth, 0.5) }}>
                             {contribution > 0 ?
                                 <div className="pos-feature"
                                     style={{
@@ -359,19 +374,19 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                             }
                         </div>
                     </div>
-                    {series && series.length && expanded?  
-                    	<div className="feature-block-hist">
-                        <Histogram
-                            data={series}
-                            height={60}
-                            width={cellWidth(1) + 20}
-                            drawAxis={false}
-                            margin={{ left: 10, bottom: 15 }}
-                            referenceValue={value as number}
-                        />
-                    </div>: ''}
+                    {series && series.length && expanded ?
+                        <div className="feature-block-hist">
+                            <Histogram
+                                data={series}
+                                height={60}
+                                width={cellWidth(1) + 20}
+                                drawAxis={false}
+                                margin={{ left: 10, bottom: 15 }}
+                                referenceValue={value as number}
+                            />
+                        </div> : ''}
                 </div>
-                <span className={"feature-block-dot"} style={{ backgroundColor: color || '#aaa' }} />
+                {/* <span className={"feature-block-dot"} style={{ backgroundColor: color || '#aaa' }} /> */}
 
             </div>
             {!collapsed && children?.toArray().map(feature =>
