@@ -7,7 +7,7 @@ import shap
 from sklearn.model_selection import train_test_split
 from sklearn.utils import class_weight
 from sklearn.base import TransformerMixin
-from sklearn.impute import SimpleImputer
+from sklearn.impute import SimpleImputer, KNNImputer
 from sklearn.preprocessing import MinMaxScaler
 from xgboost import XGBClassifier
 
@@ -40,7 +40,6 @@ class Modeler:
         self._imputer = SimpleImputer()
         self._scaler = MinMaxScaler()
         self._model = XGBClassifier(use_label_encoder=False, **kwargs)
-        # self._model = XGBClassifier(eval_metric='logloss', use_label_encoder=False)
         self._explainer = None
 
     @staticmethod
@@ -61,16 +60,25 @@ class Modeler:
     def model(self):
         return self._model
 
-    def fit(self, X, y, target='complication', explain=True):
+    def fit(self, X, y, eval_set=None, target='complication', explain=True):
         y_train = y[target].values
 
         X_train = self._one_hot_encoder.fit_transform(X)
         X_train = self._imputer.fit_transform(X_train)
         X_train = self._scaler.fit_transform(X_train)
 
+        if eval_set:
+            X_eval, y_eval = eval_set
+            y_eval = y_eval[target].values
+            X_eval = self._one_hot_encoder.transform(X_eval)
+            X_eval = self._imputer.transform(X_eval)
+            X_eval = self._scaler.transform(X_eval)
+            eval_set = [(X_eval, y_eval)]
+
         weights = class_weight.compute_class_weight('balanced', [0, 1], y_train)
         sample_weight = [weights[l] for l in y_train]
-        self._model.fit(X_train, y_train, sample_weight=sample_weight, eval_metric='auc')
+        self._model.fit(X_train, y_train, sample_weight=sample_weight, eval_metric='auc',
+                        eval_set=eval_set, early_stopping_rounds=10, verbose=False)
         # self._model.fit(X_train, y_train)
         if explain:
             self._explainer = shap.TreeExplainer(self._model)
@@ -98,8 +106,8 @@ class Modeler:
         for original_col, dummies in self._one_hot_encoder.dummy_dict.items():
             sub_dummy_column = ["{}_{}".format(original_col, cat) for cat in dummies]
             assert np.array([col in dummy_columns for col in sub_dummy_column]).all()
-            if original_col+"_Others" in dummy_columns:
-                sub_dummy_column.append(original_col+"_Others")
+            if original_col + "_Others" in dummy_columns:
+                sub_dummy_column.append(original_col + "_Others")
             shap_values[original_col] = shap_values.loc[:, sub_dummy_column].sum(axis=1)
         return shap_values.reindex(columns=columns)
 
@@ -120,8 +128,8 @@ class OneHotEncoder(TransformerMixin):
                 if values.apply(lambda row: type(row) == list).all():
                     counts = values.apply(collections.Counter).reset_index(drop=True)
                     sub_df = pd.DataFrame.from_records(counts, index=values.index).fillna(0)
-                    selected_dummies = sub_df.sum(axis=0)\
-                        .sort_values(ascending=False).index[:self.topk]
+                    selected_dummies = sub_df.sum(axis=0) \
+                                           .sort_values(ascending=False).index[:self.topk]
                     dummies = sub_df[selected_dummies]
                     others = sub_df[[col for col in sub_df.columns if col not in selected_dummies]]
                     dummies['Others'] = others.any(axis=1)

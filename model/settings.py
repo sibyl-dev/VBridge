@@ -63,10 +63,10 @@ META_INFO = {
         'index': 'UNI_OPER_ID',
         'foreign_index': ['SUBJECT_ID', 'HADM_ID'],
         'types': {'HADM_ID': 'int', 'VISIT_ID': 'str', 'OPER_ID': 'str'},
-        'time_index': 'ANES_START_TIME',
+        'time_index': 'SURGERY_BEGIN_TIME',
         'secondary_index': {
-            'ANES_END_TIME': [],
-            'SURGERY_BEGIN_TIME': [],
+            # 'ANES_END_TIME': [],
+            # 'SURGERY_BEGIN_TIME': [],
             'SURGERY_END_TIME': []
         },
     },
