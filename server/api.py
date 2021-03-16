@@ -300,18 +300,35 @@ def get_feature_meta():
         leve2_leaf_node = get_level2_leaf(f)
         info = {
             'name': f.get_name(),
-            'where_item': leve2_leaf_node.where.get_name().split(' = ') \
+            'whereItem': leve2_leaf_node.where.get_name().split(' = ') \
                 if leve2_leaf_node and ('where' in leve2_leaf_node.__dict__) else [],
             'primitive': leve2_leaf_node and leve2_leaf_node.primitive.name,
             'entityId': leaf_node.entity_id,
-            'columnName': leaf_node.get_name()
+            'columnName': leaf_node.get_name(),
         }
 
-        if len(info['where_item']) > 0:
+        if len(info['whereItem']) > 0:
             info['alias'] = leve2_leaf_node.primitive.name
         else:
             info['alias'] = leaf_node.get_name()
 
+        # type: 'Surgery Observations' | 'Pre-surgery Observations' | 
+        # 'Pre-surgery Treatments' | 'Surgery Info' | 'Patient Info'
+        if '#' in f.get_name():
+            period = f.get_name().split('#')[0]
+            if period == 'in-surgery':
+                feature_type = 'Surgery Observations'
+            elif period == 'pre-surgery':
+                if info['entityId'] == 'PRESCRIPTIONS':
+                    feature_type = 'Pre-surgery Treatments'
+                else:
+                    feature_type = 'Pre-surgery Observations'
+        else:
+            if f.get_name() in ['Height', 'Weight', 'Age', 'ADMISSIONS.ICD10_CODE_CN', 'ADMISSIONS.PATIENTS.GENDER']:
+                feature_type = 'Patient Info'
+            else:
+                feature_type = 'Surgery Info'
+        info['type'] = feature_type
         feature_meta.append(info)
     return jsonify(feature_meta)
 
