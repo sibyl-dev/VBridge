@@ -138,7 +138,7 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
         });
         const referenceValue = valueFn(itemName);
         this.setState({ referenceValue });
-        console.log('loadReferenceValues', this.state.referenceValue)
+        // console.log('loadReferenceValues', this.state.referenceValue)
     }
 
     private onExpand() {

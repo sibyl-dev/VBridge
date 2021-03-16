@@ -151,6 +151,8 @@ def get_record_filterrange():
             if(df[filter_name].dtype == object):
                 all_records.sort()
                 info[filter_name] = all_records
+            elif(filter_name == 'Age'):
+                info[filter_name] = ['< 1 month', '1-3 months', '3 months-1 year', '> 1 year']
             else:
                 info[filter_name] = [min(all_records), max(all_records)]
 
@@ -178,26 +180,44 @@ def get_patient_group():
     es = current_app.es
     subject_idG = list(current_app.fm.index)
     info = {'subject_idG' : subject_idG}
+
+    print('conditions',conditions)
+
     
     # filter subject_idG according to the conditions
     for i, table_name in enumerate(table_names):
         column_names = filter_variable[table_name]
         hadm_df = es[table_name].df
         tableFlag = False
+
         for condition_name in conditions:
             if(condition_name in column_names):
                 tableFlag = True
                 hasFilter = True
-                if(condition_name in number_vari):
-                    hadm_df = hadm_df[(hadm_df[condition_name]>=conditions[condition_name][0]) &  (hadm_df[condition_name]<=conditions[condition_name][1])]
+                
+                print('conditions',condition_name, conditions[condition_name])
 
+                if(condition_name == 'Age'):
+                    fiilter_flag = True
+                    if('< 1 month' in conditions[condition_name]):
+                        fiilter_flag = (fiilter_flag) & (hadm_df[condition_name]<=1)
+                    if('1-3 months' in conditions[condition_name]):
+                        fiilter_flag = (fiilter_flag) & (hadm_df[condition_name]>=1) & (hadm_df[condition_name]<=3) 
+                    if('3 months-1 year' in conditions[condition_name]):
+                        fiilter_flag = (fiilter_flag) & (hadm_df[condition_name]>=3) & (hadm_df[condition_name]<=12) 
+                    if('> 1 year' in conditions[condition_name]):
+                        fiilter_flag = (fiilter_flag) & (hadm_df[condition_name]>=12)
+                    hadm_df = hadm_df[fiilter_flag]
+                elif(condition_name in number_vari):
+                    hadm_df = hadm_df[(hadm_df[condition_name]>=conditions[condition_name][0]) &  (hadm_df[condition_name]<=conditions[condition_name][1])]
                 elif(condition_name == 'SURGERY_NAME' or condition_name == 'SURGERY_POSITION'):
                     tmpDf = hadm_df[condition_name]
+                    print('SURGERY_NAME', conditions[condition_name])
                     flag = tmpDf.apply(lambda x: np.array([t in x for t in conditions[condition_name]]).any())
                     hadm_df = hadm_df[flag]
-
                 else:
-                    hadm_df = hadm_df[hadm_df[condition_name].isin(conditions[condition_name]) ]
+                    print('isin', condition_name, list(conditions[condition_name]))
+                    hadm_df = hadm_df[hadm_df[condition_name].isin(list(conditions[condition_name])) ]
 
         if(tableFlag):
             if(len(subject_idG) != 0):
@@ -217,27 +237,30 @@ def get_patient_group():
     info['distribution']= list([np.sum(fm['lung complication']), np.sum(fm['cardiac complication']), np.sum(fm['arrhythmia complication']), np.sum(fm['infectious complication']), np.sum(fm['other complication']) ])
     info['predictionG'] = list((fm['lung complication'].astype('str')).str.cat([fm['cardiac complication'].astype('str'),fm['arrhythmia complication'].astype('str'), fm['infectious complication'].astype('str'), fm['other complication'].astype('str')],sep='-'))
     info['subject_idG'] = list(subject_idG)
+    noComplication = len(subject_idG) - np.sum(fm['complication'])
+    info['distribution'].append(noComplication)
+    print('distribution', info['distribution'])
 
     # calculate the similarty
-    if subject_id!=0:
-        similarity = fm.copy(deep=True)
-        similarity = similarity.fillna(0)
-        similarity = similarity.drop(complication_type, axis=1)
-        for t in fm_category_name:
-            r[t] = 1
-            similarity[t] = similarity[t].apply(lambda x: 1 if x==r[t] else 0)
+    # if subject_id!=0:
+    #     similarity = fm.copy(deep=True)
+    #     similarity = similarity.fillna(0)
+    #     similarity = similarity.drop(complication_type, axis=1)
+    #     for t in fm_category_name:
+    #         r[t] = 1
+    #         similarity[t] = similarity[t].apply(lambda x: 1 if x==r[t] else 0)
 
-        x = similarity.apply(lambda x: cosine_similarity(np.array(x).reshape(1,-1), np.array(r).reshape(1,-1))[0][0], axis=1)
+    #     x = similarity.apply(lambda x: cosine_similarity(np.array(x).reshape(1,-1), np.array(r).reshape(1,-1))[0][0], axis=1)
         
-        info['similarty'] = list(x)
+    #     info['similarty'] = list(x)
 
-        # sort by the similarity
-        list_of_tuples = list(zip(list(subject_idG), info['predictionG'], list(x)))
-        list_of_tuples = sorted(list_of_tuples, key=lambda s: s[2], reverse=True)
-        subject_idG, predictionG, x = zip(*list_of_tuples)
-        info['subject_idG'] = list(subject_idG)
-        info['predictionG'] = list(predictionG)
-        info['similarity'] = list(x)
+    #     # sort by the similarity
+    #     list_of_tuples = list(zip(list(subject_idG), info['predictionG'], list(x)))
+    #     list_of_tuples = sorted(list_of_tuples, key=lambda s: s[2], reverse=True)
+    #     subject_idG, predictionG, x = zip(*list_of_tuples)
+    #     info['subject_idG'] = list(subject_idG)
+    #     info['predictionG'] = list(predictionG)
+    #     info['similarity'] = list(x)
     
     current_app.subject_idG = subject_idG
     return jsonify(info)
