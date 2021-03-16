@@ -6,12 +6,11 @@ export interface FeatureMeta {
     primitive?: string,
     entityId: string,
     columnName: string
-    where_item: [string, string]|[],
-    start_time?: Date,
-    end_time?: Date,
+    whereItem: [string, string] | [],
+    type: 'Surgery Observations' | 'Pre-surgery Observations' | 'Pre-surgery Treatments' | 'Surgery Info' | 'Patient Info'
 }
 
-export interface Feature extends FeatureMeta{
+export interface Feature extends FeatureMeta {
     value: undefined | number | string | Array<any>,
     contribution: number,
     children?: IDataFrame<number, Feature>

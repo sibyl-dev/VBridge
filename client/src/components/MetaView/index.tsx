@@ -28,17 +28,16 @@ export default class MetaView extends React.Component<MetaViewProps, MetaViewSta
         this.metaItems = [
             {
                 name: 'Demographic',
-                itemNames: ['Age', 'GENDER', 'Height', 'Weight', 'LANGUAGE', 'RELIGION', 'MARITAL_STATUS', 'ETHNICITY']
+                itemNames: ['Age', 'GENDER', 'Height', 'Weight', 'LANGUAGE', 'ETHNICITY']
             },
             {
                 name: 'Admission',
-                itemNames: ['ADMITTIME', 'ADMISSION_DEPARTMENT', 'INSURANCE', 'EDREGTIME', 'DIAGNOSIS', 'ICD10_CODE_CN']
+                itemNames: ['ADMISSION_DEPARTMENT', 'ADMITTIME', 'DIAGNOSIS', 'ICD10_CODE_CN', 'INSURANCE']
             },
             {
                 name: 'Surgery',
-                itemNames: ['ANES_START_TIME', 'ANES_END_TIME', 'SURGERY_BEGIN_TIME', 'SURGERY_END_TIME',
-                    'SURGERY_NAME', 'SURGERY_POSITION', 'ANES_METHOD',
-                    'Preoperative oxygen saturation (%)', 'Oxygen saturation (%)',
+                itemNames: ['SURGERY_NAME', 'SURGERY_POSITION', 'ANES_METHOD',
+                    'ANES_START_TIME', 'ANES_END_TIME', 'SURGERY_BEGIN_TIME', 'SURGERY_END_TIME',
                     'Surgical time (minutes)', 'CPB time (minutes)', 'Aortic cross-clamping time (times)'
                 ]
             }

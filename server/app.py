@@ -9,6 +9,7 @@ from model.utils import load_entityset, load_fm
 from model.model_manager import ModelManager
 from model.featurization import generate_cutoff_times, Featurization
 
+
 def create_app():
     app = Flask(__name__)
 
@@ -25,9 +26,8 @@ def create_app():
         fm, fl = load_fm()
     except FileNotFoundError:
         featurization = Featurization(es)
-        fm, fl = featurization.generate_features(forward=True, surgery_vital=True)
-    
-    fm = fm.set_index(es['SURGERY_INFO'].df['SUBJECT_ID'])
+        fm, fl = featurization.generate_features()
+
     fm['SURGERY_NAME'] = fm['SURGERY_NAME'].apply(lambda row: row.split('+'))
     app.fm = fm
     app.fl = fl
@@ -40,6 +40,7 @@ def create_app():
         model_manager.fit_all()
         print(model_manager.evaluate())
     app.model_manager = model_manager
+    app.subject_idG = fm.index
 
 
     # load explainer

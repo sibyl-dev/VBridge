@@ -2,17 +2,7 @@
 @import 'react-virtualized/styles.css';
 .App {
     text-align: center;
-}
-
-.App-header {
-    background-color: #282c34;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+    background-color: rgba(150, 150, 150, 1);
 }
 
 .App-link {
@@ -26,10 +16,34 @@
     font-size: 30px;
 }
 
+#Filter {
+    border: 2px solid black;
+}
+
+#Filter .panel-header {
+    background-color: #4682B4;
+}
+
+.ant-drawer-header {
+    background-color: #e8f0fa;
+}
+
+.ant-drawer-title {
+    font-weight: bold;
+    float: left;
+    margin-left: 10px;
+}
+
 .patient-selector-title {
     color: #fff;
     font-size: 18px;
     font-weight: bold;
     line-height: 30px;
     margin-right: 20px;
+}
+
+.ant-select-item-option-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }

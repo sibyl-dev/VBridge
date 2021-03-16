@@ -44,3 +44,7 @@
 #FilterView .ant-divider-horizontal{
 	margin:10px 0;
 }
+#FilterView  .ant-drawer-header
+{
+	padding: 8px 24px;
+}
