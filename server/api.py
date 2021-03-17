@@ -71,9 +71,17 @@ def handle_invalid_usage(error):
 @api.route('available_ids', methods=['GET'])
 def get_available_ids():
     es = current_app.es
+    fm = current_app.fm
+    subjects_ids = fm.index
+    # subjects_ids = fm[fm['complication'] == 1].index
+    # subjects_ids = filter_group.index
+    print('available_ids', subjects_ids)
+
     df = es["SURGERY_INFO"].df
-    subjects_ids = df[df['complication'] == 1]["SUBJECT_ID"].values[:30].tolist()
-    return jsonify(subjects_ids)
+    subjects_ids1 = df[(df['complication'] == 1) & (df['SUBJECT_ID'].isin(subjects_ids))]["SUBJECT_ID"].values[:30].tolist()
+    print('available_ids', subjects_ids1)
+
+    return jsonify(subjects_ids1)
 
 
 @api.route('/individual_records', methods=['GET'])
@@ -251,7 +259,7 @@ def get_patient_group():
     #     info['predictionG'] = list(predictionG)
     #     info['similarity'] = list(x)
 
-    current_app.subject_idG = subject_idG
+    current_app.subject_idG = list(subject_idG)
     return jsonify(info)
 
 
@@ -400,6 +408,7 @@ def get_reference_value():
     table_info = META_INFO[table_name]
     references = {}
     df = current_app.es[table_name].df
+    print('current_app subject_idG', len(current_app.subject_idG))
     filter_df = df[df['SUBJECT_ID'].isin(current_app.subject_idG)]
     print('filter_df', len(filter_df))
     for group in filter_df.groupby(table_info.get('item_index')):
@@ -412,5 +421,5 @@ def get_reference_value():
             'ci95': [0 if np.isnan(mean - 1.960 * std) else (mean - 1.960 * std),
                      0 if np.isnan(mean + 1.960 * std) else (mean + 1.960 * std)]
         }
-    # print('final reference_value', references)
+    print('final reference_value', references)
     return jsonify(references)

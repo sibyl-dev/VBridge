@@ -193,7 +193,7 @@ class Featurization:
 
         # TODO: this code only works for this case. The formal id should be the surgery id
         fm = fm.set_index(self.pre_es['SURGERY_INFO'].df['SUBJECT_ID'])
-
+        fm['SUBJECT_ID'] = self.pre_es['SURGERY_INFO'].df['SUBJECT_ID']
         if save:
             save_fm(fm, fl)
         return fm, fl

@@ -223,7 +223,7 @@ class App extends React.Component<AppProps, AppStates>{
     const brieftcomplitype = ['L', 'C', 'A', 'I', 'O']
     const distribution:number [] = subjectIdG && subjectIdG.distribution
     if(distribution)
-      var x = getScaleLinear(0, 100, distribution);
+      var x = getScaleLinear(0, 80, distribution);
 
     return (
       <div className='App'>
@@ -250,11 +250,11 @@ class App extends React.Component<AppProps, AppStates>{
               {distribution && distribution.map((number, i) => 
                 <>
                  <Option value={complicationtypes[i]} key={complicationtypes[i]} >
-                   <div style={{width: '50%'}}> {complicationtypes[i]} </div>
-                   <div className="number" style={{ width: '40%', opacity: Math.max(1 , 0.5) }}>
+                   <div style={{width: '48%'}}> {complicationtypes[i]} </div>
+                   <div className="number" style={{ width: '32%', opacity: Math.max(1 , 0.5) }}>
                        <div className="neg-feature" style={{width: x(number)}} />  
                    </div>
-                   <div style={{width: '10%'}}> {number} </div>
+                   <div style={{width: '20%'}}> {number} </div>
 
                   </Option>
                  </>

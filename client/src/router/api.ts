@@ -154,15 +154,7 @@ export async function getReferenceValues(params: {
     const response = await axios.get(url, { params });
     const checked = checkResponse(response, []);
     return (itemName: string) => {
-        // const res = JSON.parse(checked)
         var res = checked
-        // if(typeof(checked) == 'string'){
-        //     res = res.replace(/NaN/g, '0')
-        //     console.log(res, typeof(res))
-        //     res = JSON.parse(checked)
-        // }
-        // console.log('getReferenceValues',itemName, _.has(res, itemName))
-        // console.log(res)
 
         if (_.has(res, itemName)){
             return res[itemName];

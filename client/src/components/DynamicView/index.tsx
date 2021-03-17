@@ -129,7 +129,8 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
     }
     componentDidUpdate(prevProps: DynamicCardProps, prevState: DynamicCardStates) {
         if (prevProps.subjectIdG?.sort().toString() !== this.props.subjectIdG?.sort().toString()) {
-            // this.loadReferenceValues();
+            //why comment here?
+            this.loadReferenceValues();
         }
     }
 
