@@ -10,6 +10,9 @@ import {getPatientGroup} from "../../router/api"
 import RangeChose from 'visualization/RangeChose'
 import MultiSelect from 'visualization/MultiSelect'
 
+import { getFeatureMatrix} from "router/api";
+import { IDataFrame } from "data-forge";
+
 
 const { Option } = Select
 export interface FliterViewProps {
@@ -20,6 +23,7 @@ export interface FliterViewProps {
     contribution?: number [],
     visible?: boolean,
     patientInfoMeta?: { [key: string]: any },
+    subjectIdG?: number[]
 }
 
 export interface FilterViewStates {
@@ -38,6 +42,7 @@ export interface FilterViewStates {
     categorical_name?: string[],
     numerical_name?: string[],
     cancel?: boolean,
+    featureMatrix?: IDataFrame<number, any>
 }
 export default class FilterView extends React.Component<FliterViewProps, FilterViewStates> {
 
@@ -99,9 +104,19 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
     }
     public componentDidMount() {
         this.init();
+        this.loadFeatureMatrix();
+    }
+    private async loadFeatureMatrix() {
+        const featureMatrix = await getFeatureMatrix();
+        this.setState({ featureMatrix });
+    }
+    componentDidUpdate(prevProps: FliterViewProps){
+        if(this.props.subjectIdG && prevProps.subjectIdG?.sort().toString() !== this.props.subjectIdG.sort().toString()) {
+            this.loadFeatureMatrix()
+        }
     }
     componentWillReceiveProps(nextProps: FliterViewProps) {
-          if (nextProps.visible) 
+        if (nextProps.visible) 
             this.setState({cancel: false});
     }
     public judgeTheAge(age: number){
@@ -170,7 +185,7 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
     }
     public render() {
         const { filterRange, patientIds, onClose, filterPatients, contribution,patientInfoMeta,  } = this.props
-        const { expandItem, PATIENTS, ADMISSIONS, SURGERY_INFO, defaultValue, filter_name, checkedList, indeterminate, checkedAll, tmpConditions, filterConditions, cancel } = this.state;
+        const { expandItem, PATIENTS, ADMISSIONS, SURGERY_INFO, defaultValue, filter_name, checkedList, indeterminate, checkedAll, tmpConditions, filterConditions, cancel, featureMatrix } = this.state;
         console.log('filterConditions', filterConditions, 'tmpConditions', tmpConditions)
         var conditions: { [key: string]: any } = { '': '' }
         if (tmpConditions)
@@ -226,6 +241,12 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
                 else{
                     const max = Math.ceil(filterRange[name][1])
                     const min = Math.floor(filterRange[name][0])
+                    var series = featureMatrix?.getSeries(name).parseFloats().toArray();
+                    // if (series) {
+                    //     // console.log(series.where(row => row > (value as number)).count() / series.count());
+                    //     var thresholds = confidenceThresholds(series);
+                    //     var colorIndex = _.sum(thresholds.map(t => t < value!));
+                    // }
                     return(<>
                                 <Divider orientation="left"/>
                                 <RangeChose filterName={name} 
@@ -233,6 +254,8 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
                                             min={min}
                                             max={max}
                                             cancel={cancel? cancel: false}
+                                            data={series}
+                                            referenceValue={patientInfoMeta[name]}
                                             defaultValue={defaultValue?defaultValue[name]:[0,0]}
                                             updateConditions={this.updateConditions}
                                 />

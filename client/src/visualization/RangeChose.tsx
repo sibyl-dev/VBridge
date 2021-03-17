@@ -1,7 +1,7 @@
 
 import * as React from "react";
 import { Row, Col, Divider, Slider,InputNumber} from "antd"
-
+import Histogram from "visualization/Histogram";
 
 
 export interface RangeChoseProps {
@@ -12,10 +12,13 @@ export interface RangeChoseProps {
     defaultValue: number[],
     cancel:boolean,
     updateConditions:(key:string, value: any, checkedAll: boolean) => void,
+    data: number [] | undefined,
+    referenceValue: number
 }
 
 export interface RangeChoseStates { 
     inputValue: number [],
+    expanded: boolean,
 
 }
 
@@ -24,9 +27,10 @@ export default class RangeChose extends React.Component<RangeChoseProps, RangeCh
     constructor(props: RangeChoseProps) {
         super(props);
         console.log('RangeChose', props)
-        this.state = {inputValue:[0,0]}
+        this.state = {inputValue:[0,0], expanded:true}
         this.onChangeInputValue = this.onChangeInputValue.bind(this)
         this.onInputValueAfterChange = this.onInputValueAfterChange.bind(this)
+        this.onclick = this.onclick.bind(this)
     }
     public init() {
     	const inputValue = this.props.defaultValue
@@ -35,6 +39,9 @@ export default class RangeChose extends React.Component<RangeChoseProps, RangeCh
     }
     public componentDidMount() {
         this.init();
+    }
+    onclick(){
+        // this.setState({expanded: !this.state.expanded})
     }
 	componentWillReceiveProps(nextProps: RangeChoseProps) {
 		  // You don't have to do this check first, but it can help prevent an unneeded render
@@ -72,8 +79,8 @@ export default class RangeChose extends React.Component<RangeChoseProps, RangeCh
     }
 
     public render() {
-        var {min, max, filterName,  defaultValue, key} = this.props
-        var {inputValue} = this.state
+        var {min, max, filterName,  defaultValue, key, data, referenceValue} = this.props
+        var {inputValue, expanded} = this.state
         if(inputValue){
         	// console.log('YES')
         	var inputValue1 = Math.floor(inputValue[0])
@@ -84,7 +91,7 @@ export default class RangeChose extends React.Component<RangeChoseProps, RangeCh
         	if(filterName == 'Weight') units = ' (kg)'
 
 	        return(
-		            <Row>
+		            <Row onClick={this.onclick}>
 		              <Col span={7} className='filterName'> {filterName + units} : </Col>
 		              <Col span={3}>
 		                  <InputNumber
@@ -119,6 +126,23 @@ export default class RangeChose extends React.Component<RangeChoseProps, RangeCh
 		                    onChange={this.onChangeInputValue.bind(this, 1)}
 		                  />
 		              </Col>
+		              {expanded && data && data.length? 
+                       <Row>
+		              	<Col span={10}/>
+		              	<Col span={10}>
+		              		<Histogram
+                                data={data}
+                                height={60}
+                                width={200}
+                                drawAxis={false}
+                                margin={{ left: 80, bottom: 15 }}
+                                referenceValue={referenceValue}
+                            />
+		              	</Col>  
+                        <Col span={4}/>
+                       </Row>
+		              	:''}
+
 	           		</Row>)
 	    }
 	    console.log('nonono')

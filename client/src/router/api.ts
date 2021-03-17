@@ -162,3 +162,20 @@ export async function getReferenceValues(params: {
         return undefined;
     }
 }
+
+// export async function getRangeDistribution(params: {
+//     table_name: string,
+//     column_name: string,
+// }): Promise<(itemName: string) => (referenceValue|undefined)> {
+//     const url = `${API}/reference_value`
+//     const response = await axios.get(url, { params });
+//     const checked = checkResponse(response, []);
+//     return (itemName: string) => {
+//         var res = checked
+
+//         if (_.has(res, itemName)){
+//             return res[itemName];
+//         }
+//         return undefined;
+//     }
+// }

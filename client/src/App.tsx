@@ -236,6 +236,7 @@ class App extends React.Component<AppProps, AppStates>{
                 <Option value={id} key={i}>{id}</Option>
               )}
             </Select>
+            <div className='aboutFilter' style={{marginLeft:'-190px', marginRight:'10px', float:'right'}}>
             <Tooltip title="Filter">
               <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={this.showDrawer} style={{ marginLeft: '20px', zIndex: 1 }} />
             </Tooltip>
@@ -260,6 +261,7 @@ class App extends React.Component<AppProps, AppStates>{
                  </>
               )}
             </Select>
+            </div>
           </Header>
           <Content>
             <Panel initialWidth={layout.featureViewWidth}
@@ -323,6 +325,7 @@ class App extends React.Component<AppProps, AppStates>{
                     contribution={distribution}
                     patientInfoMeta={patientInfoMeta}
                     visible={visible}
+                    subjectIdG={subjectIdG && subjectIdG.subject_idG}
                   />
                 </p>
               </Drawer>
