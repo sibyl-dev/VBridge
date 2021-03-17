@@ -1,11 +1,17 @@
 import * as React from "react";
-import { Row, Col, Divider } from "antd"
-import { beautifulPrinter } from "visualization/common";
+import { Row, Col, Divider, Button } from "antd"
+import { beautifulPrinter, defaultCategoricalColor } from "visualization/common";
 import "./index.scss"
+import { IDataFrame } from "data-forge";
+import { FeatureMeta } from "data/feature";
+import { PushpinOutlined } from "@ant-design/icons";
 
 export interface MetaViewProps {
     patientIds?: number[],
     patientInfoMeta?: { [key: string]: any },
+    featureMeta: IDataFrame<number, FeatureMeta>,
+    updateFocusedFeatures?: (featureNames: string[]) => void,
+    updatePinnedFocusedFeatures?: (featureNames: string[]) => void,
 }
 
 export interface MetaViewStates { }
@@ -15,16 +21,13 @@ export type MetaItems = {
     itemNames: string[],
 }
 
-export default class MetaView extends React.Component<MetaViewProps, MetaViewStates> {
+export default class MetaView extends React.PureComponent<MetaViewProps, MetaViewStates> {
 
     private metaItems: MetaItems[];
-    private layout: number[] = [1, 10, 1, 11, 1];
+    private layout: number[] = [0, 10, 1, 11, 2];
 
     constructor(props: MetaViewProps) {
         super(props);
-        this.state = {
-            expandItem: [false, false, false],
-        };
         this.metaItems = [
             {
                 name: 'Demographic',
@@ -32,21 +35,43 @@ export default class MetaView extends React.Component<MetaViewProps, MetaViewSta
             },
             {
                 name: 'Admission',
-                itemNames: ['ADMISSION_DEPARTMENT', 'ADMITTIME', 'DIAGNOSIS', 'ICD10_CODE_CN', 'INSURANCE']
+                itemNames: ['ADMISSION_DEPARTMENT', 'DIAGNOSIS', 'ICD10_CODE_CN', 'INSURANCE']
             },
             {
                 name: 'Surgery',
                 itemNames: ['SURGERY_NAME', 'SURGERY_POSITION', 'ANES_METHOD',
-                    'ANES_START_TIME', 'ANES_END_TIME', 'SURGERY_BEGIN_TIME', 'SURGERY_END_TIME',
+                    // 'ANES_START_TIME', 'ANES_END_TIME', 'SURGERY_BEGIN_TIME', 'SURGERY_END_TIME',
                     'Surgical time (minutes)', 'CPB time (minutes)', 'Aortic cross-clamping time (times)'
                 ]
             }
         ]
+        this.onHover = this.onHover.bind(this);
+        this.onLeave = this.onLeave.bind(this);
+        this.onPin = this.onPin.bind(this);
+    }
+
+    private onHover(name: string) {
+        const { updateFocusedFeatures, featureMeta } = this.props;
+        const targetFeature = featureMeta.where(row => row.alias === name);
+        if (targetFeature.count() > 0)
+            updateFocusedFeatures && updateFocusedFeatures([targetFeature.first().name]);
+    }
+
+    private onLeave() {
+        const { updateFocusedFeatures } = this.props;
+        updateFocusedFeatures && updateFocusedFeatures([]);
+    }
+
+    private onPin(name: string) {
+        const { updatePinnedFocusedFeatures, featureMeta } = this.props;
+        const targetFeature = featureMeta.where(row => row.alias === name);
+        if (targetFeature.count() > 0)
+            updatePinnedFocusedFeatures && updatePinnedFocusedFeatures([targetFeature.first().name]);
     }
 
     public render() {
-        const { patientInfoMeta } = this.props
-
+        const { patientInfoMeta, featureMeta } = this.props;
+        const featureAlias = featureMeta.getSeries('alias').toArray();
         return (
             <div className={"meta-view"}>
                 {patientInfoMeta && this.metaItems.map(metaItem => <div key={metaItem.name}>
@@ -57,22 +82,76 @@ export default class MetaView extends React.Component<MetaViewProps, MetaViewSta
                             // console.log('TIME', name);
                             value = value.substr(11, 8);
                         }
-                        name = name.replace(/_/g, " ");
-                        return <Row key={name}>
-                            <Col span={this.layout[0]} />
-                            <Col span={this.layout[1]}>
-                                <span className="details-title"> {name}: </span>
-                            </Col>
-                            <Col span={this.layout[2]} />
-                            <Col span={this.layout[3]}>
-                                <div className={`value ${metaItem.name}`} >{value}</div>
-                            </Col>
-                            <Col span={this.layout[4]} />
-                        </Row>
+                        return <MetaItem
+                            category={metaItem.name}
+                            name={name}
+                            key={name}
+                            value={value}
+                            featureAlias={featureAlias}
+                            layout={this.layout}
+                            onHover={() => this.onHover(name)}
+                            onLeave={this.onLeave}
+                            onPin={() => this.onPin(name)}
+                        />
                     })}
                 </div>
                 )}
             </div>
         )
+    }
+}
+
+export interface MetaItemProps {
+    category: string,
+    name: string,
+    value: any,
+    featureAlias: string[],
+    onHover: () => void,
+    onLeave: () => void,
+    onPin?: () => void,
+    layout: number[],
+}
+
+export interface MetaItemStates {
+    pinned: boolean,
+}
+
+export class MetaItem extends React.PureComponent<MetaItemProps, MetaItemStates> {
+    constructor(props: MetaItemProps) {
+        super(props);
+
+        this.state = { pinned: false };
+        this.pin = this.pin.bind(this);
+    }
+
+    private pin() {
+        const { onPin } = this.props;
+        this.setState({ pinned: !this.state.pinned });
+        onPin && onPin();
+    }
+
+    public render() {
+        const { category, name, value, featureAlias, layout, onHover, onLeave } = this.props;
+        const { pinned } = this.state;
+
+        return <Row className={'meta-item'}
+            style={{ borderLeftWidth: featureAlias.includes(name) ? 4 : 0, borderLeftColor: defaultCategoricalColor(0) }}
+            onMouseOver={onHover} onMouseOut={onLeave}>
+            <Col span={layout[0]} />
+            <Col span={layout[1]}>
+                <span className="details-title"> {name.replace(/_/g, " ")}: </span>
+            </Col>
+            <Col span={layout[2]} />
+            <Col span={layout[3]}>
+                <div className={`value ${category}`} >{value}</div>
+            </Col>
+            <Col span={layout[4]}>
+                {(featureAlias.includes(name)) && <Button size="small" type="primary"
+                shape="circle"
+                    icon={<PushpinOutlined />} onClick={this.pin}
+                    className={"pin"} style={{ display: pinned ? 'block' : undefined }}
+                />}
+            </Col>
+        </Row>
     }
 }
