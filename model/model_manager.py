@@ -21,7 +21,7 @@ class ModelManager:
 
     def fit_all(self):
         for target_name, model in self._models.items():
-            model.fit(self.X_train, self.y_train, target_name)
+            model.fit(self.X_train, self.y_train, (self.X_test, self.y_test), target_name)
 
     def evaluate(self):
         scores = {target_name: model.test(self.X_test, self.y_test, target_name)

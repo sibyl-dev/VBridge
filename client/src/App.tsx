@@ -1,7 +1,7 @@
 import React from 'react';
 
-import { Layout, Drawer, Tooltip, Button, Select, Avatar, Divider, Row, Col} from 'antd'
-import { FilterOutlined} from '@ant-design/icons'
+import { Layout, Drawer, Tooltip, Button, Select, Avatar, Divider, Row, Col } from 'antd'
+import { FilterOutlined } from '@ant-design/icons'
 import './App.css';
 
 import FeatureView from "./components/FeatureView"
@@ -9,7 +9,7 @@ import MetaView from "./components/MetaView"
 import TableView from "./components/TableView"
 import TimelineView from "./components/TimelineView"
 
-import DynamicView, { RecordTS } from "./components/DynamicView"
+import DynamicView, { SignalMeta } from "./components/DynamicView"
 import FilterView from "./components/FilterView"
 
 import { getFeatureMate, getPatientIds, getPatientMeta, getPatientInfoMeta, getPatientRecords, getPredictionTargets, getTableNames, getPatientFilterRange, getPatientGroup, getItemDict } from "./router/api"
@@ -17,17 +17,15 @@ import { PatientMeta } from 'data/patient';
 import { Entity, ItemDict } from 'data/table';
 import { patientInfoMeta } from 'data/metaInfo';
 import { filterType } from 'data/filterType';
-import ReactEcharts  from 'echarts-for-react';
-
 
 import Panel from 'components/Panel';
 import { FeatureMeta } from 'data/feature';
-import { DataFrame } from 'data-forge';
+import { DataFrame, IDataFrame } from 'data-forge';
 import { isUndefined } from 'lodash';
 import { isDefined } from 'data/common';
 
 import Histogram from "visualization/Histogram";
-import {getScaleLinear} from "visualization/common";
+import {getScaleLinear, defaultCategoricalColor} from "visualization/common";
 
 
 
@@ -49,20 +47,21 @@ interface AppStates {
   patientMeta?: PatientMeta,
 
   //for view communication
-  dynamicRecords: RecordTS[]
+  signalMeta: SignalMeta[]
 
   patientInfoMeta?: { [key: string]: any },
   filterRange?: filterType,
-  subjectIdG?: {[key: string]: any},
+  subjectIdG?: { [key: string]: any },
   selectedsubjectId?: number,
-  conditions?: {[key: string]: any},
+  conditions?: { [key: string]: any },
   visible?: boolean,
 }
 
 class App extends React.Component<AppProps, AppStates>{
+  private layout = { featureViewWidth: 500, timelineViewWidth: 800, ProfileWidth: 300, timelineViewHeight: 260, headerHeight: 64 };
   constructor(props: AppProps) {
     super(props);
-    this.state = { dynamicRecords: [], conditions:{'':''}};
+    this.state = { signalMeta: [], conditions: { '': '' } };
 
     this.selectPatientId = this.selectPatientId.bind(this);
     this.selectComparePatientId = this.selectComparePatientId.bind(this)
@@ -73,6 +72,7 @@ class App extends React.Component<AppProps, AppStates>{
     this.showDrawer = this.showDrawer.bind(this)
     this.onClose = this.onClose.bind(this)
     this.buildRecordTSFromFeature = this.buildRecordTSFromFeature.bind(this);
+    this.color = this.color.bind(this);
   }
 
   componentDidMount() {
@@ -82,10 +82,21 @@ class App extends React.Component<AppProps, AppStates>{
   componentDidUpdate(prevProps: AppProps, prevState: AppStates) {
     if (prevState.patientMeta?.subjectId !== this.state.patientMeta?.subjectId) {
       const { featureMeta } = this.state;
-      if (featureMeta) {
-        const dynamicRecords = featureMeta.toArray().map(row => this.buildRecordTSFromFeature(row)).filter(isDefined);
-        this.setState({ dynamicRecords });
-      }
+      // if (featureMeta) {
+      //   const signalMetaDF = featureMeta.select(row => this.buildRecordTSFromFeature(row));
+      //   const signalMetaGroups = signalMetaDF.groupBy(row => `${row?.tableName}.${row?.itemName}`);
+      //   const signalMeta: SignalMeta[] = signalMetaGroups.select(group => {
+      //     const sample = group.first();
+      //     if (sample)
+      //       return {
+      //         ...sample,
+      //         relatedFeatureNames: group.getSeries('relatedFeatureNames').toArray() as string[]
+      //       }
+      //     else
+      //       return undefined
+      //   }).toArray().filter(isDefined);
+      //   this.setState({ signalMeta });
+      // }
     }
   }
 
@@ -98,7 +109,7 @@ class App extends React.Component<AppProps, AppStates>{
     const featureMeta = new DataFrame(await getFeatureMate());
     const predictionTargets = await getPredictionTargets();
 
-    const subjectIdG = (await getPatientGroup({filterConditions: { '': '' }, subject_id:0}))
+    const subjectIdG = (await getPatientGroup({ filterConditions: { '': '' }, subject_id: 0 }))
     // const prediction = (await getPatientGroup({ filterConditions: filterConditions })).prediction
     console.log('init', subjectIdG, filterRange)
     this.setState({ subjectIds, tableNames, filterRange, featureMeta, predictionTargets, itemDicts, subjectIdG});
@@ -109,13 +120,13 @@ class App extends React.Component<AppProps, AppStates>{
     const patientMeta = await getPatientMeta({ subject_id: subjectId });
     const patientInfoMeta = await getPatientInfoMeta({ subject_id: subjectId });
     const tableRecords = await this.loadPatientRecords(subjectId);
-    if(this.state.conditions){
-      const subjectIdG = (await getPatientGroup({filterConditions: this.state.conditions, subject_id: subjectId}))
-      this.setState({subjectIdG})
+    if (this.state.conditions) {
+      const subjectIdG = (await getPatientGroup({ filterConditions: this.state.conditions, subject_id: subjectId }))
+      this.setState({ subjectIdG })
     }
-    this.setState({ patientMeta, tableRecords, patientInfoMeta, selectedsubjectId});
+    this.setState({ patientMeta, tableRecords, patientInfoMeta, selectedsubjectId });
   }
-  public async selectComparePatientId(subjectId: number){
+  public async selectComparePatientId(subjectId: number) {
 
   }
 
@@ -137,9 +148,8 @@ class App extends React.Component<AppProps, AppStates>{
     return tableRecords
   }
 
-  private buildRecordTSFromFeature(feature: FeatureMeta): RecordTS | undefined {
-    const { entityId, where_item, start_time, end_time, columnName } = feature;
-    console.log(entityId);
+  private buildRecordTSFromFeature(feature: FeatureMeta): SignalMeta | undefined {
+    const { entityId, whereItem: where_item, columnName, name } = feature;
     const entity = this.state.tableRecords?.find(e => e.name === entityId);
     if (entity?.metaInfo) {
       const { item_index, time_index } = entity.metaInfo;
@@ -148,22 +158,21 @@ class App extends React.Component<AppProps, AppStates>{
           tableName: entityId,
           columnName: columnName,
           itemName: where_item[1] as string,
-          startTime: start_time,
-          endTime: end_time,
+          relatedFeatureNames: [name]
         }
     }
     else return undefined
   }
 
-  private buildRecordTS(entityName: string, startDate: Date, endDate: Date): RecordTS[] {
+  private buildRecordTS(entityName: string, startDate: Date, endDate: Date): SignalMeta[] {
     const entity = this.state.tableRecords?.find(e => e.name === entityName);
     const { item_index, time_index, value_indexes } = entity?.metaInfo!;
     if (entity && item_index && time_index && value_indexes && value_indexes.length > 0) {
       const selectedDf = entity.where(row => startDate < new Date(row[time_index]) && new Date(row[time_index]) < endDate)
         .groupBy(row => (row[item_index]));
-      let records: RecordTS[] = [];
+      let records: SignalMeta[] = [];
       for (const itemDf of selectedDf) {
-        const itemRecords: RecordTS[] = value_indexes.map(value_index => {
+        const itemRecords: SignalMeta[] = value_indexes.map(value_index => {
           return {
             tableName: entity.name!,
             columnName: value_index,
@@ -182,23 +191,30 @@ class App extends React.Component<AppProps, AppStates>{
 
   private updateRecordTS(entityName: string, startDate: Date, endDate: Date) {
     const newRecords = this.buildRecordTS(entityName, startDate, endDate);
-    this.setState({ dynamicRecords: newRecords });
+    this.setState({ signalMeta: newRecords });
   }
   private showDrawer = () => {
     const visible = true
-    this.setState({visible})
+    this.setState({ visible })
   };
   private onClose = () => {
     const visible = false
-    this.setState({visible})
+    this.setState({ visible })
     // console.log('onClose', this.state.filterConditions)
   };
+
+  private color(entityName: string) {
+    const { tableNames } = this.state;
+    const i = tableNames?.indexOf(entityName);
+    return (i !== undefined) ? defaultCategoricalColor(i) : '#aaa';
+  }
 
   public render() {
 
     const { subjectIds, patientMeta, tableNames, tableRecords, featureMeta, predictionTargets,
-      itemDicts, dynamicRecords, patientInfoMeta, filterRange, visible, subjectIdG } = this.state
+      itemDicts, signalMeta: dynamicRecords, patientInfoMeta, filterRange, visible, subjectIdG } = this.state
     console.log('render', subjectIdG)
+    const layout = this.layout;
     const idGs: number [] = subjectIdG && subjectIdG.subject_idG.slice(0, 100)
     const predictionG: string[] = subjectIdG && subjectIdG.predictionG.slice(0, 100)  
     const similarityG:number [] = subjectIdG && subjectIdG.similarity && subjectIdG.similarity.slice(0, 100)
@@ -212,7 +228,7 @@ class App extends React.Component<AppProps, AppStates>{
     return (
       <div className='App'>
         <Layout>
-          <Header>
+          <Header className="app-header">
             <p className='system-name'>Bridges</p>
             <span className="patient-selector-title">PatientId: </span>
             <Select style={{ width: 120 }} onChange={this.selectPatientId} className="patient-selector">
@@ -220,9 +236,8 @@ class App extends React.Component<AppProps, AppStates>{
                 <Option value={id} key={i}>{id}</Option>
               )}
             </Select>
-           
             <Tooltip title="Filter">
-              <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={this.showDrawer} style={{marginLeft:'20px', zIndex:1}}/>
+              <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={this.showDrawer} style={{ marginLeft: '20px', zIndex: 1 }} />
             </Tooltip>
             <span className="patient-selector-title" style={{marginLeft:'20px'}}> Filtred Result: {subjectIdG && subjectIdG.subject_idG? subjectIdG.subject_idG.length:0} </span>
             <span className="patient-selector-title" style={{marginLeft:'20px'}}> Prediction outcome: </span>
@@ -247,7 +262,8 @@ class App extends React.Component<AppProps, AppStates>{
             </Select>
           </Header>
           <Content>
-            <Panel initialWidth={400} initialHeight={840} x={0} y={0} title="Feature View">
+            <Panel initialWidth={layout.featureViewWidth}
+              initialHeight={window.innerHeight - layout.headerHeight} x={0} y={0} title="Feature View">
               {featureMeta && predictionTargets && tableNames && <FeatureView
                 patientMeta={patientMeta}
                 featureMeta={featureMeta}
@@ -255,27 +271,34 @@ class App extends React.Component<AppProps, AppStates>{
                 tableNames={tableNames}
                 subjectIdG={subjectIdG && subjectIdG.subject_idG}
                 itemDicts={itemDicts}
+                color={this.color}
               />}
             </Panel>
-            <Panel initialWidth={800} initialHeight={260} x={405} y={0} title="Timeline View">
+            <Panel initialWidth={layout.timelineViewWidth} initialHeight={layout.timelineViewHeight}
+              x={layout.featureViewWidth + 5} y={0} title="Timeline View">
               <TimelineView
                 patientMeta={patientMeta}
                 tableRecords={tableRecords}
                 onSelectEvents={this.updateRecordTS}
+                color={this.color}
               />
             </Panel>
 
-            <Panel initialWidth={800} initialHeight={575} x={405} y={265} title="Signal View">
+            <Panel initialWidth={layout.timelineViewWidth}
+              initialHeight={window.innerHeight - layout.headerHeight - layout.timelineViewHeight - 5}
+              x={layout.featureViewWidth + 5} y={265} title="Signal View">
               {patientMeta && tableRecords && <DynamicView
                 patientMeta={patientMeta}
                 tableRecords={tableRecords}
-                dynamicRecords={dynamicRecords}
+                signalMeta={dynamicRecords}
                 itemDicts={itemDicts}
                 subjectIdG={subjectIdG && subjectIdG.subject_idG}
+                color={this.color}
               />}
             </Panel>
-            {tableNames && <Panel initialWidth={300} initialHeight={840} x={1210} y={0} title="Patient View">
-              
+            {tableNames && <Panel initialWidth={layout.ProfileWidth} initialHeight={window.innerHeight - layout.headerHeight}
+              x={layout.featureViewWidth + layout.timelineViewWidth + 10} y={0} title="Patient View">
+
               <MetaView
                 patientIds={subjectIds}
                 patientInfoMeta={patientInfoMeta}
@@ -289,9 +312,9 @@ class App extends React.Component<AppProps, AppStates>{
               />
             </Panel>
             }*/}
-             {tableNames && 
+            {tableNames &&
               <Drawer title="Filter View" placement="right" closable={false} onClose={this.onClose} visible={visible} width={450} >
-              <p>
+                <p>
                   <FilterView
                     patientIds={subjectIds}
                     filterRange={filterRange}
@@ -301,9 +324,9 @@ class App extends React.Component<AppProps, AppStates>{
                     patientInfoMeta={patientInfoMeta}
                     visible={visible}
                   />
-               </p>
-             </Drawer>
-            } 
+                </p>
+              </Drawer>
+            }
 
           </Content>
         </Layout>

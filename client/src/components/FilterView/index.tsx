@@ -1,15 +1,14 @@
 import * as React from "react";
 import Panel from "../Panel"
-import { Row, Col, Select, Card, Divider, Slider, Checkbox, Switch, InputNumber, Button, Radio} from "antd"
-import "./index.css" 
-import {filterType} from 'data/filterType';
-import {beautifulPrinter} from 'visualization/common'
+import { Row, Col, Select, Card, Divider, Slider, Checkbox, Switch, InputNumber, Button, Radio } from "antd"
+import "./index.css"
+import { filterType } from 'data/filterType';
+import { beautifulPrinter } from 'visualization/common'
 
 import ReactEcharts  from 'echarts-for-react';
 import {getPatientGroup} from "../../router/api"
 import RangeChose from 'visualization/RangeChose'
 import MultiSelect from 'visualization/MultiSelect'
-
 
 
 const { Option } = Select
@@ -23,7 +22,7 @@ export interface FliterViewProps {
     patientInfoMeta?: { [key: string]: any },
 }
 
-export interface FilterViewStates { 
+export interface FilterViewStates {
     expandItem?: boolean[],
     PATIENTS?: string[],
     ADMISSIONS?: string[],
@@ -41,12 +40,12 @@ export interface FilterViewStates {
     cancel?: boolean,
 }
 export default class FilterView extends React.Component<FliterViewProps, FilterViewStates> {
-    
+
     constructor(props: FliterViewProps) {
         super(props);
         // const filterRange = props.filterRange
-        this.state = { 
-            expandItem: Array(8).fill(false), 
+        this.state = {
+            expandItem: Array(8).fill(false),
             checkedAll: Array(8).fill(true),
             indeterminate: Array(8).fill(false),
             checkedList: Array(8).fill(['Empty']),
@@ -72,8 +71,6 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
         this.updateConditions = this.updateConditions.bind(this)
     }
     public init() {
-        // var inputValues: number[] = []
-        var tmparray: string [] = []
         var checkedList = Array(8).fill([])
         console.log('checkedList', this.props.filterRange, this.state.checkedList)
         const {filterRange, patientInfoMeta, visible, filterPatients} = this.props
@@ -148,12 +145,12 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
         if(onClose)
             this.setState({tmpConditions: tmpConditions1, defaultValue: defaultValue, cancel: true}, ()=>onClose())
     }
-    updateConditions(key:string, value: any, checkedAll: boolean) {
-        const {tmpConditions} = this.state
-        const {filterRange} = this.props
-        if(tmpConditions){
+    updateConditions(key: string, value: any, checkedAll: boolean) {
+        const { tmpConditions } = this.state
+        const { filterRange } = this.props
+        if (tmpConditions) {
             tmpConditions[key] = value
-            if(checkedAll)
+            if (checkedAll)
                 delete tmpConditions[key]
         }
         this.setState({ tmpConditions })
@@ -167,25 +164,24 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
             defaultValue['GENDER'] = value
         this.setState({defaultValue})
         var coverAll = false
-        if(value.length == 2)
+        if (value.length == 2)
             coverAll = true
         this.updateConditions('GENDER', value, coverAll)
     }
     public render() {
         const { filterRange, patientIds, onClose, filterPatients, contribution,patientInfoMeta,  } = this.props
         const { expandItem, PATIENTS, ADMISSIONS, SURGERY_INFO, defaultValue, filter_name, checkedList, indeterminate, checkedAll, tmpConditions, filterConditions, cancel } = this.state;
-        
         console.log('filterConditions', filterConditions, 'tmpConditions', tmpConditions)
-        var conditions:{[key:string]: any} = {'':''}
-        if(tmpConditions)
+        var conditions: { [key: string]: any } = { '': '' }
+        if (tmpConditions)
             conditions = tmpConditions
         const leftSpan = 0
         const titleWidth = 10
         const valueWidth = 11
-        const rightSpan=0
+        const rightSpan = 0
 
-        var data: number [] = []
-        if(contribution)
+        var data: number[] = []
+        if (contribution)
             data = contribution
        
         return (
@@ -201,9 +197,9 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
                                   <Col span={2}/>
                                   <Col span={8}>
                                         <Checkbox value="F"> Female </Checkbox>
-                                  </Col>
-                                  <Col span={1}/>
-                                  <Col span={7}>
+                                    </Col>
+                                    <Col span={1} />
+                                    <Col span={7}>
                                         <Checkbox value="M"> Male </Checkbox>
                                   </Col>
                             </Row>

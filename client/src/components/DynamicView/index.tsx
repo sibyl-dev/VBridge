@@ -2,21 +2,22 @@ import { Button, Card, Divider, Select } from "antd";
 import { PatientMeta } from "data/patient";
 import { Entity, ItemDict } from "data/table";
 import * as React from "react";
-import { DataFrame, IDataFrame, ISeries } from "data-forge"
+import { DataFrame, IDataFrame, ISeries } from "data-forge";
 import { defaultMargin, getMargin, getScaleLinear, IMargin } from "visualization/common";
-import Search from "antd/lib/input/Search";
-import "./index.scss"
 import { CloseOutlined, ExpandAltOutlined, PushpinOutlined, ShrinkOutlined } from "@ant-design/icons";
 import { referenceValue } from "data/common";
 import { getReferenceValues } from "router/api";
 import LineChart from "visualization/lineChart";
 
-export interface RecordTS {
+import "./index.scss";
+
+export interface SignalMeta {
     tableName: string,
     columnName: string,
     itemName: string,
     startTime?: Date,
     endTime?: Date,
+    relatedFeatureNames?: string[]
     // data?: { dates: ISeries<number, Date>, values: ISeries<number, any> },
 }
 
@@ -24,11 +25,12 @@ export interface DynamicViewProps {
     patientMeta: PatientMeta,
     itemDicts?: ItemDict,
     tableRecords: Entity<number, any>[],
-    dynamicRecords: RecordTS[],
+    signalMeta: SignalMeta[],
     subjectIdG?: number[],
+    color?: (entityName: string) => string,
 }
 
-export interface DynamicViewStates {}
+export interface DynamicViewStates { }
 
 export default class DynamicView extends React.Component<DynamicViewProps, DynamicViewStates> {
 
@@ -38,7 +40,7 @@ export default class DynamicView extends React.Component<DynamicViewProps, Dynam
         this.state = {};
     }
 
-    private extractData(record: RecordTS) {
+    private extractData(record: SignalMeta) {
         const { tableName, columnName, itemName, startTime, endTime } = record;
         const { tableRecords } = this.props;
         const entity = tableRecords.find(e => e.name === tableName);
@@ -46,11 +48,11 @@ export default class DynamicView extends React.Component<DynamicViewProps, Dynam
         let entries = entity!.where(row => row[item_index!] === itemName);
         if (startTime) entries = entries?.where(row => startTime < new Date(row[time_index!]));
         if (endTime) entries = entries?.where(row => new Date(row[time_index!]) < endTime);
-        return {dates: entries?.getSeries(time_index!).parseDates(), values: entries?.getSeries(columnName!).parseFloats()}
+        return { dates: entries?.getSeries(time_index!).parseDates(), values: entries?.getSeries(columnName!).parseFloats() }
     }
 
     public render() {
-        const { patientMeta, dynamicRecords, itemDicts, subjectIdG } = this.props;
+        const { patientMeta, signalMeta, itemDicts, subjectIdG, color } = this.props;
 
         const startDate = patientMeta && new Date(patientMeta.startDate);
         const endDate = patientMeta && new Date(patientMeta.endDate);
@@ -62,7 +64,7 @@ export default class DynamicView extends React.Component<DynamicViewProps, Dynam
                 </div>
                 <Divider />
                 <div>
-                    {dynamicRecords.map((records, i) =>
+                    {signalMeta.map((records, i) =>
                         <DynamicCard
                             {...records}
                             data={this.extractData(records)}
@@ -71,10 +73,9 @@ export default class DynamicView extends React.Component<DynamicViewProps, Dynam
                             startTime={startDate}
                             endTime={endDate}
                             align={false}
+                            margin={{ bottom: 20, left: 25, top: 15, right: 25 }}
+                            color={color && color(records.tableName)}
                             subjectIdG={subjectIdG}
-                            timeSeriesStyle={{
-                                margin: { bottom: 20, left: 25, top: 15, right: 25 }
-                            }}
                         />)}
                 </div>
             </div>
@@ -96,12 +97,14 @@ const defaultTimeSeriesStyle: TimeSeriesStyle = {
     margin: defaultMargin,
 }
 
-export interface DynamicCardProps extends RecordTS {
+type VRecordTS = SignalMeta & Partial<TimeSeriesStyle>
+
+export interface DynamicCardProps extends VRecordTS {
     data: { dates: ISeries<number, Date>, values: ISeries<number, any> },
     align?: boolean,
-    timeSeriesStyle: Partial<TimeSeriesStyle>,
+    // timeSeriesStyle: Partial<TimeSeriesStyle>,
     itemDicts?: ItemDict,
-    subjectIdG?:number[],
+    subjectIdG?: number[],
 }
 
 export interface DynamicCardStates {
@@ -125,8 +128,8 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
         this.loadReferenceValues();
     }
     componentDidUpdate(prevProps: DynamicCardProps, prevState: DynamicCardStates) {
-        if (prevProps.subjectIdG?.sort().toString() !== this.props.subjectIdG?.sort().toString()){
-            this.loadReferenceValues()
+        if (prevProps.subjectIdG?.sort().toString() !== this.props.subjectIdG?.sort().toString()) {
+            // this.loadReferenceValues();
         }
     }
 
@@ -149,17 +152,15 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
     }
 
     public render() {
-        const { tableName, itemName, itemDicts, data } = this.props;
+        const { tableName, itemName, itemDicts, data, width, height, color, margin } =
+            { ...defaultTimeSeriesStyle, ...this.props };
         const { expand, referenceValue } = this.state;
-        const style = { ...defaultTimeSeriesStyle, ...this.props.timeSeriesStyle };
-        const { width, height, color } = style;
-        const margin = getMargin(style.margin);
         const itemLabel = itemDicts && itemDicts(tableName, itemName)?.LABEL;
 
-        return <div className={"ts-card"}>
+        return <div className={"ts-card"} style={{ borderLeftColor: color || '#aaa', borderLeftWidth: 4 }}>
             <div className={"ts-title-float"} style={{ width: width }}>
                 <span className={"ts-title-float-text"}>{`${itemLabel || itemName}`}</span>
-                <Button size="small" type="primary" icon={<CloseOutlined />} className={"ts-title-button"}/>
+                <Button size="small" type="primary" icon={<CloseOutlined />} className={"ts-title-button"} />
                 {expand ? <Button size="small" type="primary" icon={<ShrinkOutlined />} className={"ts-title-button"} onClick={this.onCollapse} />
                     : <Button size="small" type="primary" icon={<ExpandAltOutlined />} className={"ts-title-button"} onClick={this.onExpand} />}
                 <Button size="small" type="primary" icon={<PushpinOutlined />} className={"ts-title-button"} />
@@ -175,7 +176,7 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
                 yScale={expand ? undefined : getScaleLinear(0, 0, undefined, [-1, 1])}
                 drawXAxis={expand}
                 drawYAxis={expand}
-                drawReferences={expand && referenceValue!=undefined}
+                drawReferences={expand && referenceValue != undefined}
             />
         </div>
     }

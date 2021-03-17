@@ -15,6 +15,7 @@ export interface TimelineViewProps {
     patientMeta?: PatientMeta,
     tableRecords?: Entity<number, any>[],
     onSelectEvents?: (entityName: string, startDate: Date, endDate: Date) => void,
+    color?: (entityName: string) => string,
 }
 
 export interface TimelineViewStates {

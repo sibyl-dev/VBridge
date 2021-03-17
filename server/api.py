@@ -10,7 +10,8 @@ from flask import request, jsonify, Blueprint, current_app, Response
 
 from model.data import get_patient_records
 from model.modeler import Modeler
-from model.settings import interesting_variables, META_INFO, filter_variable, filter_variable1,fm_category_name,complication_type
+from model.settings import interesting_variables, META_INFO, filter_variable, filter_variable1,\
+                            fm_category_name,complication_type
 from sklearn.metrics.pairwise import cosine_similarity
 
 api = Blueprint('api', __name__)
@@ -54,8 +55,9 @@ class ApiError(Exception):
         rv['message'] = self.message
         return rv
 
+
 def formalize(x):
-    x1 =  x.copy(deep=True)
+    x1 = x.copy(deep=True)
 
 
 @api.errorhandler(ApiError)
@@ -69,7 +71,8 @@ def handle_invalid_usage(error):
 @api.route('available_ids', methods=['GET'])
 def get_available_ids():
     es = current_app.es
-    subjects_ids = es["SURGERY_INFO"].df["SUBJECT_ID"].values[-20:].tolist()
+    df = es["SURGERY_INFO"].df
+    subjects_ids = df[df['complication'] == 1]["SUBJECT_ID"].values[:30].tolist()
     return jsonify(subjects_ids)
 
 
@@ -94,21 +97,21 @@ def get_patient_meta():
     # print('hadm_df', hadm_df[hadm_df['SUBJECT_ID'] == subject_id])
     info['startDate'] = str(hadm_df[hadm_df['SUBJECT_ID'] == subject_id]['ADMITTIME'].values[0])
     info['endDate'] = str(cutoff_times[cutoff_times['SUBJECT_ID'] == subject_id]['time'].values[0])
-    
+
     patient_df = es["PATIENTS"].df
     info['GENDER'] = patient_df[patient_df['SUBJECT_ID'] == subject_id]['GENDER'].values[0]
     info['DOB'] = str(patient_df[patient_df['SUBJECT_ID'] == subject_id]['DOB'].values[0])
-    
+
     return jsonify(info)
+
 
 @api.route('/patientinfo_meta', methods=['GET'])
 def get_patientinfo_meta():
     subject_id = int(request.args.get('subject_id'))
-    
+
     info = {'subjectId': subject_id}
     es = current_app.es
     cutoff_times = current_app.cutoff_times
-    
 
     table_names = ['PATIENTS', 'ADMISSIONS', 'SURGERY_INFO']
     for i, table_name in enumerate(table_names):
@@ -126,7 +129,6 @@ def get_patientinfo_meta():
 
 @api.route('/record_filterrange', methods=['GET'])
 def get_record_filterrange():
-    
     info = {'name': 'filter_range'}
     fm = current_app.fm
 
@@ -155,31 +157,19 @@ def get_record_filterrange():
     return jsonify(info)
 
 
-
-# def cmp(a, b):
-#     if b[3]<a[3]:
-#         return -1
-#     if b[3]>a[3]:
-#         return 1
-#     return 0
-
-
-
 @api.route('/patient_group', methods=['GET'])
 def get_patient_group():
     conditions = json.loads(request.args.get('filterConditions'))
     subject_id = int(request.args.get('subject_id'))
 
     table_names = ['PATIENTS', 'SURGERY_INFO', 'ADMISSIONS']
-    number_vari = ['Age',  'Height', 'Weight', 'Surgical time (minutes)']
+    number_vari = ['Age', 'Height', 'Weight', 'Surgical time (minutes)']
 
     es = current_app.es
     subject_idG = list(current_app.fm.index)
+
     info = {'subject_idG' : subject_idG}
-
     print('conditions',conditions)
-
-    
     # filter subject_idG according to the conditions
     for i, table_name in enumerate(table_names):
         column_names = filter_variable1[table_name]
@@ -187,10 +177,9 @@ def get_patient_group():
         tableFlag = False
 
         for condition_name in conditions:
-            if(condition_name in column_names):
+            if condition_name in column_names:
                 tableFlag = True
-                hasFilter = True
-                
+                hasFilter = True  
                 print('conditions',condition_name, conditions[condition_name])
 
                 if(condition_name == 'Age'):
@@ -215,23 +204,27 @@ def get_patient_group():
                     print('isin', condition_name, list(conditions[condition_name]))
                     hadm_df = hadm_df[hadm_df[condition_name].isin(list(conditions[condition_name])) ]
 
-        if(tableFlag):
-            if(len(subject_idG) != 0):
+        if tableFlag:
+            if len(subject_idG) != 0:
                 hadm_df = hadm_df[hadm_df['SUBJECT_ID'].isin(subject_idG)]
             subject_idG = hadm_df['SUBJECT_ID'].drop_duplicates().values.tolist()
 
-    
     fm_ = current_app.fm
-    r = fm_.loc[8511]
+    # r = fm_.loc[8511]
     if subject_id:
         r = fm_.loc[subject_id]
-        r = r.drop(complication_type)
+        # r = r.drop(complication_type)
     fm = fm_[fm_.index.isin(subject_idG)]
     fm = fm.fillna(0)
 
     # contact the prediction result, calculate the prediction truth
-    info['distribution']= list([np.sum(fm['lung complication']), np.sum(fm['cardiac complication']), np.sum(fm['arrhythmia complication']), np.sum(fm['infectious complication']), np.sum(fm['other complication']) ])
-    info['predictionG'] = list((fm['lung complication'].astype('str')).str.cat([fm['cardiac complication'].astype('str'),fm['arrhythmia complication'].astype('str'), fm['infectious complication'].astype('str'), fm['other complication'].astype('str')],sep='-'))
+    info['distribution'] = [np.sum(fm['lung complication']), np.sum(fm['cardiac complication']),
+         np.sum(fm['arrhythmia complication']), np.sum(fm['infectious complication']),
+         np.sum(fm['other complication'])]
+    info['predictionG'] = list((fm['lung complication'].astype('str')).str.cat(
+        [fm['cardiac complication'].astype('str'), fm['arrhythmia complication'].astype('str'),
+         fm['infectious complication'].astype('str'), fm['other complication'].astype('str')],
+        sep='-'))
     info['subject_idG'] = list(subject_idG)
     noComplication = len(subject_idG) - np.sum(fm['complication'])
     info['distribution'].append(noComplication)
@@ -257,7 +250,7 @@ def get_patient_group():
     #     info['subject_idG'] = list(subject_idG)
     #     info['predictionG'] = list(predictionG)
     #     info['similarity'] = list(x)
-    
+
     current_app.subject_idG = subject_idG
     return jsonify(info)
 
@@ -300,12 +293,12 @@ def get_feature_meta():
             return get_leaf(feature.base_features[0])
         else:
             return feature
-    
+
     def get_level2_leaf(feature):
         if len(feature.base_features) == 0:
             return None
         elif len(feature.base_features) > 0 and \
-            len(feature.base_features[0].base_features) == 0:
+                len(feature.base_features[0].base_features) == 0:
             return feature
         else:
             return get_level2_leaf(feature.base_features[0])
@@ -319,18 +312,35 @@ def get_feature_meta():
         leve2_leaf_node = get_level2_leaf(f)
         info = {
             'name': f.get_name(),
-            'where_item': leve2_leaf_node.where.get_name().split(' = ') \
-                if leve2_leaf_node and ('where' in  leve2_leaf_node.__dict__) else [],
+            'whereItem': leve2_leaf_node.where.get_name().split(' = ') \
+                if leve2_leaf_node and ('where' in leve2_leaf_node.__dict__) else [],
             'primitive': leve2_leaf_node and leve2_leaf_node.primitive.name,
             'entityId': leaf_node.entity_id,
-            'columnName': leaf_node.get_name()
+            'columnName': leaf_node.get_name(),
         }
 
-        if len(info['where_item']) > 0:
+        if len(info['whereItem']) > 0:
             info['alias'] = leve2_leaf_node.primitive.name
         else:
             info['alias'] = leaf_node.get_name()
 
+        # type: 'Surgery Observations' | 'Pre-surgery Observations' | 
+        # 'Pre-surgery Treatments' | 'Surgery Info' | 'Patient Info'
+        if '#' in f.get_name():
+            period = f.get_name().split('#')[0]
+            if period == 'in-surgery':
+                feature_type = 'Surgery Observations'
+            elif period == 'pre-surgery':
+                if info['entityId'] == 'PRESCRIPTIONS':
+                    feature_type = 'Pre-surgery Treatments'
+                else:
+                    feature_type = 'Pre-surgery Observations'
+        else:
+            if f.get_name() in ['Height', 'Weight', 'Age', 'ADMISSIONS.ICD10_CODE_CN', 'ADMISSIONS.PATIENTS.GENDER']:
+                feature_type = 'Patient Info'
+            else:
+                feature_type = 'Surgery Info'
+        info['type'] = feature_type
         feature_meta.append(info)
     return jsonify(feature_meta)
 
@@ -350,7 +360,8 @@ def get_prediction():
 
 @api.route('/feature_matrix', methods=['GET'])
 def get_feature_matrix():
-    return Response(current_app.fm[current_app.fm.index.isin(current_app.subject_idG)].to_csv(), mimetype="text/csv")
+    return Response(current_app.fm[current_app.fm.index.isin(current_app.subject_idG)].to_csv(),
+                    mimetype="text/csv")
 
 
 @api.route('/feature_values', methods=['GET'])
@@ -375,8 +386,9 @@ def get_item_dict():
         items = group[1].loc[:, ['LABEL', 'LABEL_CN']]
         table_name = group[0].upper()
         item_dict[table_name] = items.to_dict('index')
-    
-    item_dict['LABEVENTS'] = current_app.es['D_LABITEMS'].df.loc[:, ['LABEL', 'LABEL_CN']].to_dict('index')
+
+    item_dict['LABEVENTS'] = current_app.es['D_LABITEMS'].df.loc[:, ['LABEL', 'LABEL_CN']].to_dict(
+        'index')
 
     return jsonify(item_dict)
 
@@ -395,9 +407,9 @@ def get_reference_value():
         mean, count, std = group[1][column_name].agg(['mean', 'count', 'std'])
         references[item_name] = {
             'mean': 0 if np.isnan(mean) else mean,
-            'std':  0 if np.isnan(std) else std,
+            'std': 0 if np.isnan(std) else std,
             'count': 0 if np.isnan(count) else count,
-            'ci95': [0 if np.isnan(mean - 1.960 * std) else (mean - 1.960 * std), 
+            'ci95': [0 if np.isnan(mean - 1.960 * std) else (mean - 1.960 * std),
                      0 if np.isnan(mean + 1.960 * std) else (mean + 1.960 * std)]
         }
     # print('final reference_value', references)
