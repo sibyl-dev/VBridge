@@ -111,7 +111,7 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
         this.setState({ featureMatrix });
     }
     componentDidUpdate(prevProps: FliterViewProps){
-        if(this.props.subjectIdG && prevProps.subjectIdG?.sort().toString() !== this.props.subjectIdG.sort().toString()) {
+        if(this.props.subjectIdG && (prevProps.subjectIdG?.sort().toString() !== this.props.subjectIdG.sort().toString() || this.props.subjectIdG.length == 1)) {
             this.loadFeatureMatrix()
         }
     }

@@ -14,6 +14,7 @@ import { confidenceThresholds } from "data/common";
 
 import "./index.scss"
 
+
 export interface FeatureViewProps {
     patientMeta?: PatientMeta,
     tableNames?: string[],
@@ -310,6 +311,7 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
         const { feature, x, cellWidth, color, className, depth, featureMatrix } = this.props;
         const { collapsed, expanded } = this.state
         const { name, alias, value, contribution, children, entityId } = feature;
+        console.log('FeatureView', value)
         let series = undefined;
         let thresholds = [];
         let colorIndex = 3;
@@ -320,15 +322,20 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
             else if (id < 3)
                 return d3.interpolateBlues((1 - id / 3) * 0.3);
         }
-
+        let thresholdsNum: number[] = []
         if (typeof (value) === typeof (0.0)) {
             series = featureMatrix?.getSeries(name).parseFloats().toArray();
             if (series) {
                 // console.log(series.where(row => row > (value as number)).count() / series.count());
                 thresholds = confidenceThresholds(series);
+                thresholdsNum = confidenceThresholds(series);
                 colorIndex = _.sum(thresholds.map(t => t < value!));
+                if(colorIndex!=3)
+        			console.log('thresholds', name, thresholds, colorIndex, value)
+
             }
         }
+
 
         return <div className={className}>
             <div style={{
@@ -354,8 +361,16 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                         </Tooltip>
                         <Tooltip title={typeof (value) == typeof (0.0) ? beautifulPrinter(value) : value}>
                             <div className={"feature-block-cell feature-value"}
-                                style={{ width: cellWidth(1), backgroundColor: barColor(colorIndex) }}>
-                                <span className={"feature-block-cell-text"}>{beautifulPrinter(value)}</span>
+                                style={{ width: cellWidth(1), backgroundColor: barColor(colorIndex)}}>
+                                <span className={"feature-block-cell-text"}>{beautifulPrinter(value)}
+                                {thresholdsNum && thresholdsNum.map((t,i) =>{
+                                	console.log('thresholds', t, i, value)
+                                	if(i<3 && t>value!)
+                                		return <ArrowDownOutlined/>
+                                	else if( i>=3 && t<value!)
+                                		return <ArrowUpOutlined/>
+                                })}
+                                </span>
                             </div>
                         </Tooltip>
                         <div className={"feature-block-cell feature-contribution"}
