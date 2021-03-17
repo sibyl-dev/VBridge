@@ -1,4 +1,5 @@
 import React from 'react';
+import * as d3 from "d3"
 
 import { Layout, Drawer, Tooltip, Button, Select, Avatar, Divider, Row, Col } from 'antd'
 import { FilterOutlined } from '@ant-design/icons'
@@ -19,12 +20,11 @@ import { patientInfoMeta } from 'data/metaInfo';
 import { filterType } from 'data/filterType';
 
 import Panel from 'components/Panel';
-import { FeatureMeta } from 'data/feature';
+import { Feature, FeatureMeta } from 'data/feature';
 import { DataFrame, IDataFrame } from 'data-forge';
-import { isUndefined } from 'lodash';
-import { isDefined } from 'data/common';
+import _, { isUndefined } from 'lodash';
+import { distinct, isDefined } from 'data/common';
 
-import Histogram from "visualization/Histogram";
 import { defaultCategoricalColor } from 'visualization/common';
 
 
@@ -46,7 +46,10 @@ interface AppStates {
   patientMeta?: PatientMeta,
 
   //for view communication
-  signalMeta: SignalMeta[]
+  signalMeta: SignalMeta[],
+  pinnedSignalMeta: SignalMeta[],
+  focusedFeatures: string[],
+  pinnedfocusedFeatures: string[],
 
   patientInfoMeta?: { [key: string]: any },
   filterRange?: filterType,
@@ -58,9 +61,14 @@ interface AppStates {
 
 class App extends React.Component<AppProps, AppStates>{
   private layout = { featureViewWidth: 500, timelineViewWidth: 800, ProfileWidth: 300, timelineViewHeight: 260, headerHeight: 64 };
+  private abnormalityColorScale = d3.scaleSequential(d3.interpolateRdYlGn).domain([2.5 + 0.5, 1 - 0.5]);
+
   constructor(props: AppProps) {
     super(props);
-    this.state = { signalMeta: [], conditions: { '': '' } };
+    this.state = {
+      signalMeta: [], pinnedSignalMeta: [], conditions: { '': '' },
+      focusedFeatures: [], pinnedfocusedFeatures: []
+    };
 
     this.selectPatientId = this.selectPatientId.bind(this);
     this.selectComparePatientId = this.selectComparePatientId.bind(this)
@@ -70,8 +78,20 @@ class App extends React.Component<AppProps, AppStates>{
     this.updateRecordTS = this.updateRecordTS.bind(this);
     this.showDrawer = this.showDrawer.bind(this)
     this.onClose = this.onClose.bind(this)
-    this.buildRecordTSFromFeature = this.buildRecordTSFromFeature.bind(this);
-    this.color = this.color.bind(this);
+
+    // Call-backs to update the Temporal View
+    this.updateSignals = this.updateSignals.bind(this);
+    this.buildSignalsByFeature = this.buildSignalsByFeature.bind(this);
+    this.updateSignalsByFeature = this.updateSignalsByFeature.bind(this);
+    this.pinSignal = this.pinSignal.bind(this);
+    this.removeSignal = this.removeSignal.bind(this);
+
+    // Call-backs to update the Feature View
+    this.updateFocusedFeatures = this.updateFocusedFeatures.bind(this);
+    this.updatePinnedFocusedFeatures = this.updatePinnedFocusedFeatures.bind(this);
+
+    this.entityCategoricalColor = this.entityCategoricalColor.bind(this);
+    this.abnormalityColor = this.abnormalityColor.bind(this);
   }
 
   componentDidMount() {
@@ -147,20 +167,75 @@ class App extends React.Component<AppProps, AppStates>{
     return tableRecords
   }
 
-  private buildRecordTSFromFeature(feature: FeatureMeta): SignalMeta | undefined {
-    const { entityId, whereItem: where_item, columnName, name } = feature;
-    const entity = this.state.tableRecords?.find(e => e.name === entityId);
-    if (entity?.metaInfo) {
-      const { item_index, time_index } = entity.metaInfo;
-      if (item_index && time_index)
-        return {
-          tableName: entityId,
-          columnName: columnName,
-          itemName: where_item[1] as string,
-          relatedFeatureNames: [name]
-        }
+  private buildSignalsByFeature(feature: Feature): SignalMeta[] {
+    const { patientMeta } = this.state;
+    let signalMetaList: SignalMeta[] = [];
+    if (feature.children && feature.children.count() > 0) {
+      for (const child of feature.children) {
+        signalMetaList = signalMetaList.concat(this.buildSignalsByFeature(child))
+      }
     }
-    else return undefined
+    else {
+      const { entityId, whereItem, columnName, name, period } = feature;
+      const entity = this.state.tableRecords?.find(e => e.name === entityId);
+      if (entity && entity.metaInfo && patientMeta) {
+        const { item_index, time_index } = entity.metaInfo;
+        const { SurgeryBeginTime, SurgeryEndTime } = patientMeta;
+        const startTime = (period === 'in-surgery') ? SurgeryBeginTime :
+          new Date(SurgeryBeginTime.getTime() - 1000 * 60 * 60 * 24 * 2);
+        const endTime = (period === 'in-surgery') ? SurgeryEndTime : SurgeryBeginTime;
+        if (item_index && time_index && entityId)
+          signalMetaList.push({
+            tableName: entityId,
+            columnName: columnName,
+            itemName: whereItem[1] as string,
+            relatedFeatureNames: [name],
+            startTime: startTime,
+            endTime: endTime,
+            featurePeriods: () => [startTime, endTime],
+          })
+      }
+    }
+    return signalMetaList
+  }
+
+  private updateSignalsByFeature(feature: Feature) {
+    const newSignals = this.buildSignalsByFeature(feature);
+    this.updateSignals(newSignals);
+  }
+
+  private updateSignals(newSignalMeta: SignalMeta[]) {
+    const rawSignalMeta = new DataFrame([...this.state.pinnedSignalMeta, ...newSignalMeta]);
+    // const rawSignalMeta = new DataFrame([...newSignalMeta]);
+    const signalMeta: SignalMeta[] = rawSignalMeta.groupBy(row => row.itemName).toArray().map(group => {
+      const sample = group.first();
+      return {
+        ...sample,
+        relatedFeatureNames: _.flatten(group.getSeries('relatedFeatureNames').toArray()),
+        startTime: _.min(group.getSeries('startTime').toArray()),
+        endTime: _.max(group.getSeries('endTime').toArray())
+      }
+    })
+    this.setState({ signalMeta });
+  }
+
+  private pinSignal(signalMeta: SignalMeta) {
+    const { pinnedSignalMeta } = this.state;
+    const pinnedSignalNames = pinnedSignalMeta.map(s => `${s.itemName}`);
+    if (pinnedSignalNames.includes(signalMeta.itemName)) {
+      this.setState({ pinnedSignalMeta: pinnedSignalMeta.filter(s => s.itemName !== signalMeta.itemName) });
+    }
+    else {
+      pinnedSignalMeta.push(signalMeta);
+      this.setState({ pinnedSignalMeta });
+    }
+  }
+
+  private removeSignal(targetSignal: SignalMeta) {
+    const { pinnedSignalMeta, signalMeta } = this.state;
+    this.setState({ pinnedSignalMeta: pinnedSignalMeta.filter(s => s.itemName !== targetSignal.itemName),
+        signalMeta: signalMeta.filter(s => s.itemName !== targetSignal.itemName),
+     });
   }
 
   private buildRecordTS(entityName: string, startDate: Date, endDate: Date): SignalMeta[] {
@@ -176,8 +251,10 @@ class App extends React.Component<AppProps, AppStates>{
             tableName: entity.name!,
             columnName: value_index,
             itemName: itemDf.first()[item_index],
-            startDate: startDate,
-            endDate: endDate,
+            startTime: startDate,
+            endTime: endDate,
+            // TODO: check this
+            relatedFeatureNames: []
           }
         })
         records = [...records, ...itemRecords]
@@ -192,6 +269,25 @@ class App extends React.Component<AppProps, AppStates>{
     const newRecords = this.buildRecordTS(entityName, startDate, endDate);
     this.setState({ signalMeta: newRecords });
   }
+
+  private updateFocusedFeatures(featureNames: string[]) {
+    this.setState({ focusedFeatures: featureNames })
+  }
+
+  private updatePinnedFocusedFeatures(featureNames: string[]) {
+    const { pinnedfocusedFeatures } = this.state;
+    let newfeatures = [...pinnedfocusedFeatures];
+    for (const featureName of featureNames.filter(distinct)) {
+      if (pinnedfocusedFeatures.includes(featureName)) {
+        newfeatures = newfeatures.filter(f => f !== featureName);
+      }
+      else {
+        newfeatures.push(featureName);
+      }
+    }
+    this.setState({ pinnedfocusedFeatures: newfeatures });
+  }
+
   private showDrawer = () => {
     const visible = true
     this.setState({ visible })
@@ -202,25 +298,30 @@ class App extends React.Component<AppProps, AppStates>{
     // console.log('onClose', this.state.filterConditions)
   };
 
-  private color(entityName: string) {
+  private entityCategoricalColor(entityName?: string) {
     const { tableNames } = this.state;
-    const i = tableNames?.indexOf(entityName);
-    return (i !== undefined) ? defaultCategoricalColor(i) : '#aaa';
+    let i = 0;
+    if (tableNames && entityName)
+      i = tableNames?.indexOf(entityName) + 1;
+    return defaultCategoricalColor(i);
+  }
+
+  private abnormalityColor(abnormality: number) {
+    return this.abnormalityColorScale(Math.max(Math.min(abnormality, 2.5), 1));
   }
 
   public render() {
 
     const { subjectIds, patientMeta, tableNames, tableRecords, featureMeta, predictionTargets,
+      focusedFeatures, pinnedfocusedFeatures,
       itemDicts, signalMeta: dynamicRecords, patientInfoMeta, filterRange, visible, subjectIdG } = this.state;
     const layout = this.layout;
     const idGs: number[] = subjectIdG && subjectIdG.subject_idG.slice(0, 100)
     const predictionG: string[] = subjectIdG && subjectIdG.predictionG.slice(0, 100)
     const similarityG: number[] = subjectIdG && subjectIdG.similarity && subjectIdG.similarity.slice(0, 100)
-    console.log('predictionG', predictionG)
     const complicationtypes = ['lung complication', 'cardiac complication', 'arrhythmia complication', 'infectious complication', 'other complication']
     const brieftcomplitype = ['L', 'C', 'A', 'I', 'O']
     const series: number[] = subjectIdG && subjectIdG.distribution
-    console.log('app', series)
 
     const option = {
       tooltip: { trigger: 'axis' },
@@ -242,13 +343,7 @@ class App extends React.Component<AppProps, AppStates>{
             </Select>
             <span className="patient-selector-title" style={{ marginLeft: '20px' }}>Compared PatientId: </span>
             <Select style={{ width: 200 }} onChange={this.selectComparePatientId} className="compare-patient-selector">
-              {/*series && series.length? 
-                  <div className='echart'>
-                     <ReactEcharts option={option}/>
-                   </div>
-               :''*/}
-              {idGs && idGs.map((id, i) =>
-                <>
+              {/* {idGs && idGs.map((id, i) =>
                   <Option value={id} key={i} >
                     <Row style={{ width: '100%' }}>
                       <Col span={4}> {id}</Col>
@@ -264,9 +359,7 @@ class App extends React.Component<AppProps, AppStates>{
                       <Col span={2} />
                     </Row>
                   </Option>
-
-                </>
-              )}
+              )} */}
             </Select>
             <Tooltip title="Filter">
               <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={this.showDrawer} style={{ marginLeft: '20px', zIndex: 1 }} />
@@ -289,40 +382,51 @@ class App extends React.Component<AppProps, AppStates>{
                 tableNames={tableNames}
                 subjectIdG={subjectIdG && subjectIdG.subject_idG}
                 itemDicts={itemDicts}
-                color={this.color}
+                entityCategoricalColor={this.entityCategoricalColor}
+                abnormalityColor={this.abnormalityColor}
+                focusedFeatures={[...pinnedfocusedFeatures, ...focusedFeatures]}
+                inspectFeature={this.updateSignalsByFeature}
               />}
             </Panel>
             <Panel initialWidth={layout.timelineViewWidth} initialHeight={layout.timelineViewHeight}
               x={layout.featureViewWidth + 5} y={0} title="Timeline View">
-              <TimelineView
+              {featureMeta && <TimelineView
                 patientMeta={patientMeta}
+                featureMeta={featureMeta}
                 tableRecords={tableRecords}
                 onSelectEvents={this.updateRecordTS}
-                color={this.color}
-              />
+                entityCategoricalColor={this.entityCategoricalColor}
+              />}
             </Panel>
 
             <Panel initialWidth={layout.timelineViewWidth}
               initialHeight={window.innerHeight - layout.headerHeight - layout.timelineViewHeight - 5}
               x={layout.featureViewWidth + 5} y={265} title="Signal View">
-              {patientMeta && tableRecords && <DynamicView
+              {patientMeta && featureMeta && tableRecords && <DynamicView
                 patientMeta={patientMeta}
+                featureMeta={featureMeta}
                 tableRecords={tableRecords}
-                signalMeta={dynamicRecords}
+                signalMetas={dynamicRecords}
                 itemDicts={itemDicts}
-                subjectIdG={subjectIdG && subjectIdG.subject_idG}
-                color={this.color}
+                color={this.entityCategoricalColor}
+                updateFocusedFeatures={this.updateFocusedFeatures}
+                updatePinnedFocusedFeatures={this.updatePinnedFocusedFeatures}
+                pinSignal={this.pinSignal}
+                removeSignal={this.removeSignal}
               />}
             </Panel>
-            {tableNames && <Panel initialWidth={layout.ProfileWidth} initialHeight={window.innerHeight - layout.headerHeight}
+            <Panel initialWidth={layout.ProfileWidth} initialHeight={window.innerHeight - layout.headerHeight}
               x={layout.featureViewWidth + layout.timelineViewWidth + 10} y={0} title="Patient View">
-
-              <MetaView
+              {tableNames && featureMeta && <MetaView
                 patientIds={subjectIds}
+                featureMeta={featureMeta}
                 patientInfoMeta={patientInfoMeta}
+                updateFocusedFeatures={this.updateFocusedFeatures}
+                updatePinnedFocusedFeatures={this.updatePinnedFocusedFeatures}
               />
+              }
             </Panel>
-            }
+
             {/* {tableNames && <Panel initialWidth={400} initialHeight={435} x={1010} y={405}>
               <TableView
                 patientMeta={patientMeta}

@@ -17,8 +17,28 @@
     font-weight: bold;
 }
 
-.ant-col {
-    margin-top: 5px;
+.meta-view {
+    .meta-item {
+        border-left: 1px solid #aaa;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 3px 10px;
+        .ant-col {
+            margin-top: 1px;
+            margin-bottom: 1px;
+            .pin {
+                display: none;
+            }
+        }
+    }
+    .meta-item:hover {
+        border-top: 1px solid #eee;
+        border-bottom: 1px solid #eee;
+        .pin {
+            display: block;
+        }
+    }
 }
 
 .Demographic {

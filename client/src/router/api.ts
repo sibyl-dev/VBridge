@@ -7,7 +7,7 @@ import { Entity, ItemDict } from "data/table";
 import { ROOT_URL, DEV_MODE } from "./env";
 import { patientInfoMeta } from 'data/metaInfo';
 import { filterType } from 'data/filterType';
-import { referenceValue } from "data/common";
+import { ReferenceValue } from "data/common";
 
 
 const API = `${ROOT_URL}/api`;
@@ -81,8 +81,9 @@ export async function getPatientMeta(params: {
     const url = `${API}/patient_meta`;
     const response = await axios.get(url, { params });
     let meta: PatientMeta = checkResponse(response, []);
-    meta.endDate = new Date(meta.endDate);
-    meta.startDate = new Date(meta.startDate);
+    meta.SurgeryBeginTime = new Date(meta.SurgeryBeginTime);
+    meta.SurgeryEndTime = new Date(meta.SurgeryEndTime);
+    meta.AdmitTime = new Date(meta.AdmitTime);
     return meta;
 }
 
@@ -149,7 +150,7 @@ export async function getItemDict(): Promise<ItemDict> {
 export async function getReferenceValues(params: {
     table_name: string,
     column_name: string,
-}): Promise<(itemName: string) => (referenceValue|undefined)> {
+}): Promise<(itemName: string) => (ReferenceValue|undefined)> {
     const url = `${API}/reference_value`
     const response = await axios.get(url, { params });
     const checked = checkResponse(response, []);
