@@ -5,58 +5,97 @@ import * as React from "react";
 import { DataFrame, IDataFrame, ISeries } from "data-forge";
 import { defaultMargin, getMargin, getScaleLinear, IMargin } from "visualization/common";
 import { CloseOutlined, ExpandAltOutlined, PushpinOutlined, ShrinkOutlined } from "@ant-design/icons";
-import { referenceValue } from "data/common";
+import { arrayShallowCompare, ReferenceValue } from "data/common";
 import { getReferenceValues } from "router/api";
 import LineChart from "visualization/lineChart";
 
 import "./index.scss";
+import { FeatureMeta } from "data/feature";
 
 export interface SignalMeta {
     tableName: string,
     columnName: string,
     itemName: string,
-    startTime?: Date,
-    endTime?: Date,
-    relatedFeatureNames?: string[]
-    // data?: { dates: ISeries<number, Date>, values: ISeries<number, any> },
+    startTime: Date,
+    endTime: Date,
+    relatedFeatureNames: string[]
+    featurePeriods?: (name: string) => [Date, Date]
+}
+
+export interface Signal extends SignalMeta {
+    data?: { dates: ISeries<number, Date>, values: ISeries<number, number> }
 }
 
 export interface DynamicViewProps {
     patientMeta: PatientMeta,
+    featureMeta: IDataFrame<number, FeatureMeta>,
     itemDicts?: ItemDict,
     tableRecords: Entity<number, any>[],
-    signalMeta: SignalMeta[],
-    subjectIdG?: number[],
+    signalMetas: SignalMeta[],
     color?: (entityName: string) => string,
+    updateFocusedFeatures?: (featureNames: string[]) => void,
+    updatePinnedFocusedFeatures?: (featureNames: string[]) => void,
+    pinSignal: (signalMeta: SignalMeta) => void;
+    removeSignal: (signalMeta: SignalMeta) => void;
 }
 
-export interface DynamicViewStates { }
+export interface DynamicViewStates {
+    signals: Signal[]
+}
 
-export default class DynamicView extends React.Component<DynamicViewProps, DynamicViewStates> {
+export default class DynamicView extends React.PureComponent<DynamicViewProps, DynamicViewStates> {
 
     constructor(props: DynamicViewProps) {
         super(props);
+        this.state = {
+            signals: props.signalMetas.map(s => this.buildSignal(s))
+        };
 
-        this.state = {};
+        this.onPin = this.onPin.bind(this);
+    }
+    componentDidMount(){
+        this.initSignals();
     }
 
-    private extractData(record: SignalMeta) {
+    componentDidUpdate(prevProps: DynamicViewProps) {
+        if (!arrayShallowCompare(prevProps.signalMetas, this.props.signalMetas)) {
+            this.initSignals();
+        }
+    }
+
+    private initSignals() {
+        const signals = this.props.signalMetas
+            .map(s => this.buildSignal(s))
+            .filter(s => s.data && s.data.values.count());
+        this.setState({ signals });
+    }
+
+    private buildSignal(record: SignalMeta): Signal {
         const { tableName, columnName, itemName, startTime, endTime } = record;
         const { tableRecords } = this.props;
         const entity = tableRecords.find(e => e.name === tableName);
         const { item_index, time_index } = entity!.metaInfo!;
         let entries = entity!.where(row => row[item_index!] === itemName);
-        if (startTime) entries = entries?.where(row => startTime < new Date(row[time_index!]));
-        if (endTime) entries = entries?.where(row => new Date(row[time_index!]) < endTime);
-        return { dates: entries?.getSeries(time_index!).parseDates(), values: entries?.getSeries(columnName!).parseFloats() }
+        if (startTime) entries = entries.where(row => startTime <= new Date(row[time_index!]));
+        if (endTime) entries = entries.where(row => new Date(row[time_index!]) <= endTime);
+        return {
+            ...record,
+            data: {
+                dates: entries.getSeries(time_index!).parseDates(),
+                values: entries.getSeries(columnName!).parseFloats()
+            }
+        }
+    }
+
+    private onPin(signal: SignalMeta) {
+        const { updatePinnedFocusedFeatures, pinSignal } = this.props;
+        updatePinnedFocusedFeatures && updatePinnedFocusedFeatures(signal.relatedFeatureNames);
+        pinSignal && pinSignal(signal);
     }
 
     public render() {
-        const { patientMeta, signalMeta, itemDicts, subjectIdG, color } = this.props;
-
-        const startDate = patientMeta && new Date(patientMeta.startDate);
-        const endDate = patientMeta && new Date(patientMeta.endDate);
-
+        const { patientMeta, itemDicts, color, updateFocusedFeatures, removeSignal } = this.props;
+        const { signals } = this.state;
         return (
             <div>
                 <div>
@@ -64,18 +103,17 @@ export default class DynamicView extends React.Component<DynamicViewProps, Dynam
                 </div>
                 <Divider />
                 <div>
-                    {signalMeta.map((records, i) =>
+                    {signals.map((signal, i) =>
                         <DynamicCard
-                            {...records}
-                            data={this.extractData(records)}
-                            key={i}
+                            signal={signal}
                             itemDicts={itemDicts}
-                            startTime={startDate}
-                            endTime={endDate}
                             align={false}
                             margin={{ bottom: 20, left: 25, top: 15, right: 25 }}
-                            color={color && color(records.tableName)}
-                            subjectIdG={subjectIdG}
+                            color={color && color(signal.tableName)}
+                            onHover={updateFocusedFeatures && (() => updateFocusedFeatures(signal.relatedFeatureNames))}
+                            onLeave={updateFocusedFeatures && (() => updateFocusedFeatures([]))}
+                            onRemove={removeSignal && (() => removeSignal(signal))}
+                            onPin={() => this.onPin(signal)}
                         />)}
                 </div>
             </div>
@@ -97,19 +135,23 @@ const defaultTimeSeriesStyle: TimeSeriesStyle = {
     margin: defaultMargin,
 }
 
-type VRecordTS = SignalMeta & Partial<TimeSeriesStyle>
-
-export interface DynamicCardProps extends VRecordTS {
-    data: { dates: ISeries<number, Date>, values: ISeries<number, any> },
+export interface DynamicCardProps extends Partial<TimeSeriesStyle> {
+    signal: Signal,
     align?: boolean,
     // timeSeriesStyle: Partial<TimeSeriesStyle>,
     itemDicts?: ItemDict,
-    subjectIdG?: number[],
+    updateFocusedFeatures?: (featureNames: string[]) => void,
+    updatePinnedFocusedFeatures?: (featureName: string) => void,
+    onHover?: () => void;
+    onLeave?: () => void;
+    onPin?: () => void;
+    onRemove?: () => void;
 }
 
 export interface DynamicCardStates {
     expand: boolean,
-    referenceValue?: referenceValue
+    pinned: boolean,
+    referenceValue?: ReferenceValue
 }
 
 export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardStates> {
@@ -118,23 +160,22 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
         super(props);
         this.state = {
             expand: false,
+            pinned: false,
         };
 
         this.onExpand = this.onExpand.bind(this);
         this.onCollapse = this.onCollapse.bind(this);
+        this.onPin = this.onPin.bind(this);
     }
 
     componentDidMount() {
-        this.loadReferenceValues();
+        // this.loadReferenceValues();
     }
     componentDidUpdate(prevProps: DynamicCardProps, prevState: DynamicCardStates) {
-        if (prevProps.subjectIdG?.sort().toString() !== this.props.subjectIdG?.sort().toString()) {
-            // this.loadReferenceValues();
-        }
     }
 
     private async loadReferenceValues() {
-        const { tableName, columnName, itemName } = this.props;
+        const { tableName, columnName, itemName } = this.props.signal;
         const valueFn = await getReferenceValues({
             table_name: tableName,
             column_name: columnName
@@ -151,22 +192,34 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
         this.setState({ expand: false });
     }
 
-    public render() {
-        const { tableName, itemName, itemDicts, data, width, height, color, margin } =
-            { ...defaultTimeSeriesStyle, ...this.props };
-        const { expand, referenceValue } = this.state;
-        const itemLabel = itemDicts && itemDicts(tableName, itemName)?.LABEL;
+    private onPin() {
+        const { onPin } = this.props;
+        onPin && onPin();
+        this.setState({ pinned: !this.state.pinned });
+    }
 
-        return <div className={"ts-card"} style={{ borderLeftColor: color || '#aaa', borderLeftWidth: 4 }}>
+    public render() {
+        const { signal, itemDicts, width, height, color, margin, onHover, onLeave, onRemove } =
+            { ...defaultTimeSeriesStyle, ...this.props };
+        const { expand, referenceValue, pinned } = this.state;
+        const { tableName, itemName, data } = signal;
+        const itemLabel = itemDicts && itemDicts(tableName, itemName)?.LABEL;
+        // console.log(data.values.toArray());
+
+        return <div className={"ts-card"} style={{ borderLeftColor: color || '#aaa', borderLeftWidth: 4 }}
+            onMouseOver={onHover} onMouseOut={onLeave}>
             <div className={"ts-title-float"} style={{ width: width }}>
                 <span className={"ts-title-float-text"}>{`${itemLabel || itemName}`}</span>
-                <Button size="small" type="primary" icon={<CloseOutlined />} className={"ts-title-button"} />
-                {expand ? <Button size="small" type="primary" icon={<ShrinkOutlined />} className={"ts-title-button"} onClick={this.onCollapse} />
-                    : <Button size="small" type="primary" icon={<ExpandAltOutlined />} className={"ts-title-button"} onClick={this.onExpand} />}
-                <Button size="small" type="primary" icon={<PushpinOutlined />} className={"ts-title-button"} />
+                <Button size="small" type="primary" shape="circle" icon={<PushpinOutlined />} className={"ts-title-button"}
+                    style={{ display: pinned ? 'block' : undefined }} onClick={this.onPin}
+                />
+                <Button size="small" type="primary" shape="circle" icon={<CloseOutlined />} className={"ts-title-button"}
+                    onClick={onRemove} />
+                {expand ? <Button size="small" type="primary" shape="circle" icon={<ShrinkOutlined />} className={"ts-title-button"} onClick={this.onCollapse} />
+                    : <Button size="small" type="primary" shape="circle" icon={<ExpandAltOutlined />} className={"ts-title-button"} onClick={this.onExpand} />}
                 {/* <Button size="small" type="primary" className={"ts-title-button"}>Explain</Button> */}
             </div>
-            <LineChart
+            {data && <LineChart
                 data={data}
                 referenceValue={referenceValue}
                 height={expand ? height : 30}
@@ -177,7 +230,7 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
                 drawXAxis={expand}
                 drawYAxis={expand}
                 drawReferences={expand && referenceValue != undefined}
-            />
+            />}
         </div>
     }
 }

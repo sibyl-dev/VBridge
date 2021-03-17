@@ -37,6 +37,17 @@ export const shallowCompare = (v: any, o: any, excludeKeys?: Set<string>, debug:
     return true;
 };
 
+export function arrayShallowCompare<T>(array1: Array<T>, array2: Array<T>) {
+    if (array1.length !== array2.length)
+        return false
+    let flag = true;
+    array1.forEach((d, i) => {
+        if (array2[i] != d)
+            flag = false
+    })
+    return flag;
+}
+
 export function decile2precision(max: number, decile: number = 0): number {
     if (max >= 1)
         return Math.ceil(Math.log10(max)) + decile;
@@ -70,7 +81,7 @@ export function transMax<T>(matrix: T[][]): T[][] {
 }
 
 export function confidenceInterval(data: number[], z_value: number) {
-    if(data.length == 0)
+    if (data.length == 0)
         return [0, 0]
     const mean = _.mean(data);
     const std = Math.sqrt(data.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b));
@@ -85,13 +96,30 @@ export function confidenceThresholds(data: number[]) {
     return _.sortBy(z_values.map(z => confidenceInterval(data, z)).flat());
 }
 
-export const isDefined = <T>(input: T | undefined | null): input is T => { 
+export const isDefined = <T>(input: T | undefined | null): input is T => {
     return typeof input !== 'undefined' && input !== null;
 };
 
-export type referenceValue = {
+export type ReferenceValue = {
     mean: number,
     std: number,
     count: number,
     ci95: [number, number],
+}
+
+export function getReferenceValue(data: number[]): ReferenceValue {
+    const mean = _.mean(data);
+    const std = Math.sqrt(data.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b)) / Math.sqrt(data.length);
+    const count = data.length;
+    let ci95 = [0, 0] as [number, number];
+    if (count > 0) {
+        const delta = std * 1.960;
+        ci95 = [mean - delta, mean + delta];
+    }
+    return {
+        mean: mean,
+        std: std,
+        count: count,
+        ci95: ci95
+    }
 }

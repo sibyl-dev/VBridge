@@ -36,7 +36,7 @@
     }
     .feature-header {
         height: 30px;
-        margin-right: 10px;
+        margin-right: 30px;
         margin-left: 5px;
         margin-left: 20px;
         display: flex;
@@ -46,10 +46,9 @@
             font-weight: bolder;
         }
     }
-    .feature-block,
-    .feature-group-block {
+    .feature-block {
         height: 30px;
-        margin-right: 10px;
+        margin-right: 30px;
         margin-left: 5px;
         width: calc(100% - 35px);
         transition: all 0.5s ease;
@@ -76,17 +75,9 @@
             }
             .feature-value {
                 background-color: #eee;
-                // border-radius: 5px;
                 margin-left: 10px;
                 margin-right: 10px;
                 font-weight: bold;
-                // font-family: Arial, Helvetica, sans-serif;
-            }
-            .feature-name {
-                // color: #434343;
-                // font-family: "Times New Roman", Georgia, serif;
-                // opacity: 70%;
-                float: left;
             }
             .feature-contribution {
                 margin-left: 10px;
@@ -99,15 +90,42 @@
             border: 1px solid #777;
         }
     }
-    .feature-group-block {
-        .feature-block-inner {
-            .feature-value {
-                background-color: #fff;
-            }
-        }
-    }
     .feature-top-block {
         border: 1px solid rgba(24, 144, 255, 0.5);
+    }
+    .unfocused {
+        opacity: 40%;
+    }
+    .unfocused:hover {
+        opacity: 100%;
+    }
+}
+
+.feature-row {
+    .feature-button-linechart {
+        position: absolute;
+        right: 0px;
+        top: -12px;
+        display: none;
+    }
+    .feature-button-table {
+        position: absolute;
+        right: 0px;
+        top: 18px;
+        display: none;
+    }
+}
+
+.feature-row:hover {
+    .feature-button-linechart {
+        position: absolute;
+        right: 0px;
+        display: block;
+    }
+    .feature-button-table {
+        position: absolute;
+        right: 0px;
+        display: block;
     }
 }
 
@@ -119,19 +137,10 @@
     top: 17px;
     background-color: #bbb;
     opacity: 80%;
-    // border: 1px solid #fff;
-    // border-radius: 50%;
     display: inline-block;
     transform: translate(-50%, -50%);
 }
 
-// .feature-block-dot:hover {
-//     right: -5px;
-//     height: 15px;
-//     width: 15px;
-//     border: 2px solid #fff;
-//     transform: translate(-50%, -50%);
-// }
 .neg-feature,
 .pos-feature {
     height: 15px;

@@ -10,12 +10,15 @@ import { Timeline } from "./Timeline";
 
 import "./index.css"
 import { TimelineList } from "./TimelineList";
+import { FeatureMeta } from "data/feature";
+import { IDataFrame } from "data-forge";
 
 export interface TimelineViewProps {
     patientMeta?: PatientMeta,
+    featureMeta: IDataFrame<number, FeatureMeta>,
     tableRecords?: Entity<number, any>[],
     onSelectEvents?: (entityName: string, startDate: Date, endDate: Date) => void,
-    color?: (entityName: string) => string,
+    entityCategoricalColor?: (entityName?: string) => string,
 }
 
 export interface TimelineViewStates {
@@ -31,6 +34,7 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
         this.state = {};
 
         this.updateTimeScale = this.updateTimeScale.bind(this);
+        this.color = this.color.bind(this);
     }
 
     public componentDidMount() {
@@ -68,11 +72,21 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
         this.setState({ timeScale: scale });
     }
 
+    private color(id: number) {
+        const { entityCategoricalColor, tableRecords } = this.props;
+        if (entityCategoricalColor && tableRecords) {
+            return entityCategoricalColor(tableRecords[id].name);
+        }
+        else {
+            return defaultCategoricalColor(id);
+        }
+    }
+
     public render() {
         const { patientMeta, tableRecords, onSelectEvents } = this.props;
         let { timeScale, events } = this.state;
-        const startDate = patientMeta && patientMeta.startDate;
-        const endDate = patientMeta && patientMeta.endDate;
+        const startDate = patientMeta && patientMeta.AdmitTime;
+        const endDate = patientMeta && patientMeta.SurgeryBeginTime;
         const width = 700;
         const margin: IMargin = { left: 15, right: 15, top: 15, bottom: 0 }
         if (!timeScale) {
@@ -93,7 +107,7 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
                         }}
                         onSelectEvents={(id: number, startDate: Date, endDate: Date) =>
                             onSelectEvents && onSelectEvents(tableRecords[id].name!, startDate, endDate)}
-                        color={defaultCategoricalColor}
+                        color={this.color}
                         margin={{top: 0, bottom: 0, left: 0, right: 0}}
                     />
                 </div>}

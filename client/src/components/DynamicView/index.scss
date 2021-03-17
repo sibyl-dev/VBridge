@@ -6,8 +6,23 @@
     transition: all 0.5s ease;
     .ts-title-float {
         button.ant-btn {
-            width: 20px;
-            height: 20px;
+            // width: 20px;
+            // height: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            display: none;
+        }
+    }
+}
+
+.ts-card:hover {
+    border: 1px solid rgba(24, 144, 255, 0.5);
+    .ts-title-float {
+        button.ant-btn {
+            display: block;
+            // width: 20px;
+            // height: 20px;
             display: flex;
             justify-content: center;
             align-items: center;
