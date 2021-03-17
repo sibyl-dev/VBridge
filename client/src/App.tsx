@@ -234,7 +234,7 @@ class App extends React.Component<AppProps, AppStates>{
                                       style={{ width: '300px' }} onChange={this.selectComparePatientId} className="compare-patient-selector">
               {distribution && distribution.map((number, i) => 
                 <>
-                 <Option value={number} key={i} >
+                 <Option value={complicationtypes[i]} key={complicationtypes[i]} >
                    <div style={{width: '50%'}}> {complicationtypes[i]} </div>
                    <div className="number" style={{ width: '40%', opacity: Math.max(1 , 0.5) }}>
                        <div className="neg-feature" style={{width: x(number)}} />  

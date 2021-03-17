@@ -36,11 +36,6 @@ export default class RangeChose extends React.Component<RangeChoseProps, RangeCh
     public componentDidMount() {
         this.init();
     }
-    public componentDidUpdate(prevProps: RangeChoseProps, prevState: RangeChoseStates) {
-	    // if (this.props.cancel)
-	    // this.setState({inputValue:this.props.defaultValue})
-	    //   this.init()
-	 }
 	componentWillReceiveProps(nextProps: RangeChoseProps) {
 		  // You don't have to do this check first, but it can help prevent an unneeded render
 		  if (nextProps.defaultValue !== this.state.inputValue && nextProps.cancel == true) {
@@ -84,10 +79,14 @@ export default class RangeChose extends React.Component<RangeChoseProps, RangeCh
         	var inputValue1 = Math.floor(inputValue[0])
        		var inputValue2 = Math.ceil(inputValue[1])
         	console.log('RangeChose inputValue', inputValue)
+        	var units = ''
+        	if(filterName == 'Height') units = ' (cm)'
+        	if(filterName == 'Weight') units = ' (kg)'
+
 	        return(
 		            <Row>
-		              <Col span={6} className='filterName'> {filterName} : </Col>
-		              <Col span={4}>
+		              <Col span={7} className='filterName'> {filterName + units} : </Col>
+		              <Col span={3}>
 		                  <InputNumber
 		                    min={min}
 		                    max={max}
@@ -97,7 +96,7 @@ export default class RangeChose extends React.Component<RangeChoseProps, RangeCh
 		                    onChange={this.onChangeInputValue.bind(this, 0)}
 		                  />
 		              </Col>
-		              <Col span={10}>
+		              <Col span={10} className='sliders'>
 		                  <Slider
 		                    range
 		                    key={filterName}

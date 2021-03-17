@@ -10,7 +10,7 @@ from flask import request, jsonify, Blueprint, current_app, Response
 
 from model.data import get_patient_records
 from model.modeler import Modeler
-from model.settings import interesting_variables, META_INFO, filter_variable,fm_category_name,complication_type
+from model.settings import interesting_variables, META_INFO, filter_variable, filter_variable1,fm_category_name,complication_type
 from sklearn.metrics.pairwise import cosine_similarity
 
 api = Blueprint('api', __name__)
@@ -127,35 +127,31 @@ def get_patientinfo_meta():
 @api.route('/record_filterrange', methods=['GET'])
 def get_record_filterrange():
     
-    table_names = ['PATIENTS', 'ADMISSIONS', 'SURGERY_INFO']
     info = {'name': 'filter_range'}
+    fm = current_app.fm
 
-    for i, table_name in enumerate(table_names):
-        column_names = filter_variable[table_name]
-        df = current_app.es[table_name].df
-        for j, filter_name in enumerate(column_names):                
-            all_records = list(set(df[filter_name]))
-
-            if(filter_name == 'SURGERY_NAME'):
-                temp_records = []
-                for item in all_records:
-                    temp_records = temp_records + item.split('+')
-                all_records = list(set(temp_records))
-            if(filter_name == 'SURGERY_POSITION'):
-                temp_records = []
-                for item in all_records:
-                    temp_records = temp_records + item.split(',')
-                all_records = list(set(temp_records))
-
-            # categorical
-            if(df[filter_name].dtype == object):
-                all_records.sort()
-                info[filter_name] = all_records
-            elif(filter_name == 'Age'):
-                info[filter_name] = ['< 1 month', '1-3 months', '3 months-1 year', '> 1 year']
-            else:
-                info[filter_name] = [min(all_records), max(all_records)]
-
+    for i, filter_name in enumerate(filter_variable):
+        # categorical
+        if(filter_name == 'GENDER'):
+            info[filter_name] = ['F', 'M']
+        elif(filter_name == 'Age'):
+            info[filter_name] = ['< 1 month', '1-3 months', '3 months-1 year', '> 1 year']
+            all_records = list(set(fm[filter_name]))
+            info['age'] = [min(all_records), max(all_records)]
+        elif(filter_name == 'SURGERY_NAME'):
+            all_records = []
+            for surgeryname in fm[filter_name]:
+                all_records = all_records + surgeryname
+            # print(filter_name, all_records)
+            info[filter_name] = list(set(all_records))
+        elif(fm[filter_name].dtype == object):
+            all_records = list(set(fm[filter_name]))
+            all_records.sort()
+            info[filter_name] = all_records
+        else:
+            all_records = list(set(fm[filter_name]))
+            info[filter_name] = [min(all_records), max(all_records)]
+    print('filterRange', info)
     return jsonify(info)
 
 
@@ -186,7 +182,7 @@ def get_patient_group():
     
     # filter subject_idG according to the conditions
     for i, table_name in enumerate(table_names):
-        column_names = filter_variable[table_name]
+        column_names = filter_variable1[table_name]
         hadm_df = es[table_name].df
         tableFlag = False
 

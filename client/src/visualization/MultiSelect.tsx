@@ -45,12 +45,6 @@ export default class MultiSelect extends React.Component<MultiSelctProps, MultiS
     public componentDidMount() {
     	this.init()
     }
-    public componentDidUpdate(prevProps: MultiSelctProps, prevState: MultiSelctStates) {
-	    // if (this.props.cancel&& !prevProps.cancel)
-	    //   this.init()
-	    // this.setState({value:this.props.defaultValue})
-
-	}
 	componentWillReceiveProps(nextProps: MultiSelctProps) {
 		  // You don't have to do this check first, but it can help prevent an unneeded render
 		  if (nextProps.defaultValue !== this.state.value && nextProps.cancel == true) {

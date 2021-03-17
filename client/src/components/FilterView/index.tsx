@@ -53,13 +53,17 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
             changeornot: false ,
             cancel: false,
             filter_name: [  'Height', 'Weight', 'Surgical time (minutes)',
-                            'GENDER',  'Age',
-                            'ETHNICITY',
-                            'ADMISSION_DEPARTMENT', 
-                            'DIAGNOSIS', 'ICD10_CODE_CN', 
-                            'SURGERY_NAME', 'ANES_METHOD','SURGERY_POSITION', 
+                            'GENDER',  
+                            'Age',
+                            // 'ETHNICITY',
+                            // 'ADMISSION_DEPARTMENT', 
+                            // 'DIAGNOSIS', 'ICD10_CODE_CN', 
+                            'SURGERY_NAME', 
+                            // 'ANES_METHOD','SURGERY_POSITION', 
                               ], 
-            categorical_name:['ETHNICITY', 'ADMISSION_DEPARTMENT',  'DIAGNOSIS', 'ICD10_CODE_CN',  'SURGERY_NAME', 'ANES_METHOD','SURGERY_POSITION', 'GENDER' ],
+            categorical_name:[
+                                // 'ETHNICITY', 'ADMISSION_DEPARTMENT',  'DIAGNOSIS', 'ICD10_CODE_CN',  'ANES_METHOD','SURGERY_POSITION', 
+                                'SURGERY_NAME', 'GENDER' ],
             numerical_name: ['Height', 'Weight', 'Surgical time (minutes)'],
         };
         this.onCheckGender = this.onCheckGender.bind(this)
@@ -190,6 +194,7 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
              { filter_name && patientInfoMeta && defaultValue && filterRange && filter_name.map((name,idx) => {
                 if(name == 'GENDER'){
                     return <>
+                        <Divider orientation="left"/>
                         <Checkbox.Group style={{ width: '100%' }} value={defaultValue[name]} defaultValue={patientInfoMeta[name]} onChange={this.onCheckGender}>
                             <Row>
                                   <Col span={6} className='filterName'>{name}:</Col>
