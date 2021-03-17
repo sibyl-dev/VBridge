@@ -109,7 +109,7 @@ class App extends React.Component<AppProps, AppStates>{
     const featureMeta = new DataFrame(await getFeatureMate());
     const predictionTargets = await getPredictionTargets();
 
-    const subjectIdG = (await getPatientGroup({ filterConditions: { '': '' }, subject_id: 0 }))
+    const subjectIdG = (await getPatientGroup({ filterConditions: { 'aha': '' }, subject_id: 0, setSubjectIdG:true }))
     // const prediction = (await getPatientGroup({ filterConditions: filterConditions })).prediction
     console.log('init', subjectIdG, filterRange)
     this.setState({ subjectIds, tableNames, filterRange, featureMeta, predictionTargets, itemDicts, subjectIdG});
@@ -121,7 +121,7 @@ class App extends React.Component<AppProps, AppStates>{
     const patientInfoMeta = await getPatientInfoMeta({ subject_id: subjectId });
     const tableRecords = await this.loadPatientRecords(subjectId);
     if (this.state.conditions) {
-      const subjectIdG = (await getPatientGroup({ filterConditions: this.state.conditions, subject_id: subjectId }))
+      const subjectIdG = (await getPatientGroup({ filterConditions: this.state.conditions, subject_id: subjectId, setSubjectIdG: true }))
       this.setState({ subjectIdG })
     }
     this.setState({ patientMeta, tableRecords, patientInfoMeta, selectedsubjectId });
@@ -132,7 +132,7 @@ class App extends React.Component<AppProps, AppStates>{
 
   private async filterPatients(conditions: {[key: string]: any}, changeornot:boolean) {
     if(changeornot && this.state.selectedsubjectId){
-        const subjectIdG = (await getPatientGroup({filterConditions: conditions, subject_id: this.state.selectedsubjectId}))
+        const subjectIdG = (await getPatientGroup({filterConditions: conditions, subject_id: this.state.selectedsubjectId, setSubjectIdG: true}))
         this.setState({subjectIdG:subjectIdG, conditions: Object.assign({}, conditions)})
     }
   }
@@ -326,6 +326,7 @@ class App extends React.Component<AppProps, AppStates>{
                     patientInfoMeta={patientInfoMeta}
                     visible={visible}
                     subjectIdG={subjectIdG && subjectIdG.subject_idG}
+                    distributionApp={subjectIdG && subjectIdG.distribution}
                   />
                 </p>
               </Drawer>

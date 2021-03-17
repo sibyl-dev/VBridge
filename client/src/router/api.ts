@@ -67,12 +67,21 @@ export async function getPatientFilterRange(): Promise<filterType> {
     return checkResponse(response, []);
 }
 export async function getPatientGroup(params: {
-    filterConditions: {[key: string]: any}, subject_id: number
+    filterConditions: {[key: string]: any}, subject_id: number, setSubjectIdG:boolean,
 }): Promise<{[key: string]: any}>{
     const url = `${API}/patient_group`;
     const response = await axios.get(url, { params });
     return checkResponse(response, []);
 }
+
+export async function getPatientGroupPart(params: {
+    filterConditions: {[key: string]: any},
+}): Promise<{[key: string]: any}>{
+    const url = `${API}/patient_group_partial`;
+    const response = await axios.get(url, { params });
+    return checkResponse(response, []);
+}
+
 
 
 export async function getPatientMeta(params: {
@@ -163,12 +172,9 @@ export async function getReferenceValues(params: {
     }
 }
 
-// export async function getRangeDistribution(params: {
-//     table_name: string,
-//     column_name: string,
-// }): Promise<(itemName: string) => (referenceValue|undefined)> {
+// export async function getRangeDistribution(): Promise<(itemName: string) => (referenceValue|undefined)> {
 //     const url = `${API}/reference_value`
-//     const response = await axios.get(url, { params });
+//     const response = await axios.get(url, {params});
 //     const checked = checkResponse(response, []);
 //     return (itemName: string) => {
 //         var res = checked

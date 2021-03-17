@@ -1,16 +1,17 @@
 import * as React from "react";
 import Panel from "../Panel"
 import { Row, Col, Select, Card, Divider, Slider, Checkbox, Switch, InputNumber, Button, Radio } from "antd"
+
 import "./index.css"
 import { filterType } from 'data/filterType';
-import { beautifulPrinter } from 'visualization/common'
+import { beautifulPrinter, getScaleLinear } from 'visualization/common'
 
 import ReactEcharts  from 'echarts-for-react';
-import {getPatientGroup} from "../../router/api"
+// import {getPatientGroup} from "../../router/api"
 import RangeChose from 'visualization/RangeChose'
 import MultiSelect from 'visualization/MultiSelect'
 
-import { getFeatureMatrix} from "router/api";
+import { getFeatureMatrix, getPatientGroupPart, getPatientGroup} from "router/api";
 import { IDataFrame } from "data-forge";
 
 
@@ -23,7 +24,8 @@ export interface FliterViewProps {
     contribution?: number [],
     visible?: boolean,
     patientInfoMeta?: { [key: string]: any },
-    subjectIdG?: number[]
+    subjectIdG?: number[],
+    distributionApp?: number [],
 }
 
 export interface FilterViewStates {
@@ -42,7 +44,9 @@ export interface FilterViewStates {
     categorical_name?: string[],
     numerical_name?: string[],
     cancel?: boolean,
-    featureMatrix?: IDataFrame<number, any>
+    featureMatrix?: IDataFrame<number, any>,
+    distributionFilter?: number[],
+    allPatientNumber?: number,
 }
 export default class FilterView extends React.Component<FliterViewProps, FilterViewStates> {
 
@@ -75,10 +79,10 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
         this.onClickToCancel = this.onClickToCancel.bind(this)
         this.updateConditions = this.updateConditions.bind(this)
     }
-    public init() {
+    public async init() {
         var checkedList = Array(8).fill([])
         console.log('checkedList', this.props.filterRange, this.state.checkedList)
-        const {filterRange, patientInfoMeta, visible, filterPatients} = this.props
+        const {filterRange, patientInfoMeta, visible, filterPatients, distributionApp, subjectIdG} = this.props
         var {categorical_name, numerical_name,  defaultValue, filterConditions} = this.state
         defaultValue = {'':''}
         filterConditions= {'': ''}
@@ -100,7 +104,15 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
         let tmp1 = Object.assign({}, defaultValue)
         let tmp2 = Object.assign({}, defaultValue)
         console.log('tmp', tmp1===defaultValue, tmp2===tmp1 )
-        this.setState({defaultValue: defaultValue, filterConditions: tmp1, tmpConditions: tmp2, cancel: !visible},()=>{console.log('init', this.state.filterConditions === this.state.tmpConditions)})
+
+        console.log('this init', distributionApp)
+        this.setState({defaultValue: defaultValue, filterConditions: tmp1, tmpConditions: tmp2, cancel: !visible})
+        const subjectIdGFilter =  await getPatientGroup({filterConditions: tmp1?tmp1:{'':''}, subject_id: 0, setSubjectIdG: false})
+        const distributionFilter:number[] = Object.assign([],subjectIdGFilter['distribution'])
+        const allPatientNumber:number =  subjectIdGFilter.subject_idG.length
+        this.setState({distributionFilter, allPatientNumber}, ()=>{console.log(this.state.distributionFilter)})
+
+        // this.setState({ distributionFilter: Object.assign([], distributionApp), allPatientNumber: subjectIdG? subjectIdG.length:0})
     }
     public componentDidMount() {
         this.init();
@@ -111,9 +123,9 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
         this.setState({ featureMatrix });
     }
     componentDidUpdate(prevProps: FliterViewProps){
-        if(this.props.subjectIdG && (prevProps.subjectIdG?.sort().toString() !== this.props.subjectIdG.sort().toString() || this.props.subjectIdG.length == 1)) {
-            this.loadFeatureMatrix()
-        }
+        // if(this.props.subjectIdG && prevProps.subjectIdG?.sort().toString() !== this.props.subjectIdG.sort().toString()) {
+        //     this.loadFeatureMatrix()
+        // }
     }
     componentWillReceiveProps(nextProps: FliterViewProps) {
         if (nextProps.visible) 
@@ -124,6 +136,13 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
         else if (age <= 3) return '1-3 months'
         else if (age <= 12) return '3 months-1 year'
         else return '> 1 year'
+    }
+    public async distributionRes(){
+        const { tmpConditions } = this.state
+        const subjectIdGFilter =  await getPatientGroup({filterConditions: tmpConditions?tmpConditions:{'':''}, subject_id: 0, setSubjectIdG: false})
+        const distributionFilter:number[] = Object.assign([],subjectIdGFilter['distribution'])
+        const allPatientNumber:number =  subjectIdGFilter.subject_idG.length
+        this.setState({distributionFilter, allPatientNumber}, ()=>{console.log(this.state.distributionFilter)})
     }
 
     onClickToConfirm(){
@@ -137,7 +156,7 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
         }
     }
     onClickToCancel(){
-        const { onClose, filterPatients, filterRange, patientInfoMeta} = this.props
+        const { onClose, filterPatients, filterRange, patientInfoMeta, distributionApp, subjectIdG} = this.props
         var {filterConditions, filter_name, tmpConditions, defaultValue} = this.state
         var tmpConditions1 = Object.assign({}, filterConditions)
         console.log('onClickToCancel', filterConditions, tmpConditions)
@@ -156,20 +175,22 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
             })
         }
         console.log('onClickToCancel', filterConditions, tmpConditions, defaultValue)
+        let tmpContri = Object.assign([], distributionApp)
 
         if(onClose)
-            this.setState({tmpConditions: tmpConditions1, defaultValue: defaultValue, cancel: true}, ()=>onClose())
+            this.setState({tmpConditions: tmpConditions1, defaultValue: defaultValue, cancel: true, distributionFilter:tmpContri, allPatientNumber: subjectIdG?subjectIdG.length:0}, ()=>onClose())
+        // distributionFilter:tmpContri, allPatientNumber: subjectIdG?subjectIdG.length:0
     }
+    
     updateConditions(key: string, value: any, checkedAll: boolean) {
         const { tmpConditions } = this.state
         const { filterRange } = this.props
         if (tmpConditions) {
             tmpConditions[key] = value
-            if (checkedAll)
+            if (checkedAll && key!='SURGERY_NAME')
                 delete tmpConditions[key]
         }
-        this.setState({ tmpConditions })
-        console.log('updateConditions', tmpConditions)
+        this.setState({ tmpConditions}, ()=>{this.distributionRes()})
    }
 
 
@@ -184,8 +205,9 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
         this.updateConditions('GENDER', value, coverAll)
     }
     public render() {
-        const { filterRange, patientIds, onClose, filterPatients, contribution,patientInfoMeta,  } = this.props
-        const { expandItem, PATIENTS, ADMISSIONS, SURGERY_INFO, defaultValue, filter_name, checkedList, indeterminate, checkedAll, tmpConditions, filterConditions, cancel, featureMatrix } = this.state;
+        const { filterRange, patientIds, onClose, filterPatients,patientInfoMeta,  } = this.props
+        const { expandItem, PATIENTS, ADMISSIONS, SURGERY_INFO, defaultValue, filter_name, checkedList, indeterminate, 
+            checkedAll, tmpConditions, filterConditions, cancel, featureMatrix, distributionFilter, allPatientNumber } = this.state;
         console.log('filterConditions', filterConditions, 'tmpConditions', tmpConditions)
         var conditions: { [key: string]: any } = { '': '' }
         if (tmpConditions)
@@ -194,14 +216,15 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
         const titleWidth = 10
         const valueWidth = 11
         const rightSpan = 0
+        const complicationtypes = ['Lung Comp.','Cardiac Comp.','Arrhythmia Comp.','Infectious Comp.','Other Comp.', 'No Comp.']
 
-        var data: number[] = []
-        if (contribution)
-            data = contribution
+        console.log('distributionFilter', distributionFilter)
+        if(distributionFilter)
+              var x = getScaleLinear(0, 80, distributionFilter);
+
        
         return (
             <div id='FilterView'>
-
              { filter_name && patientInfoMeta && defaultValue && filterRange && filter_name.map((name,idx) => {
                 if(name == 'GENDER'){
                     return <>
@@ -248,7 +271,7 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
                     //     var colorIndex = _.sum(thresholds.map(t => t < value!));
                     // }
                     return(<>
-                                <Divider orientation="left"/>
+                                {name!='Height'? <Divider orientation="left"/>:''}
                                 <RangeChose filterName={name} 
                                             key={idx} 
                                             min={min}
@@ -262,16 +285,38 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
                             </>) 
                 }
             })}
-                   <Row>
-                       <Col span={10} />
-                       <Col span={4}>
-                           <Button value="default" onClick={this.onClickToCancel}>Cancel</Button>
-                        </Col>
-                        <Col span={4}/>
-                        <Col span={4}>
-                           <Button value="default" onClick={this.onClickToConfirm}>Confirm</Button>
-                        </Col>
-                   </Row> 
+
+           {distributionFilter && distributionFilter.map((number, i) => 
+               <>
+                <Divider orientation="left"/>
+                <Row>
+                     <Col span={10}> {complicationtypes[i]} </Col>
+                     <Col span={10}> 
+                         <div className="number" style={{ width: '100%', opacity: Math.max(1 , 0.5) }}>
+                           <div className="neg-feature" style={{width: x(number)}} />  
+                       </div>
+                     </Col>
+                     <Col span={4}> {number} </Col>
+                 </Row>
+                 </>
+              )}
+
+           <Divider orientation="left"/>
+            <Row>
+                 <Col span={10}> Number of Patients: </Col>
+                 <Col span={10}> {allPatientNumber} </Col>
+             </Row>
+           <Divider orientation="left"/>
+           <Row>
+               <Col span={10} />
+               <Col span={4}>
+                   <Button value="default" onClick={this.onClickToCancel}>Cancel</Button>
+                </Col>
+                <Col span={4}/>
+                <Col span={4}>
+                   <Button value="default" onClick={this.onClickToConfirm}>Confirm</Button>
+                </Col>
+           </Row> 
 
              </div>
         )
