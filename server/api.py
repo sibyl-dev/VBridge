@@ -100,11 +100,12 @@ def get_patient_meta():
     subject_id = int(request.args.get('subject_id'))
     info = {'subjectId': subject_id}
     es = current_app.es
-    cutoff_times = current_app.cutoff_times
     hadm_df = es["ADMISSIONS"].df
+    surgery_df = es["SURGERY_INFO"].df
     # print('hadm_df', hadm_df[hadm_df['SUBJECT_ID'] == subject_id])
-    info['startDate'] = str(hadm_df[hadm_df['SUBJECT_ID'] == subject_id]['ADMITTIME'].values[0])
-    info['endDate'] = str(cutoff_times[cutoff_times['SUBJECT_ID'] == subject_id]['time'].values[0])
+    info['AdmitTime'] = str(hadm_df[hadm_df['SUBJECT_ID'] == subject_id]['ADMITTIME'].values[0])
+    info['SurgeryEndTime'] = str(surgery_df[surgery_df['SUBJECT_ID'] == subject_id]['SURGERY_END_TIME'].values[0])
+    info['SurgeryBeginTime'] = str(surgery_df[surgery_df['SUBJECT_ID'] == subject_id]['SURGERY_BEGIN_TIME'].values[0])
 
     patient_df = es["PATIENTS"].df
     info['GENDER'] = patient_df[patient_df['SUBJECT_ID'] == subject_id]['GENDER'].values[0]
@@ -394,21 +395,25 @@ def get_feature_meta():
             info['alias'] = leaf_node.get_name()
 
         # type: 'Surgery Observations' | 'Pre-surgery Observations' | 
-        # 'Pre-surgery Treatments' | 'Surgery Info' | 'Patient Info'
+        # 'Pre-surgery Treatments' | 'In-surgery Information' | 'Patient Information'
         if '#' in f.get_name():
             period = f.get_name().split('#')[0]
-            if period == 'in-surgery':
-                feature_type = 'Surgery Observations'
-            elif period == 'pre-surgery':
-                if info['entityId'] == 'PRESCRIPTIONS':
-                    feature_type = 'Pre-surgery Treatments'
-                else:
-                    feature_type = 'Pre-surgery Observations'
+            info['period'] = period
+        else:
+            info['period'] = 'others'
+
+        if info['period'] == 'in-surgery':
+            feature_type = 'In-surgery Observations'
+        elif info['period'] == 'pre-surgery':
+            if info['entityId'] == 'PRESCRIPTIONS':
+                feature_type = 'Pre-surgery Treatments'
+            else:
+                feature_type = 'Pre-surgery Observations'
         else:
             if f.get_name() in ['Height', 'Weight', 'Age', 'ADMISSIONS.ICD10_CODE_CN', 'ADMISSIONS.PATIENTS.GENDER']:
-                feature_type = 'Patient Info'
+                feature_type = 'Patient Information'
             else:
-                feature_type = 'Surgery Info'
+                feature_type = 'Surgery Information'
         info['type'] = feature_type
         feature_meta.append(info)
     return jsonify(feature_meta)

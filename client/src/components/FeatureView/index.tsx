@@ -7,10 +7,10 @@ import { getFeatureMatrix, getFeatureValues, getPrediction, getSHAPValues } from
 import { DataFrame, IDataFrame } from "data-forge";
 import * as _ from "lodash"
 import { getScaleLinear, beautifulPrinter, defaultCategoricalColor } from "visualization/common";
-import { ArrowDownOutlined, ArrowUpOutlined, CaretRightOutlined, SortAscendingOutlined } from "@ant-design/icons"
+import { ArrowDownOutlined, ArrowUpOutlined, CaretRightOutlined, LineChartOutlined, SortAscendingOutlined, TableOutlined } from "@ant-design/icons"
 import { ItemDict } from "data/table";
 import Histogram from "visualization/Histogram";
-import { confidenceThresholds } from "data/common";
+import { arrayShallowCompare, confidenceThresholds, getReferenceValue, ReferenceValue } from "data/common";
 
 import "./index.scss"
 
@@ -22,7 +22,11 @@ export interface FeatureViewProps {
     predictionTargets: string[],
     subjectIdG: number[],
     itemDicts?: ItemDict,
-    color?: (entityName: string) => string,
+    entityCategoricalColor?: (entityName: string | undefined) => string,
+    abnormalityColor?: (abnoramlity: number) => string,
+    focusedFeatures: string[],
+
+    inspectFeature?: (feature: Feature) => void,
 }
 
 export interface FeatureViewStates {
@@ -30,7 +34,8 @@ export interface FeatureViewStates {
     predictions?: (target: string) => number,
     featureDisplayValues?: DataFrame,
     features?: IDataFrame<number, Feature>,
-    featureMatrix?: IDataFrame<number, any>
+    featureMatrix?: IDataFrame<number, any>,
+    referenceValues?: IDataFrame<string, ReferenceValue>,
 }
 
 export default class FeatureView extends React.Component<FeatureViewProps, FeatureViewStates> {
@@ -43,15 +48,29 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
         };
         this.defaultCellWidth = this.defaultCellWidth.bind(this);
         this.onSelectTarget = this.onSelectTarget.bind(this);
+        this.getReferenceValues = this.getReferenceValues.bind(this);
     }
 
     componentDidMount() {
-        this.loadFeatureMatrix();
+        this.loadFeatureMatAndRefs();
     }
 
-    private async loadFeatureMatrix() {
+    private async loadFeatureMatAndRefs() {
+        const { featureMeta } = this.props;
         const featureMatrix = await getFeatureMatrix();
-        this.setState({ featureMatrix });
+        const featureNames = featureMeta.getSeries('name').toArray() as string[];
+        const referenceValues = new DataFrame({
+            index: featureNames,
+            values: featureNames.map(name => getReferenceValue(featureMatrix.getSeries(name).parseFloats().toArray()))
+        })
+        this.setState({ featureMatrix, referenceValues });
+    }
+
+    private getReferenceValues(name: string) {
+        const { referenceValues } = this.state;
+        if (referenceValues) {
+            return referenceValues.at(name);
+        }
     }
 
     private async updatePrediction() {
@@ -93,7 +112,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
             const groupedFeature: IDataFrame<number, Feature> = new DataFrame(groups.map(group => {
                 const sample = group.first();
                 const itemName = sample.whereItem![1] as string;
-                const itemLabel = itemDicts && itemDicts(sample.entityId, itemName)?.LABEL;
+                const itemLabel = itemDicts && sample.entityId && itemDicts(sample.entityId, itemName)?.LABEL;
                 return {
                     ...sample,
                     alias: itemLabel || itemName,
@@ -118,6 +137,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
             }))
             this.setState({ features })
         }
+        console.log("Calculate features.")
     }
 
     componentDidUpdate(prevProps: FeatureViewProps, prevState: FeatureViewStates) {
@@ -126,13 +146,10 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
             this.updatePrediction();
             this.updateFeatures();
         }
-        if (prevProps.subjectIdG?.sort().toString() !== this.props.subjectIdG.sort().toString()) {
-            this.loadFeatureMatrix()
-        }
     }
 
     public render() {
-        const { predictionTargets, color } = this.props;
+        const { predictionTargets, ...rest } = this.props;
         const { predictions, features, target, featureMatrix } = this.state;
 
         return (
@@ -143,10 +160,11 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                 })}
                 <Divider />
                 {features && <FeatureList
+                    {...rest}
                     features={features}
                     cellWidth={this.defaultCellWidth}
-                    color={color}
                     featureMatrix={featureMatrix}
+                    getReferenceValue={this.getReferenceValues}
                 />}
             </div>
         )
@@ -176,8 +194,13 @@ function ProbaList(params: {
 export interface FeatureListProps {
     features: IDataFrame<number, Feature>,
     cellWidth: (id: number) => number,
-    color?: (entityName: string) => string,
-    featureMatrix?: IDataFrame<number, any>
+    entityCategoricalColor?: (entityName: string | undefined) => string,
+    abnormalityColor?: (abnoramlity: number) => string,
+    featureMatrix?: IDataFrame<number, any>,
+    getReferenceValue: (name: string) => (ReferenceValue | undefined),
+    focusedFeatures: string[],
+
+    inspectFeature?: (feature: Feature) => void,
 }
 
 export interface FeatureListStates {
@@ -228,7 +251,7 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
     }
 
     public render() {
-        const { features, cellWidth, color, featureMatrix } = this.props;
+        const { features, cellWidth, ...rest } = this.props;
         const { order } = this.state;
         const sortedFeatures = this.sortFeatures(features);
         const maxAbsCont = _.max(this.getContributions(sortedFeatures).map(v => Math.abs(v))) as number;
@@ -252,13 +275,12 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
                 <div className="feature-content">
                     {sortedFeatures?.toArray().map(row =>
                         <FeatureBlock
+                            {...rest}
                             feature={row}
                             depth={0}
                             x={x!}
                             cellWidth={cellWidth}
                             key={row.name}
-                            color={color}
-                            featureMatrix={featureMatrix}
                         />
                     )}
                 </div>
@@ -272,16 +294,21 @@ export interface FeatureBlockProps {
     depth: number,
     feature: Feature,
     featureMatrix?: IDataFrame<number, any>,
+    getReferenceValue: (name: string) => (ReferenceValue | undefined),
     x: d3.ScaleLinear<number, number>,
     cellWidth: (id: number) => number,
-    color?: (entityName: string) => string,
+    entityCategoricalColor?: (entityName: string | undefined) => string,
+    abnormalityColor?: (abnoramlity: number) => string,
+    focusedFeatures: string[],
+
+    inspectFeature?: (feature: Feature) => void,
 }
 export interface FeatureBlockStates {
     collapsed: boolean,
     expanded: boolean
 }
 
-export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBlockStates> {
+export class FeatureBlock extends React.PureComponent<FeatureBlockProps, FeatureBlockStates> {
     constructor(props: FeatureBlockProps) {
         super(props);
         this.state = {
@@ -290,55 +317,88 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
         }
 
         this.onClickButton = this.onClickButton.bind(this);
-        this.onClickDiv = this.onClickDiv.bind(this)
+        this.onClickDiv = this.onClickDiv.bind(this);
+        this.hasFeature = this.hasFeature.bind(this);
     }
 
     componentDidUpdate(prevProps: FeatureBlockProps) {
-        if (prevProps.feature.name !== this.props.feature.name) {
-            this.setState({ collapsed: true });
+        const { feature, focusedFeatures } = this.props;
+        if (!arrayShallowCompare(prevProps.focusedFeatures, focusedFeatures)) {
+            if (this.hasFeature(feature, focusedFeatures)) {
+                this.setState({ collapsed: false });
+            }
         }
+    }
+
+    private hasFeature(feature: Feature, featureNames: string[]): boolean {
+        if (featureNames.includes(feature.name))
+            return true;
+        if (feature.children?.where(row => this.hasFeature(row, featureNames)).count())
+            return true;
+        else
+            return false
     }
 
     protected onClickButton() {
+        const { inspectFeature, feature } = this.props;
         this.setState({ collapsed: !this.state.collapsed });
+        // inspectFeature && inspectFeature(feature);
     }
 
     protected onClickDiv() {
+        const { inspectFeature, feature } = this.props;
         this.setState({ expanded: !this.state.expanded });
+        // inspectFeature && inspectFeature(feature);
     }
 
     render() {
-        const { feature, x, cellWidth, color, className, depth, featureMatrix } = this.props;
+        const { feature, x, cellWidth, entityCategoricalColor, abnormalityColor, inspectFeature,
+            className, depth, featureMatrix, focusedFeatures, getReferenceValue } = this.props;
         const { collapsed, expanded } = this.state
         const { name, alias, value, contribution, children, entityId } = feature;
-        console.log('FeatureView', value)
-        let series = undefined;
-        let thresholds = [];
-        let colorIndex = 3;
-        // const barColor = d3.scaleSequential(d3.interpolateRdYlGn).domain([0, 6]);
-        const barColor = (id: number) => {
-            if (id > 3)
-                return d3.interpolateReds((id / 3 - 1) * 0.3);
-            else if (id < 3)
-                return d3.interpolateBlues((1 - id / 3) * 0.3);
-        }
-        let thresholdsNum: number[] = []
-        if (typeof (value) === typeof (0.0)) {
-            series = featureMatrix?.getSeries(name).parseFloats().toArray();
-            if (series) {
-                // console.log(series.where(row => row > (value as number)).count() / series.count());
-                thresholds = confidenceThresholds(series);
-                thresholdsNum = confidenceThresholds(series);
-                colorIndex = _.sum(thresholds.map(t => t < value!));
-                if(colorIndex!=3)
-        			console.log('thresholds', name, thresholds, colorIndex, value)
+// <<<<<<< HEAD
+//         console.log('FeatureView', value)
+//         let series = undefined;
+//         let thresholds = [];
+//         let colorIndex = 3;
+//         // const barColor = d3.scaleSequential(d3.interpolateRdYlGn).domain([0, 6]);
+//         const barColor = (id: number) => {
+//             if (id > 3)
+//                 return d3.interpolateReds((id / 3 - 1) * 0.3);
+//             else if (id < 3)
+//                 return d3.interpolateBlues((1 - id / 3) * 0.3);
+//         }
+//         let thresholdsNum: number[] = []
+//         if (typeof (value) === typeof (0.0)) {
+//             series = featureMatrix?.getSeries(name).parseFloats().toArray();
+//             if (series) {
+//                 // console.log(series.where(row => row > (value as number)).count() / series.count());
+//                 thresholds = confidenceThresholds(series);
+//                 thresholdsNum = confidenceThresholds(series);
+//                 colorIndex = _.sum(thresholds.map(t => t < value!));
+//                 if(colorIndex!=3)
+//         			console.log('thresholds', name, thresholds, colorIndex, value)
 
-            }
+//             }
+// =======
+        const referenceValue = getReferenceValue(feature.name);
+        // const series = featureMatrix?.getSeries(name).parseFloats().toArray();
+        let valueColor = '#fff';
+        if (referenceValue && typeof (value) === typeof (0.0) && abnormalityColor) {
+            const { mean, std } = referenceValue;
+            const rate = Math.abs((value as number - mean) / std);
+            valueColor = abnormalityColor(rate);
+        }
+        let showState: 'normal' | 'focused' | 'unfocused' = 'normal';
+        if (focusedFeatures.length > 0) {
+            if (this.hasFeature(feature, focusedFeatures)) showState = 'focused';
+            else showState = 'unfocused';
+// >>>>>>> main
         }
 
 
         return <div className={className}>
-            <div style={{
+            <div className="feature-row" style={{
                 display: "flex", justifyContent: "flex-end", position: "relative",
                 width: `calc(100% - ${depth * 10}px)`, left: `${depth * 10}px`
             }}>
@@ -346,11 +406,10 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                     {children && <CaretRightOutlined className="right-button"
                         onClick={this.onClickButton} rotate={collapsed ? 0 : 90} />}
                 </div>
-                <div className={(children ? "feature-group-block" : "feature-block") +
-                    ((depth === 0) ? " feature-top-block" : "")} key={name}
+                <div className={`feature-block ${showState}` + ((depth === 0) ? " feature-top-block" : "")}
                     style={{
                         height: expanded ? 100 : 30,
-                        borderRightColor: (color && color(entityId)) || '#aaa', borderRightWidth: 4
+                        borderRightColor: (entityCategoricalColor && entityCategoricalColor(entityId)) || '#aaa', borderRightWidth: 4
                     }}
                     onClick={children ? this.onClickButton : this.onClickDiv}>
                     <div className="feature-block-inner">
@@ -361,16 +420,20 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                         </Tooltip>
                         <Tooltip title={typeof (value) == typeof (0.0) ? beautifulPrinter(value) : value}>
                             <div className={"feature-block-cell feature-value"}
-                                style={{ width: cellWidth(1), backgroundColor: barColor(colorIndex)}}>
-                                <span className={"feature-block-cell-text"}>{beautifulPrinter(value)}
-                                {thresholdsNum && thresholdsNum.map((t,i) =>{
-                                	console.log('thresholds', t, i, value)
-                                	if(i<3 && t>value!)
-                                		return <ArrowDownOutlined/>
-                                	else if( i>=3 && t<value!)
-                                		return <ArrowUpOutlined/>
-                                })}
-                                </span>
+{/* <<<<<<< HEAD
+//                                 style={{ width: cellWidth(1), backgroundColor: barColor(colorIndex)}}>
+//                                 <span className={"feature-block-cell-text"}>{beautifulPrinter(value)}
+//                                 {thresholdsNum && thresholdsNum.map((t,i) =>{
+//                                 	console.log('thresholds', t, i, value)
+//                                 	if(i<3 && t>value!)
+//                                 		return <ArrowDownOutlined/>
+//                                 	else if( i>=3 && t<value!)
+//                                 		return <ArrowUpOutlined/>
+//                                 })}
+//                                 </span>
+// =======*/}
+                                style={{ width: cellWidth(1), backgroundColor: valueColor }}>
+                                <span className={"feature-block-cell-text"}>{beautifulPrinter(value)}</span>
                             </div>
                         </Tooltip>
                         <div className={"feature-block-cell feature-contribution"}
@@ -389,31 +452,35 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                             }
                         </div>
                     </div>
-                    {series && series.length && expanded ?
+                    {(typeof (value) === typeof (0.0)) && expanded &&
                         <div className="feature-block-hist">
                             <Histogram
-                                data={series}
+                                data={featureMatrix?.getSeries(name).parseFloats().toArray() as number[]}
                                 height={60}
                                 width={cellWidth(1) + 20}
                                 drawAxis={false}
                                 margin={{ left: 10, bottom: 15 }}
                                 referenceValue={value as number}
                             />
-                        </div> : ''}
+                        </div>}
                 </div>
+                <Button size="small" type="primary" shape="circle"
+                    icon={<LineChartOutlined />} onClick={() => inspectFeature && inspectFeature(feature)}
+                    className={"feature-button-linechart"}
+                />
+                <Button size="small" type="primary" shape="circle"
+                    icon={<TableOutlined />} onClick={() => inspectFeature && inspectFeature(feature)}
+                    className={"feature-button-table"}
+                />
                 {/* <span className={"feature-block-dot"} style={{ backgroundColor: color || '#aaa' }} /> */}
 
             </div>
-            {!collapsed && children?.toArray().map(feature =>
+
+            {(!collapsed) && children?.toArray().map(feature =>
                 <FeatureBlock
-                    className={className}
+                    {...this.props}
                     depth={depth + 1}
                     feature={feature}
-                    x={x!}
-                    cellWidth={cellWidth}
-                    color={color}
-                    key={feature.name}
-                    featureMatrix={featureMatrix}
                 />)}
         </div>
     }

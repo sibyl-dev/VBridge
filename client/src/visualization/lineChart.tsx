@@ -4,7 +4,7 @@ import "./lineChart.css"
 
 import { getChildOrAppend, getScaleLinear, getScaleTime, defaultCategoricalColor, IMargin, getMargin } from "./common";
 import { ISeries } from "data-forge";
-import { referenceValue } from "data/common";
+import { ReferenceValue } from "data/common";
 
 export interface LineChartOptions {
     width: number,
@@ -22,7 +22,7 @@ export interface LineChartOptions {
 
 export interface LineChartParams extends LineChartOptions {
     data: { dates: ISeries<number, Date>, values: ISeries<number, any> }
-    referenceValue?: referenceValue
+    referenceValue?: ReferenceValue
     svg: SVGElement,
 }
 
@@ -100,7 +100,7 @@ export function drawLineChart(params: LineChartParams) {
 
 export interface LineChartProps extends LineChartOptions {
     data: { dates: ISeries<number, Date>, values: ISeries<number, any> }
-    referenceValue?: referenceValue
+    referenceValue?: ReferenceValue
 }
 
 export default class LineChart extends React.PureComponent<LineChartProps> {

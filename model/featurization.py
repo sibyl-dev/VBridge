@@ -155,7 +155,7 @@ class Featurization:
         self.pre_es['CHARTEVENTS']['ITEMID'].interesting_values = chart_event_items
 
         lab_count = self.pre_es['LABEVENTS'].df['ITEMID'].value_counts()
-        self.pre_es['LABEVENTS']['ITEMID'].interesting_values = lab_count[:100].index
+        self.pre_es['LABEVENTS']['ITEMID'].interesting_values = lab_count[:45].index
         lab_count = self.in_es['LABEVENTS'].df['ITEMID'].value_counts()
         self.in_es['LABEVENTS']['ITEMID'].interesting_values = lab_count[:23].index
 

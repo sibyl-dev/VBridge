@@ -8,11 +8,13 @@ import { getPatientRecords } from "../../router/api"
 import { Entity } from "data/table";
 import { PatientMeta } from "data/patient";
 import { groupEvents } from "data/event";
+import { FeatureMeta } from "data/feature";
 
 const { Option } = Select
 
 export interface TableViewProps {
     patientMeta?: PatientMeta,
+    featureMeta: dataForge.IDataFrame<number, FeatureMeta>,
     tableNames: string[]
 }
 
