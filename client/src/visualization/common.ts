@@ -189,13 +189,28 @@ export function isStringArray(x: number[] | string[]): x is string[] {
 
 export function beautifulPrinter(value: any, maxChar: number = 15): any {
   if (typeof (value) === typeof ("")) {
-      return value.length > maxChar ? value.substring(0, 12) + "..." : value
+    return value.length > maxChar ? value.substring(0, 12) + "..." : value
   }
   if (typeof (value) === typeof (0.0)) {
-      return _.round(value, 3)
+    return _.round(value, 3)
   }
   if (typeof (value) === typeof ([]) && value.length > 0) {
-      return `${beautifulPrinter(value[0], maxChar - 4)},...`
+    return `${beautifulPrinter(value[0], maxChar - 4)},...`
   }
   return value
+}
+
+export function getOffsetById(id: string) {
+  var e: HTMLElement | null = document.getElementById(id);
+  if (e) {
+    var rect = e.getBoundingClientRect(),
+      scrollLeft = window.pageXOffset || document.documentElement.scrollLeft,
+      scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    return {
+      left: rect.left + scrollLeft,
+      right: rect.right + scrollLeft,
+      top: rect.top + scrollTop,
+      bottom: rect.bottom + scrollTop
+    }
+  }
 }

@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 export interface IHeaderProps {
-  title?: string
+  title?: string|React.ReactNode
 }
 
 export default class Header extends React.Component<IHeaderProps> {

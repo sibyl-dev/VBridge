@@ -1,7 +1,7 @@
 import React from 'react';
 import * as d3 from "d3"
 
-import { Layout, Drawer, Tooltip, Button, Select, Avatar, Divider, Row, Col } from 'antd'
+import { Layout, Drawer, Tooltip, Button, Select, Avatar, Divider, Row, Col, Switch } from 'antd'
 import { FilterOutlined } from '@ant-design/icons'
 import './App.css';
 
@@ -25,7 +25,7 @@ import { DataFrame, IDataFrame } from 'data-forge';
 import _, { isUndefined } from 'lodash';
 import { distinct, isDefined } from 'data/common';
 
-import { defaultCategoricalColor } from 'visualization/common';
+import { defaultCategoricalColor, getChildOrAppend, getOffsetById } from 'visualization/common';
 
 
 const { Header, Content } = Layout;
@@ -46,10 +46,15 @@ interface AppStates {
   patientMeta?: PatientMeta,
 
   //for view communication
-  signalMeta: SignalMeta[],
-  pinnedSignalMeta: SignalMeta[],
+  signalMetas: SignalMeta[],
+  pinnedSignalMetas: SignalMeta[],
   focusedFeatures: string[],
   pinnedfocusedFeatures: string[],
+
+  //for view settings
+  featureViewDense: boolean,
+  dynamicViewLink: boolean,
+  dynamicViewAlign: boolean,
 
   patientInfoMeta?: { [key: string]: any },
   filterRange?: filterType,
@@ -62,12 +67,15 @@ interface AppStates {
 class App extends React.Component<AppProps, AppStates>{
   private layout = { featureViewWidth: 500, timelineViewWidth: 800, ProfileWidth: 300, timelineViewHeight: 260, headerHeight: 64 };
   private abnormalityColorScale = d3.scaleSequential(d3.interpolateRdYlGn).domain([2.5 + 0.5, 1 - 0.5]);
+  private ref: React.RefObject<SVGSVGElement> = React.createRef();
+  private paintId: any = undefined;
 
   constructor(props: AppProps) {
     super(props);
     this.state = {
-      signalMeta: [], pinnedSignalMeta: [], conditions: { '': '' },
-      focusedFeatures: [], pinnedfocusedFeatures: []
+      signalMetas: [], pinnedSignalMetas: [], conditions: { '': '' },
+      focusedFeatures: [], pinnedfocusedFeatures: [],
+      featureViewDense: false, dynamicViewLink: false, dynamicViewAlign: false
     };
 
     this.selectPatientId = this.selectPatientId.bind(this);
@@ -92,30 +100,33 @@ class App extends React.Component<AppProps, AppStates>{
 
     this.entityCategoricalColor = this.entityCategoricalColor.bind(this);
     this.abnormalityColor = this.abnormalityColor.bind(this);
+
+    this.paintLink = this.paintLink.bind(this);
+    this.removeLink = this.removeLink.bind(this);
   }
 
   componentDidMount() {
     this.init();
+    // this.paint();
+    // this.paintId = setInterval(this.paintLink, 200);
+  }
+
+  componentWillUnmount() {
+    window.clearInterval(this.paintId);
   }
 
   componentDidUpdate(prevProps: AppProps, prevState: AppStates) {
-    if (prevState.patientMeta?.subjectId !== this.state.patientMeta?.subjectId) {
-      const { featureMeta } = this.state;
-      // if (featureMeta) {
-      //   const signalMetaDF = featureMeta.select(row => this.buildRecordTSFromFeature(row));
-      //   const signalMetaGroups = signalMetaDF.groupBy(row => `${row?.tableName}.${row?.itemName}`);
-      //   const signalMeta: SignalMeta[] = signalMetaGroups.select(group => {
-      //     const sample = group.first();
-      //     if (sample)
-      //       return {
-      //         ...sample,
-      //         relatedFeatureNames: group.getSeries('relatedFeatureNames').toArray() as string[]
-      //       }
-      //     else
-      //       return undefined
-      //   }).toArray().filter(isDefined);
-      //   this.setState({ signalMeta });
-      // }
+    const {patientMeta, dynamicViewLink} = this.state;
+    if (prevState.patientMeta?.subjectId !== patientMeta?.subjectId) {
+    }
+    if (prevState.dynamicViewLink !== dynamicViewLink) {
+      if (dynamicViewLink) {
+        this.paintId = setInterval(this.paintLink, 200);
+      }
+      else {
+        window.clearInterval(this.paintId);
+        this.removeLink();
+      }
     }
   }
 
@@ -189,7 +200,7 @@ class App extends React.Component<AppProps, AppStates>{
             tableName: entityId,
             columnName: columnName,
             itemName: whereItem[1] as string,
-            relatedFeatureNames: [name],
+            relatedFeatureNames: name ? [name] : [],
             startTime: startTime,
             endTime: endTime,
             featurePeriods: () => [startTime, endTime],
@@ -205,9 +216,9 @@ class App extends React.Component<AppProps, AppStates>{
   }
 
   private updateSignals(newSignalMeta: SignalMeta[]) {
-    const rawSignalMeta = new DataFrame([...this.state.pinnedSignalMeta, ...newSignalMeta]);
+    const rawSignalMeta = new DataFrame([...this.state.pinnedSignalMetas, ...newSignalMeta]);
     // const rawSignalMeta = new DataFrame([...newSignalMeta]);
-    const signalMeta: SignalMeta[] = rawSignalMeta.groupBy(row => row.itemName).toArray().map(group => {
+    const signalMetas: SignalMeta[] = rawSignalMeta.groupBy(row => row.itemName).toArray().map(group => {
       const sample = group.first();
       return {
         ...sample,
@@ -216,26 +227,27 @@ class App extends React.Component<AppProps, AppStates>{
         endTime: _.max(group.getSeries('endTime').toArray())
       }
     })
-    this.setState({ signalMeta });
+    this.setState({ signalMetas });
   }
 
   private pinSignal(signalMeta: SignalMeta) {
-    const { pinnedSignalMeta } = this.state;
-    const pinnedSignalNames = pinnedSignalMeta.map(s => `${s.itemName}`);
+    const { pinnedSignalMetas } = this.state;
+    const pinnedSignalNames = pinnedSignalMetas.map(s => `${s.itemName}`);
     if (pinnedSignalNames.includes(signalMeta.itemName)) {
-      this.setState({ pinnedSignalMeta: pinnedSignalMeta.filter(s => s.itemName !== signalMeta.itemName) });
+      this.setState({ pinnedSignalMetas: pinnedSignalMetas.filter(s => s.itemName !== signalMeta.itemName) });
     }
     else {
-      pinnedSignalMeta.push(signalMeta);
-      this.setState({ pinnedSignalMeta });
+      pinnedSignalMetas.push(signalMeta);
+      this.setState({ pinnedSignalMetas: pinnedSignalMetas });
     }
   }
 
   private removeSignal(targetSignal: SignalMeta) {
-    const { pinnedSignalMeta, signalMeta } = this.state;
-    this.setState({ pinnedSignalMeta: pinnedSignalMeta.filter(s => s.itemName !== targetSignal.itemName),
-        signalMeta: signalMeta.filter(s => s.itemName !== targetSignal.itemName),
-     });
+    const { pinnedSignalMetas, signalMetas } = this.state;
+    this.setState({
+      pinnedSignalMetas: pinnedSignalMetas.filter(s => s.itemName !== targetSignal.itemName),
+      signalMetas: signalMetas.filter(s => s.itemName !== targetSignal.itemName),
+    });
   }
 
   private buildRecordTS(entityName: string, startDate: Date, endDate: Date): SignalMeta[] {
@@ -267,7 +279,7 @@ class App extends React.Component<AppProps, AppStates>{
 
   private updateRecordTS(entityName: string, startDate: Date, endDate: Date) {
     const newRecords = this.buildRecordTS(entityName, startDate, endDate);
-    this.setState({ signalMeta: newRecords });
+    this.setState({ signalMetas: newRecords });
   }
 
   private updateFocusedFeatures(featureNames: string[]) {
@@ -310,11 +322,75 @@ class App extends React.Component<AppProps, AppStates>{
     return this.abnormalityColorScale(Math.max(Math.min(abnormality, 2.5), 1));
   }
 
+  private paintLink() {
+    const { signalMetas } = this.state;
+
+    const headerHeight = document.getElementById('header')?.offsetHeight || 0;
+    const positions = signalMetas.map(signal => {
+      const end = getOffsetById(`temporal-view-element-${signal.itemName}`);
+      if (end)
+        return signal.relatedFeatureNames.map(featureName => {
+          const start = getOffsetById(`feature-view-element-${featureName}`);
+          if (start)
+            return {
+              x1: start.right,
+              y1: (start.top + start.bottom) / 2,
+              x2: end.left,
+              y2: (end.top + end.bottom) / 2,
+              path: d3.line()([
+                [start.right, start.top],
+                [end.left, end.top],
+                [end.left, end.bottom],
+                [start.right, start.bottom],
+              ]),
+              color: this.entityCategoricalColor(signal.tableName)
+            }
+        }).filter(isDefined);
+    }).filter(isDefined);
+
+    const node = this.ref.current;
+    if (node) {
+      const root = d3.select(node);
+      const base = getChildOrAppend(root, 'g', 'link-base')
+        .attr("transform", `translate(0, ${-headerHeight})`);
+      const linkGroups = base.selectAll(".between-view-link-g")
+        .data(positions)
+        .join(
+          enter => enter.append("g")
+            .attr("class", "between-view-link-g"),
+          update => update,
+          exit => exit.remove()
+        );
+      linkGroups.selectAll(".between-view-link")
+        .data(d => d)
+        .join(
+          enter => enter.append("path")
+            .attr("class", "between-view-link"),
+          update => update,
+          exit => exit.remove()
+        )
+        .attr('d', d => d.path)
+        .style('fill', d => d.color);
+        // .attr("x1", d => d.x1)
+        // .attr("x2", d => d.x2)
+        // .attr("y1", d => d.y1)
+        // .attr("y2", d => d.y2);
+    }
+  }
+
+  private removeLink() {
+    const node = this.ref.current;
+    if (node) {
+      const root = d3.select(node);
+      getChildOrAppend(root, 'g', 'link-base').remove();
+    }
+  }
+
   public render() {
 
     const { subjectIds, patientMeta, tableNames, tableRecords, featureMeta, predictionTargets,
       focusedFeatures, pinnedfocusedFeatures,
-      itemDicts, signalMeta: dynamicRecords, patientInfoMeta, filterRange, visible, subjectIdG } = this.state;
+      itemDicts, signalMetas: dynamicRecords, patientInfoMeta, filterRange, visible, subjectIdG } = this.state;
     const layout = this.layout;
     const idGs: number[] = subjectIdG && subjectIdG.subject_idG.slice(0, 100)
     const predictionG: string[] = subjectIdG && subjectIdG.predictionG.slice(0, 100)
@@ -333,7 +409,7 @@ class App extends React.Component<AppProps, AppStates>{
     return (
       <div className='App'>
         <Layout>
-          <Header className="app-header">
+          <Header className="app-header" id="header">
             <p className='system-name'>Bridges</p>
             <span className="patient-selector-title">PatientId: </span>
             <Select style={{ width: 120 }} onChange={this.selectPatientId} className="patient-selector">
@@ -374,8 +450,14 @@ class App extends React.Component<AppProps, AppStates>{
           </Header>
           <Content>
             <Panel initialWidth={layout.featureViewWidth}
-              initialHeight={window.innerHeight - layout.headerHeight} x={0} y={0} title="Feature View">
+              initialHeight={window.innerHeight - layout.headerHeight} x={0} y={0}
+              title={<div className="view-title">
+                <span className="view-title-text">Feature View</span>
+                <Switch onChange={e => this.setState({ featureViewDense: e })} style={{ float: 'right' }}
+                  checkedChildren="focus" />
+              </div>}>
               {featureMeta && predictionTargets && tableNames && <FeatureView
+                className={"feature-view-element"}
                 patientMeta={patientMeta}
                 featureMeta={featureMeta}
                 predictionTargets={predictionTargets}
@@ -386,6 +468,7 @@ class App extends React.Component<AppProps, AppStates>{
                 abnormalityColor={this.abnormalityColor}
                 focusedFeatures={[...pinnedfocusedFeatures, ...focusedFeatures]}
                 inspectFeature={this.updateSignalsByFeature}
+                display={this.state.featureViewDense ? 'dense' : 'normal'}
               />}
             </Panel>
             <Panel initialWidth={layout.timelineViewWidth} initialHeight={layout.timelineViewHeight}
@@ -401,8 +484,15 @@ class App extends React.Component<AppProps, AppStates>{
 
             <Panel initialWidth={layout.timelineViewWidth}
               initialHeight={window.innerHeight - layout.headerHeight - layout.timelineViewHeight - 5}
-              x={layout.featureViewWidth + 5} y={265} title="Signal View">
+              x={layout.featureViewWidth + 5} y={265} title={
+                <div className="view-title">
+                  <span className="view-title-text">Temporal View</span>
+                  <Switch onChange={e => this.setState({dynamicViewLink: e})}/>
+                  <Switch onChange={e => this.setState({dynamicViewAlign: e})} checkedChildren="align" />
+                </div>
+              }>
               {patientMeta && featureMeta && tableRecords && <DynamicView
+                className={"temporal-view-element"}
                 patientMeta={patientMeta}
                 featureMeta={featureMeta}
                 tableRecords={tableRecords}
@@ -418,6 +508,7 @@ class App extends React.Component<AppProps, AppStates>{
             <Panel initialWidth={layout.ProfileWidth} initialHeight={window.innerHeight - layout.headerHeight}
               x={layout.featureViewWidth + layout.timelineViewWidth + 10} y={0} title="Patient View">
               {tableNames && featureMeta && <MetaView
+                className={"meta-view-element"}
                 patientIds={subjectIds}
                 featureMeta={featureMeta}
                 patientInfoMeta={patientInfoMeta}
@@ -426,7 +517,7 @@ class App extends React.Component<AppProps, AppStates>{
               />
               }
             </Panel>
-
+            <svg className="app-link-svg" ref={this.ref} />
             {/* {tableNames && <Panel initialWidth={400} initialHeight={435} x={1010} y={405}>
               <TableView
                 patientMeta={patientMeta}

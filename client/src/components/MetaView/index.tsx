@@ -7,6 +7,7 @@ import { FeatureMeta } from "data/feature";
 import { PushpinOutlined } from "@ant-design/icons";
 
 export interface MetaViewProps {
+    className?: string,
     patientIds?: number[],
     patientInfoMeta?: { [key: string]: any },
     featureMeta: IDataFrame<number, FeatureMeta>,
@@ -54,7 +55,7 @@ export default class MetaView extends React.PureComponent<MetaViewProps, MetaVie
         const { updateFocusedFeatures, featureMeta } = this.props;
         const targetFeature = featureMeta.where(row => row.alias === name);
         if (targetFeature.count() > 0)
-            updateFocusedFeatures && updateFocusedFeatures([targetFeature.first().name]);
+            updateFocusedFeatures && updateFocusedFeatures([targetFeature.first().name!]);
     }
 
     private onLeave() {
@@ -66,11 +67,11 @@ export default class MetaView extends React.PureComponent<MetaViewProps, MetaVie
         const { updatePinnedFocusedFeatures, featureMeta } = this.props;
         const targetFeature = featureMeta.where(row => row.alias === name);
         if (targetFeature.count() > 0)
-            updatePinnedFocusedFeatures && updatePinnedFocusedFeatures([targetFeature.first().name]);
+            updatePinnedFocusedFeatures && updatePinnedFocusedFeatures([targetFeature.first().name!]);
     }
 
     public render() {
-        const { patientInfoMeta, featureMeta } = this.props;
+        const { patientInfoMeta, featureMeta, className } = this.props;
         const featureAlias = featureMeta.getSeries('alias').toArray();
         return (
             <div className={"meta-view"}>
@@ -83,6 +84,7 @@ export default class MetaView extends React.PureComponent<MetaViewProps, MetaVie
                             value = value.substr(11, 8);
                         }
                         return <MetaItem
+                            className={className}
                             category={metaItem.name}
                             name={name}
                             key={name}
@@ -102,6 +104,7 @@ export default class MetaView extends React.PureComponent<MetaViewProps, MetaVie
 }
 
 export interface MetaItemProps {
+    className?: string,
     category: string,
     name: string,
     value: any,
@@ -131,10 +134,10 @@ export class MetaItem extends React.PureComponent<MetaItemProps, MetaItemStates>
     }
 
     public render() {
-        const { category, name, value, featureAlias, layout, onHover, onLeave } = this.props;
+        const { category, name, value, featureAlias, layout, onHover, onLeave, className } = this.props;
         const { pinned } = this.state;
 
-        return <Row className={'meta-item'}
+        return <Row className={'meta-item'} id={`${className}-${name}`}
             style={{ borderLeftWidth: featureAlias.includes(name) ? 4 : 0, borderLeftColor: defaultCategoricalColor(0) }}
             onMouseOver={onHover} onMouseOut={onLeave}>
             <Col span={layout[0]} />
@@ -147,7 +150,7 @@ export class MetaItem extends React.PureComponent<MetaItemProps, MetaItemStates>
             </Col>
             <Col span={layout[4]}>
                 {(featureAlias.includes(name)) && <Button size="small" type="primary"
-                shape="circle"
+                    shape="circle"
                     icon={<PushpinOutlined />} onClick={this.pin}
                     className={"pin"} style={{ display: pinned ? 'block' : undefined }}
                 />}

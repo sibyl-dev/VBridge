@@ -15,6 +15,7 @@ import { arrayShallowCompare, confidenceThresholds, getReferenceValue, Reference
 import "./index.scss"
 
 export interface FeatureViewProps {
+    className?: string,
     patientMeta?: PatientMeta,
     tableNames?: string[],
     featureMeta: IDataFrame<number, FeatureMeta>,
@@ -24,6 +25,7 @@ export interface FeatureViewProps {
     entityCategoricalColor?: (entityName: string | undefined) => string,
     abnormalityColor?: (abnoramlity: number) => string,
     focusedFeatures: string[],
+    display?: 'normal' | 'dense',
 
     inspectFeature?: (feature: Feature) => void,
 }
@@ -100,8 +102,8 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
             const L1Features: IDataFrame<number, Feature> = featureMeta.select(row => {
                 return {
                     ...row,
-                    value: featureValues(row['name']),
-                    contribution: shapValues(row['name']),
+                    value: featureValues(row['name']!),
+                    contribution: shapValues(row['name']!),
                 };
             });
             // level-2: group-by item
@@ -114,6 +116,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                 const itemLabel = itemDicts && sample.entityId && itemDicts(sample.entityId, itemName)?.LABEL;
                 return {
                     ...sample,
+                    name: undefined,
                     alias: itemLabel || itemName,
                     value: undefined,
                     primitive: undefined,
@@ -127,6 +130,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                 const sample = group.first();
                 return {
                     ...sample,
+                    name: undefined,
                     alias: sample.type,
                     value: undefined,
                     primitive: undefined,
@@ -191,6 +195,7 @@ function ProbaList(params: {
 }
 
 export interface FeatureListProps {
+    className?: string,
     features: IDataFrame<number, Feature>,
     cellWidth: (id: number) => number,
     entityCategoricalColor?: (entityName: string | undefined) => string,
@@ -198,6 +203,7 @@ export interface FeatureListProps {
     featureMatrix?: IDataFrame<number, any>,
     getReferenceValue: (name: string) => (ReferenceValue | undefined),
     focusedFeatures: string[],
+    display?: 'normal' | 'dense',
 
     inspectFeature?: (feature: Feature) => void,
 }
@@ -299,6 +305,7 @@ export interface FeatureBlockProps {
     entityCategoricalColor?: (entityName: string | undefined) => string,
     abnormalityColor?: (abnoramlity: number) => string,
     focusedFeatures: string[],
+    display?: 'normal' | 'dense',
 
     inspectFeature?: (feature: Feature) => void,
 }
@@ -330,7 +337,7 @@ export class FeatureBlock extends React.PureComponent<FeatureBlockProps, Feature
     }
 
     private hasFeature(feature: Feature, featureNames: string[]): boolean {
-        if (featureNames.includes(feature.name))
+        if (feature.name && featureNames.includes(feature.name))
             return true;
         if (feature.children?.where(row => this.hasFeature(row, featureNames)).count())
             return true;
@@ -339,39 +346,40 @@ export class FeatureBlock extends React.PureComponent<FeatureBlockProps, Feature
     }
 
     protected onClickButton() {
-        const { inspectFeature, feature } = this.props;
         this.setState({ collapsed: !this.state.collapsed });
-        // inspectFeature && inspectFeature(feature);
     }
 
     protected onClickDiv() {
-        const { inspectFeature, feature } = this.props;
         this.setState({ expanded: !this.state.expanded });
-        // inspectFeature && inspectFeature(feature);
     }
 
     render() {
         const { feature, x, cellWidth, entityCategoricalColor, abnormalityColor, inspectFeature,
-            className, depth, featureMatrix, focusedFeatures, getReferenceValue } = this.props;
+            className, depth, featureMatrix, focusedFeatures, getReferenceValue, display } = this.props;
         const { collapsed, expanded } = this.state
         const { name, alias, value, contribution, children, entityId } = feature;
-        const referenceValue = getReferenceValue(feature.name);
+        const referenceValue = feature.name && getReferenceValue(feature.name);
         // const series = featureMatrix?.getSeries(name).parseFloats().toArray();
+
         let valueColor = '#fff';
         if (referenceValue && typeof (value) === typeof (0.0) && abnormalityColor) {
             const { mean, std } = referenceValue;
             const rate = Math.abs((value as number - mean) / std);
             valueColor = abnormalityColor(rate);
         }
-        let showState: 'normal' | 'focused' | 'unfocused' = 'normal';
+        let showState: 'normal' | 'focused' | 'unfocused' | 'none' = 'normal';
         if (focusedFeatures.length > 0) {
             if (this.hasFeature(feature, focusedFeatures)) showState = 'focused';
             else showState = 'unfocused';
         }
+        if (display && display === 'dense') {
+            if (showState === 'unfocused') showState = 'none';
+        }
+        const heigth = expanded ? 100 : 30;
 
-        return <div className={className}>
+        return <div>
             <div className="feature-row" style={{
-                display: "flex", justifyContent: "flex-end", position: "relative",
+                display: (showState === 'none') ? "none" : "flex", justifyContent: "flex-end", position: "relative",
                 width: `calc(100% - ${depth * 10}px)`, left: `${depth * 10}px`
             }}>
                 <div style={{ width: 20 }}>
@@ -379,12 +387,13 @@ export class FeatureBlock extends React.PureComponent<FeatureBlockProps, Feature
                         onClick={this.onClickButton} rotate={collapsed ? 0 : 90} />}
                 </div>
                 <div className={`feature-block ${showState}` + ((depth === 0) ? " feature-top-block" : "")}
+                    id={feature.name !== undefined ? `${className}-${feature.name}`: undefined}
                     style={{
-                        height: expanded ? 100 : 30,
-                        borderRightColor: (entityCategoricalColor && entityCategoricalColor(entityId)) || '#aaa', borderRightWidth: 4
+                        height: heigth, borderRightWidth: 4,
+                        borderRightColor: (entityCategoricalColor && entityCategoricalColor(entityId)) || '#aaa'
                     }}
                     onClick={children ? this.onClickButton : this.onClickDiv}>
-                    <div className="feature-block-inner">
+                    <div className={`feature-block-inner`}>
                         <Tooltip title={alias}>
                             <div className="feature-block-cell feature-name" style={{ width: cellWidth(0) - 10 * depth }}>
                                 <span className={"feature-block-cell-text"}>{beautifulPrinter(alias, 25)}</span>
@@ -412,7 +421,7 @@ export class FeatureBlock extends React.PureComponent<FeatureBlockProps, Feature
                             }
                         </div>
                     </div>
-                    {(typeof (value) === typeof (0.0)) && expanded &&
+                    {(typeof (value) === typeof (0.0)) && expanded && name && 
                         <div className="feature-block-hist">
                             <Histogram
                                 data={featureMatrix?.getSeries(name).parseFloats().toArray() as number[]}
@@ -424,6 +433,10 @@ export class FeatureBlock extends React.PureComponent<FeatureBlockProps, Feature
                             />
                         </div>}
                 </div>
+                <span className={`feature-block-annote ${showState}`} style={{
+                    backgroundColor: entityCategoricalColor && entityCategoricalColor(entityId),
+                    height: heigth
+                }} />
                 <Button size="small" type="primary" shape="circle"
                     icon={<LineChartOutlined />} onClick={() => inspectFeature && inspectFeature(feature)}
                     className={"feature-button-linechart"}
@@ -432,13 +445,13 @@ export class FeatureBlock extends React.PureComponent<FeatureBlockProps, Feature
                     icon={<TableOutlined />} onClick={() => inspectFeature && inspectFeature(feature)}
                     className={"feature-button-table"}
                 />
-                {/* <span className={"feature-block-dot"} style={{ backgroundColor: color || '#aaa' }} /> */}
 
             </div>
 
             {(!collapsed) && children?.toArray().map(feature =>
                 <FeatureBlock
                     {...this.props}
+                    key={feature.name}
                     depth={depth + 1}
                     feature={feature}
                 />)}

@@ -1,7 +1,7 @@
 import { IDataFrame } from "data-forge";
 
 export interface FeatureMeta {
-    name: string,
+    name?: string,
     alias: string,
     primitive?: string,
     entityId?: string,

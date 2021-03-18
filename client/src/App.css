@@ -16,6 +16,17 @@
     font-size: 30px;
 }
 
+.view-title {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+    align-items: center;
+}
+
+.view-title-text {
+    float: left;
+}
+
 #Filter {
     border: 2px solid black;
 }
@@ -46,4 +57,19 @@
     display: flex;
     justify-content: center;
     align-items: center;
+}
+
+.app-link-svg {
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    left: 0px;
+    pointer-events: none;
+}
+
+.between-view-link {
+    stroke: #fff;
+    stroke-width: 1px;
+    fill: #aaa;
+    opacity: 0.1;
 }
