@@ -340,7 +340,7 @@ class App extends React.Component<AppProps, AppStates>{
           <Header className="app-header">
             <p className='system-name'>Bridges</p>
              <div className='patientselector' style={{ float:'left', marginLeft:'300px'}} >
-               <div className='selectProgress'>
+               <div className='selectProgress' style={{textAlign: 'left'}}>
                 <span className="patient-selector-title">PatientId: </span>
                 <Select style={{ width: 120, marginRight:'20px' }} onChange={this.selectPatientId} className="patient-selector">
                   {subjectIds && subjectIds.map((id, i) =>
@@ -363,7 +363,7 @@ class App extends React.Component<AppProps, AppStates>{
 
             <div className='filterProgress' style={{textAlign: 'left'}}>
               <Tooltip title="Filter">
-                <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={this.showDrawer} style={{ marginLeft: '20px', zIndex: 1 }} />
+                <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={this.showDrawer} style={{zIndex: 1 }} />
               </Tooltip>
               <span className="patient-selector-title" style={{marginLeft:'20px'}}> Filtered Result: {subjectIdG && subjectIdG.subject_idG? subjectIdG.subject_idG.length:0} </span>
             </div>
