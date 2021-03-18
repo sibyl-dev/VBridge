@@ -332,7 +332,7 @@ class App extends React.Component<AppProps, AppStates>{
             if (id == 0)
                 return '#cccccc'
             else 
-                return '#6590f0'
+                return '#7fa5ec'
     }
     return (
       <div className='App'>
@@ -340,31 +340,44 @@ class App extends React.Component<AppProps, AppStates>{
           <Header className="app-header">
             <p className='system-name'>Bridges</p>
              <div className='patientselector' style={{ float:'left', marginLeft:'300px'}} >
+               <div className='selectProgress'>
                 <span className="patient-selector-title">PatientId: </span>
                 <Select style={{ width: 120, marginRight:'20px' }} onChange={this.selectPatientId} className="patient-selector">
                   {subjectIds && subjectIds.map((id, i) =>
                     <Option value={id} key={i}>{id}</Option>
                   )}
                 </Select>
+               </div>
+               <div className='truthValue' style={{marginTop: '-20px'}}>
+                 <span className="complication-title"> Complication Prediction: </span>
                  {brieftcomplitype&& complicationRes && brieftcomplitype.map((name,i) =>
-                   i<5?<Avatar style={{backgroundColor: avatatColor(complicationRes[i])}}>{name}</Avatar>:''
+                   i<5?  
+                   <Tooltip title={complicationtypes[i]} placement="top">
+                     <Avatar style={{backgroundColor: avatatColor(complicationRes[i])}}>{name}</Avatar>
+                   </Tooltip>:''
                  )}
+               </div>
               </div>
 
             <div className='aboutFilter' style={{marginLeft:'100px', float:'left'}}>
 
-            <Tooltip title="Filter">
-              <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={this.showDrawer} style={{ marginLeft: '20px', zIndex: 1 }} />
-            </Tooltip>
-            <span className="patient-selector-title" style={{marginLeft:'20px'}}> Filtred Result: {subjectIdG && subjectIdG.subject_idG? subjectIdG.subject_idG.length:0} </span>
-            
-            {brieftcomplitype  && distribution && brieftcomplitype.map((name,i) =>  
-                   <>
-                      <span style={{color: 'white', fontWeight:'bold'}}> {distribution[i]} </span>
-                      <Avatar style={{backgroundColor: avatatColor(distribution[i])}}> {name}</Avatar>
-                     </>
-            )}
-            
+            <div className='filterProgress' style={{textAlign: 'left'}}>
+              <Tooltip title="Filter">
+                <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={this.showDrawer} style={{ marginLeft: '20px', zIndex: 1 }} />
+              </Tooltip>
+              <span className="patient-selector-title" style={{marginLeft:'20px'}}> Filtered Result: {subjectIdG && subjectIdG.subject_idG? subjectIdG.subject_idG.length:0} </span>
+            </div>
+            <div className='truthValueDistri' style={{marginTop: '-20px'}}>
+              <span className="complication-title"> Complication Prediction Distribution: </span>
+              {brieftcomplitype  && distribution && brieftcomplitype.map((name,i) =>  
+                     <>
+                        <span style={{color: 'white', fontWeight:'bold'}}> {distribution[i]} </span>
+                        <Tooltip title={complicationtypes[i]} placement="top">
+                          <Avatar style={{backgroundColor: avatatColor(distribution[i])}}> {name}</Avatar>
+                        </Tooltip>
+                       </>
+              )}
+            </div>
             {/*<span className="patient-selector-title" style={{marginLeft:'20px'}}> Prediction outcome: </span>
              <Select mode="multiple" allowClear
                                       placeholder="Please select"
