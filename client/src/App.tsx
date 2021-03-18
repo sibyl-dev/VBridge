@@ -25,7 +25,7 @@ import { DataFrame, IDataFrame } from 'data-forge';
 import _, { isUndefined } from 'lodash';
 import { distinct, isDefined } from 'data/common';
 
-import { defaultCategoricalColor, getChildOrAppend, getOffsetById } from 'visualization/common';
+import { defaultCategoricalColor, getChildOrAppend, getOffsetById, getScaleLinear } from 'visualization/common';
 
 
 const { Header, Content } = Layout;
@@ -139,10 +139,10 @@ class App extends React.Component<AppProps, AppStates>{
     const featureMeta = new DataFrame(await getFeatureMate());
     const predictionTargets = await getPredictionTargets();
 
-    const subjectIdG = (await getPatientGroup({ filterConditions: { '': '' }, subject_id: 0 }))
+    const subjectIdG = (await getPatientGroup({ filterConditions: { 'aha': '' }, subject_id: 0, setSubjectIdG:true }))
     // const prediction = (await getPatientGroup({ filterConditions: filterConditions })).prediction
-    console.log('init', subjectIdG)
-    this.setState({ subjectIds, tableNames, filterRange, featureMeta, predictionTargets, itemDicts, subjectIdG });
+    console.log('init', subjectIdG, filterRange)
+    this.setState({ subjectIds, tableNames, filterRange, featureMeta, predictionTargets, itemDicts, subjectIdG});
   }
 
   public async selectPatientId(subjectId: number) {
@@ -151,7 +151,7 @@ class App extends React.Component<AppProps, AppStates>{
     const patientInfoMeta = await getPatientInfoMeta({ subject_id: subjectId });
     const tableRecords = await this.loadPatientRecords(subjectId);
     if (this.state.conditions) {
-      const subjectIdG = (await getPatientGroup({ filterConditions: this.state.conditions, subject_id: subjectId }))
+      const subjectIdG = (await getPatientGroup({ filterConditions: this.state.conditions, subject_id: subjectId, setSubjectIdG: true }))
       this.setState({ subjectIdG })
     }
     this.setState({ patientMeta, tableRecords, patientInfoMeta, selectedsubjectId });
@@ -160,10 +160,10 @@ class App extends React.Component<AppProps, AppStates>{
 
   }
 
-  private async filterPatients(conditions: { [key: string]: any }, changeornot: boolean) {
-    if (changeornot && this.state.selectedsubjectId) {
-      const subjectIdG = (await getPatientGroup({ filterConditions: conditions, subject_id: this.state.selectedsubjectId }))
-      this.setState({ subjectIdG, conditions })
+  private async filterPatients(conditions: {[key: string]: any}, changeornot:boolean) {
+    if(changeornot && this.state.selectedsubjectId){
+        const subjectIdG = (await getPatientGroup({filterConditions: conditions, subject_id: this.state.selectedsubjectId, setSubjectIdG: true}))
+        this.setState({subjectIdG:subjectIdG, conditions: Object.assign({}, conditions)})
     }
   }
 
@@ -392,61 +392,88 @@ class App extends React.Component<AppProps, AppStates>{
       focusedFeatures, pinnedfocusedFeatures,
       itemDicts, signalMetas: dynamicRecords, patientInfoMeta, filterRange, visible, subjectIdG } = this.state;
     const layout = this.layout;
-    const idGs: number[] = subjectIdG && subjectIdG.subject_idG.slice(0, 100)
-    const predictionG: string[] = subjectIdG && subjectIdG.predictionG.slice(0, 100)
-    const similarityG: number[] = subjectIdG && subjectIdG.similarity && subjectIdG.similarity.slice(0, 100)
-    const complicationtypes = ['lung complication', 'cardiac complication', 'arrhythmia complication', 'infectious complication', 'other complication']
-    const brieftcomplitype = ['L', 'C', 'A', 'I', 'O']
-    const series: number[] = subjectIdG && subjectIdG.distribution
-
-    const option = {
-      tooltip: { trigger: 'axis' },
-      xAxis: { data: ['No complication', 'lung complication', 'cardiac complication', 'arrhythmia complication', 'infectious complication', 'other complication'] },
-      yAxis: { type: 'value' },
-      series: [{ name: 'Patient Numer', type: 'bar', barWidth: '50%', data: series, itemStyle: { color: 'blue' } }]
+    const idGs: number [] = subjectIdG && subjectIdG.subject_idG
+    const predictionG: string[] = subjectIdG && subjectIdG.predictionG.slice(0, 100)  
+    const similarityG:number [] = subjectIdG && subjectIdG.similarity && subjectIdG.similarity.slice(0, 100)
+    const complicationtypes = ['Lung Comp.','Cardiac Comp.','Arrhythmia Comp.','Infectious Comp.','Other Comp.', 'No Comp.']
+    const brieftcomplitype = ['L', 'C', 'A', 'I', 'O', 'No']
+    const distribution:number [] = subjectIdG && subjectIdG.distribution
+    let complicationRes:number[] = [0,0,0,0,0]
+    if(patientInfoMeta)
+      complicationRes = [patientInfoMeta['lung complication'], patientInfoMeta['cardiac complication'],patientInfoMeta['arrhythmia complication'],patientInfoMeta['infectious complication'],patientInfoMeta['other complication']]
+    if(distribution)
+      var x = getScaleLinear(0, 80, distribution);
+    const avatatColor = (id: number) => {
+            if (id == 0)
+                return '#cccccc'
+            else 
+                return '#7fa5ec'
     }
-    // const series:number [] = subjectIdG && [subjectIdG.lung_num, subjectIdG.cardiac_num, subjectIdG.arrhythmia_num, subjectIdG.infectious_num, subjectIdG.other_num]
     return (
       <div className='App'>
         <Layout>
           <Header className="app-header" id="header">
             <p className='system-name'>Bridges</p>
-            <span className="patient-selector-title">PatientId: </span>
-            <Select style={{ width: 120 }} onChange={this.selectPatientId} className="patient-selector">
-              {subjectIds && subjectIds.map((id, i) =>
-                <Option value={id} key={i}>{id}</Option>
+             <div className='patientselector' style={{ float:'left', marginLeft:'300px'}} >
+               <div className='selectProgress' style={{textAlign: 'left'}}>
+                <span className="patient-selector-title">PatientId: </span>
+                <Select style={{ width: 120, marginRight:'20px' }} onChange={this.selectPatientId} className="patient-selector">
+                  {subjectIds && subjectIds.map((id, i) =>
+                    <Option value={id} key={i}>{id}</Option>
+                  )}
+                </Select>
+               </div>
+               <div className='truthValue' style={{marginTop: '-20px'}}>
+                 <span className="complication-title"> Complication Prediction: </span>
+                 {brieftcomplitype&& complicationRes && brieftcomplitype.map((name,i) =>
+                   i<5?  
+                   <Tooltip title={complicationtypes[i]} placement="top">
+                     <Avatar style={{backgroundColor: avatatColor(complicationRes[i])}}>{name}</Avatar>
+                   </Tooltip>:''
+                 )}
+               </div>
+              </div>
+
+            <div className='aboutFilter' style={{marginLeft:'100px', float:'left'}}>
+
+            <div className='filterProgress' style={{textAlign: 'left'}}>
+              <Tooltip title="Filter">
+                <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={this.showDrawer} style={{zIndex: 1 }} />
+              </Tooltip>
+              <span className="patient-selector-title" style={{marginLeft:'20px'}}> Filtered Result: {subjectIdG && subjectIdG.subject_idG? subjectIdG.subject_idG.length:0} </span>
+            </div>
+            <div className='truthValueDistri' style={{marginTop: '-20px'}}>
+              <span className="complication-title"> Complication Prediction Distribution: </span>
+              {brieftcomplitype  && distribution && brieftcomplitype.map((name,i) =>  
+                     <>
+                        <span style={{color: 'white', fontWeight:'bold'}}> {distribution[i]} </span>
+                        <Tooltip title={complicationtypes[i]} placement="top">
+                          <Avatar style={{backgroundColor: avatatColor(distribution[i])}}> {name}</Avatar>
+                        </Tooltip>
+                       </>
+              )}
+            </div>
+            {/*<span className="patient-selector-title" style={{marginLeft:'20px'}}> Prediction outcome: </span>
+             <Select mode="multiple" allowClear
+                                      placeholder="Please select"
+                                      maxTagCount='responsive'
+                                      dropdownMatchSelectWidth={true}
+                                      style={{ width: '300px' }} onChange={this.selectComparePatientId} className="compare-patient-selector">
+              {distribution && distribution.map((number, i) => 
+                <>
+                 <Option value={complicationtypes[i]} key={complicationtypes[i]} >
+                   <div style={{width: '48%'}}> {complicationtypes[i]} </div>
+                   <div className="number" style={{ width: '32%', opacity: Math.max(1 , 0.5) }}>
+                       <div className="neg-feature" style={{width: x(number)}} />  
+                   </div>
+                   <div style={{width: '20%'}}> {number} </div>
+
+                  </Option>
+                 </>
               )}
             </Select>
-            <span className="patient-selector-title" style={{ marginLeft: '20px' }}>Compared PatientId: </span>
-            <Select style={{ width: 200 }} onChange={this.selectComparePatientId} className="compare-patient-selector">
-              {/* {idGs && idGs.map((id, i) =>
-                  <Option value={id} key={i} >
-                    <Row style={{ width: '100%' }}>
-                      <Col span={4}> {id}</Col>
-                      <Col span={2} />
-                      <Col span={14}>
-                        <Avatar.Group size={27}>
-                          {predictionG && predictionG[i].split('-').map((complicationtype, idx) =>
-                            complicationtype == '1' ? <Avatar style={{ backgroundColor: '#eaf0f9', color: 'black' }}> {brieftcomplitype[idx]} </Avatar> : ''
-                          )}
-                        </Avatar.Group>
-                      </Col>
-                      <Col span={2}> {similarityG ? similarityG[i] : 0} </Col>
-                      <Col span={2} />
-                    </Row>
-                  </Option>
-              )} */}
-            </Select>
-            <Tooltip title="Filter">
-              <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={this.showDrawer} style={{ marginLeft: '20px', zIndex: 1 }} />
-            </Tooltip>
-            <span className="patient-selector-title" style={{ marginLeft: '20px' }}> Filtred Result: {subjectIdG && subjectIdG.subject_idG ? subjectIdG.subject_idG.length : 0} </span>
-
-            {/*series && series.length?
-             <div className='echart' style={{float:'right', width: '100px', height:'30px', background:'white'}}>
-               <ReactEcharts option={option}/>
-             </div>
-             :''*/}
+          */}
+            </div>
           </Header>
           <Content>
             <Panel initialWidth={layout.featureViewWidth}
@@ -533,7 +560,11 @@ class App extends React.Component<AppProps, AppStates>{
                     filterRange={filterRange}
                     filterPatients={this.filterPatients}
                     onClose={this.onClose}
-                    contribution={series}
+                    contribution={distribution}
+                    patientInfoMeta={patientInfoMeta}
+                    visible={visible}
+                    subjectIdG={subjectIdG && subjectIdG.subject_idG}
+                    distributionApp={subjectIdG && subjectIdG.distribution}
                   />
                 </p>
               </Drawer>

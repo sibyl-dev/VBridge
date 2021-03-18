@@ -40,7 +40,9 @@
 	margin-right: 8px;
 	/*width: 100%;*/
 }
-
+#FilterView .sliders{
+	margin-left: 5px
+}
 #FilterView .ant-divider-horizontal{
 	margin:10px 0;
 }

@@ -154,6 +154,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
     public render() {
         const { predictionTargets, ...rest } = this.props;
         const { predictions, features, target, featureMatrix } = this.state;
+        console.log('FeatureView', features)
 
         return (
             <div className="feature-view">
@@ -362,10 +363,15 @@ export class FeatureBlock extends React.PureComponent<FeatureBlockProps, Feature
         // const series = featureMatrix?.getSeries(name).parseFloats().toArray();
 
         let valueColor = '#fff';
+        let outofRange = undefined;
         if (referenceValue && typeof (value) === typeof (0.0) && abnormalityColor) {
-            const { mean, std } = referenceValue;
+            const { mean, std, ci95 } = referenceValue;
             const rate = Math.abs((value as number - mean) / std);
             valueColor = abnormalityColor(rate);
+            if(value as number > ci95[1])
+            	outofRange = 1
+            else if(value as number < ci95[0])
+            	outofRange = 0
         }
         let showState: 'normal' | 'focused' | 'unfocused' | 'none' = 'normal';
         if (focusedFeatures.length > 0) {
@@ -402,7 +408,11 @@ export class FeatureBlock extends React.PureComponent<FeatureBlockProps, Feature
                         <Tooltip title={typeof (value) == typeof (0.0) ? beautifulPrinter(value) : value}>
                             <div className={"feature-block-cell feature-value"}
                                 style={{ width: cellWidth(1), backgroundColor: valueColor }}>
-                                <span className={"feature-block-cell-text"}>{beautifulPrinter(value)}</span>
+                                <span className={"feature-block-cell-text"}>{beautifulPrinter(value)}
+                                {outofRange && outofRange==0? <ArrowDownOutlined/> :''}
+                                {outofRange && outofRange==1? <ArrowUpOutlined/> :''}
+
+                                </span>
                             </div>
                         </Tooltip>
                         <div className={"feature-block-cell feature-contribution"}

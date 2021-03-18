@@ -150,6 +150,7 @@ export interface DynamicCardProps extends Partial<TimeSeriesStyle> {
     onLeave?: () => void;
     onPin?: () => void;
     onRemove?: () => void;
+    // subjectIdG?: number[],
 }
 
 export interface DynamicCardStates {
@@ -176,6 +177,10 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
         // this.loadReferenceValues();
     }
     componentDidUpdate(prevProps: DynamicCardProps, prevState: DynamicCardStates) {
+        // if (prevProps.subjectIdG?.sort().toString() !== this.props.subjectIdG?.sort().toString()) {
+        //     //why comment here?
+        //     this.loadReferenceValues();
+        // }
     }
 
     private async loadReferenceValues() {
@@ -186,7 +191,7 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
         });
         const referenceValue = valueFn(itemName);
         this.setState({ referenceValue });
-        console.log('loadReferenceValues', this.state.referenceValue)
+        // console.log('loadReferenceValues', this.state.referenceValue)
     }
 
     private onExpand() {

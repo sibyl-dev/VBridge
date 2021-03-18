@@ -1,0 +1,147 @@
+.feature-view {
+    button.proba-item {
+        border: #aaa;
+        width: calc(100% - 20px);
+        margin-left: 15px;
+        margin-right: 10px;
+        margin-top: 2px;
+        margin-bottom: 2px;
+        height: 30px;
+        .proba-bar {
+            position: absolute;
+            top: 0px;
+            left: 5px;
+            background-color: rgb(78, 121, 167);
+            opacity: 50%;
+            transition: width 0.5s;
+        }
+        .proba-target-name {
+            position: absolute;
+            top: 0;
+            right: 10px;
+            font-style: italic;
+            color: #777;
+        }
+        .proba-value {
+            position: absolute;
+            top: 0;
+            left: 10px;
+        }
+    }
+    button.proba-selected {
+        border: 2px solid rgb(78, 121, 167);
+        padding-left: 0px;
+    }
+    .feature-header {
+        height: 30px;
+        margin-right: 10px;
+        margin-left: 5px;
+        margin-left: 20px;
+        display: flex;
+        justify-content: space-between;
+        .feature-header-cell {
+            font-size: 14px;
+            font-weight: bolder;
+        }
+    }
+    .feature-block,
+    .feature-group-block {
+        height: 30px;
+        margin-right: 10px;
+        margin-left: 5px;
+        transition: all 0.5s ease;
+        border: 1px solid rgba(220, 225, 230, 0.7);
+        border-radius: 5px;
+        margin-top: 2px;
+        display: flex;
+        flex-direction: column;
+        .feature-block-inner {
+            display: flex;
+            .feature-block-cell {
+                height: 20px;
+                overflow: hidden;
+                float: right;
+                margin-top: 5px;
+                .feature-block-cell-text {
+                    font-size: 10px;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                }
+            }
+            .feature-value {
+                background-color: #eee;
+                border-radius: 5px;
+                margin-left: 10px;
+                margin-right: 10px;
+                font-weight: bold;
+                // font-family: Arial, Helvetica, sans-serif;
+            }
+            .feature-name {
+                // color: #434343;
+                // font-family: "Times New Roman", Georgia, serif;
+            }
+        }
+        .feature-block-hist {
+            margin-top: 10px;
+        }
+        .feature-block:hover {
+            border: 1px solid #777;
+        }
+    }
+    .feature-group-block {
+        .feature-block-inner {
+            .feature-value {
+                background-color: #fff;
+                border-radius: 5px;
+            }
+        }
+    }
+    .feature-top-block {
+        border: 1px solid rgba(24, 144, 255, 0.5);
+    }
+}
+
+.feature-block-dot {
+    position: absolute;
+    right: 0px;
+    height: 10px;
+    width: 10px;
+    top: 15px;
+    background-color: #bbb;
+    border: 1px solid #fff;
+    border-radius: 50%;
+    display: inline-block;
+    transform: translate(-50%, -50%);
+}
+
+.feature-block-dot:hover {
+    right: -5px;
+    height: 15px;
+    width: 15px;
+    border: 2px solid #fff;
+    transform: translate(-50%, -50%);
+}
+
+.neg-feature,
+.pos-feature {
+    height: 15px;
+    margin-top: 3px;
+}
+
+.neg-feature {
+    background-color: #3C88E1;
+    opacity: 80%;
+}
+
+.pos-feature {
+    background-color: #FF0155;
+    opacity: 80%;
+}
+
+.right-button {
+    position: relative;
+    margin-top: 10px;
+    color: #777;
+    float: left;
+}

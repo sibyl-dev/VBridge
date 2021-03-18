@@ -83,6 +83,17 @@ export default class MetaView extends React.PureComponent<MetaViewProps, MetaVie
                             // console.log('TIME', name);
                             value = value.substr(11, 8);
                         }
+                        if(name.indexOf('(minutes)'))
+                            name = name.replace(/minutes/g, 'mins')
+                        if(name == 'Height')
+                            name = name + ' (cm)'
+                        if(name == 'Weight')
+                            name = name + ' (kg)'
+                        if(name == 'Age'){
+                            let age = parseInt(value)
+                            value = (age>12? Math.floor(age/12) + 'Y ' :'') + (age%12? (age%12) +'M' : '')
+                        }
+
                         return <MetaItem
                             className={className}
                             category={metaItem.name}

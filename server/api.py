@@ -10,8 +10,8 @@ from flask import request, jsonify, Blueprint, current_app, Response
 
 from model.data import get_patient_records
 from model.modeler import Modeler
-from model.settings import interesting_variables, META_INFO, filter_variable, fm_category_name, \
-    complication_type
+from model.settings import interesting_variables, META_INFO, filter_variable, filter_variable1,\
+                            fm_category_name,complication_type
 from sklearn.metrics.pairwise import cosine_similarity
 
 api = Blueprint('api', __name__)
@@ -71,9 +71,17 @@ def handle_invalid_usage(error):
 @api.route('available_ids', methods=['GET'])
 def get_available_ids():
     es = current_app.es
+    fm = current_app.fm
+    subjects_ids = fm.index
+    # subjects_ids = fm[fm['complication'] == 1].index
+    # subjects_ids = filter_group.index
+    print('available_ids', subjects_ids)
+
     df = es["SURGERY_INFO"].df
-    subjects_ids = df[df['complication'] == 1]["SUBJECT_ID"].values[:30].tolist()
-    return jsonify(subjects_ids)
+    subjects_ids1 = df[(df['complication'] == 1) & (df['SUBJECT_ID'].isin(subjects_ids))]["SUBJECT_ID"].values[:30].tolist()
+    print('available_ids', subjects_ids1)
+
+    return jsonify(subjects_ids1)
 
 
 @api.route('/individual_records', methods=['GET'])
@@ -130,70 +138,80 @@ def get_patientinfo_meta():
 
 @api.route('/record_filterrange', methods=['GET'])
 def get_record_filterrange():
-    table_names = ['PATIENTS', 'ADMISSIONS', 'SURGERY_INFO']
     info = {'name': 'filter_range'}
+    fm = current_app.fm
 
-    for i, table_name in enumerate(table_names):
-        column_names = filter_variable[table_name]
-        df = current_app.es[table_name].df
-        for j, filter_name in enumerate(column_names):
-            all_records = list(set(df[filter_name]))
-
-            if filter_name == 'SURGERY_NAME':
-                temp_records = []
-                for item in all_records:
-                    temp_records = temp_records + item.split('+')
-                all_records = list(set(temp_records))
-            if filter_name == 'SURGERY_POSITION':
-                temp_records = []
-                for item in all_records:
-                    temp_records = temp_records + item.split(',')
-                all_records = list(set(temp_records))
-
-            # categorical
-            if df[filter_name].dtype == object:
-                all_records.sort()
-                info[filter_name] = all_records
-            else:
-                info[filter_name] = [min(all_records), max(all_records)]
-
+    for i, filter_name in enumerate(filter_variable):
+        # categorical
+        if(filter_name == 'GENDER'):
+            info[filter_name] = ['F', 'M']
+        elif(filter_name == 'Age'):
+            info[filter_name] = ['< 1 month', '1-3 months', '3 months-1 year', '> 1 year']
+            all_records = list(set(fm[filter_name]))
+            info['age'] = [min(all_records), max(all_records)]
+        elif(filter_name == 'SURGERY_NAME'):
+            all_records = []
+            for surgeryname in fm[filter_name]:
+                all_records = all_records + surgeryname
+            # print(filter_name, all_records)
+            info[filter_name] = list(set(all_records))
+        elif(fm[filter_name].dtype == object):
+            all_records = list(set(fm[filter_name]))
+            all_records.sort()
+            info[filter_name] = all_records
+        else:
+            all_records = list(set(fm[filter_name]))
+            info[filter_name] = [min(all_records), max(all_records)]
+    print('filterRange', info)
     return jsonify(info)
 
 
-@api.route('/patient_group', methods=['GET'])
-def get_patient_group():
+@api.route('/patient_group_partial', methods=['GET'])
+def get_patient_group_partial():
+
     conditions = json.loads(request.args.get('filterConditions'))
-    subject_id = int(request.args.get('subject_id'))
 
     table_names = ['PATIENTS', 'SURGERY_INFO', 'ADMISSIONS']
     number_vari = ['Age', 'Height', 'Weight', 'Surgical time (minutes)']
 
     es = current_app.es
     subject_idG = list(current_app.fm.index)
-    info = {'subject_idG': subject_idG}
 
+    # info = {'subject_idG' : subject_idG}
+    # print('conditions',conditions)
     # filter subject_idG according to the conditions
     for i, table_name in enumerate(table_names):
-        column_names = filter_variable[table_name]
+        column_names = filter_variable1[table_name]
         hadm_df = es[table_name].df
         tableFlag = False
+
         for condition_name in conditions:
             if condition_name in column_names:
                 tableFlag = True
-                hasFilter = True
-                if condition_name in number_vari:
-                    hadm_df = hadm_df[
-                        (hadm_df[condition_name] >= conditions[condition_name][0]) & (
-                                    hadm_df[condition_name] <= conditions[condition_name][1])]
+                hasFilter = True  
+                print('conditions',condition_name, conditions[condition_name])
 
-                elif condition_name == 'SURGERY_NAME' or condition_name == 'SURGERY_POSITION':
+                if(condition_name == 'Age'):
+                    fiilter_flag = False
+                    if('< 1 month' in conditions[condition_name]):
+                        fiilter_flag = (fiilter_flag) | (hadm_df[condition_name]<=1)
+                    if('1-3 months' in conditions[condition_name]):
+                        fiilter_flag = (fiilter_flag) | (hadm_df[condition_name]>=1) & (hadm_df[condition_name]<=3) 
+                    if('3 months-1 year' in conditions[condition_name]):
+                        fiilter_flag = (fiilter_flag) | (hadm_df[condition_name]>=3) & (hadm_df[condition_name]<=12) 
+                    if('> 1 year' in conditions[condition_name]):
+                        fiilter_flag = (fiilter_flag) | (hadm_df[condition_name]>=12)
+                    hadm_df = hadm_df[fiilter_flag]
+                elif(condition_name in number_vari):
+                    hadm_df = hadm_df[(hadm_df[condition_name]>=conditions[condition_name][0]) &  (hadm_df[condition_name]<=conditions[condition_name][1])]
+                elif(condition_name == 'SURGERY_NAME' or condition_name == 'SURGERY_POSITION'):
                     tmpDf = hadm_df[condition_name]
-                    flag = tmpDf.apply(
-                        lambda x: np.array([t in x for t in conditions[condition_name]]).any())
+                    print('SURGERY_NAME', conditions[condition_name])
+                    flag = tmpDf.apply(lambda x: np.array([t in x for t in conditions[condition_name]]).any())
                     hadm_df = hadm_df[flag]
-
                 else:
-                    hadm_df = hadm_df[hadm_df[condition_name].isin(conditions[condition_name])]
+                    print('isin', condition_name, list(conditions[condition_name]))
+                    hadm_df = hadm_df[hadm_df[condition_name].isin(list(conditions[condition_name])) ]
 
         if tableFlag:
             if len(subject_idG) != 0:
@@ -212,35 +230,98 @@ def get_patient_group():
     info['distribution'] = [np.sum(fm['lung complication']), np.sum(fm['cardiac complication']),
          np.sum(fm['arrhythmia complication']), np.sum(fm['infectious complication']),
          np.sum(fm['other complication'])]
+    # info['predictionG'] = list((fm['lung complication'].astype('str')).str.cat(
+    #     [fm['cardiac complication'].astype('str'), fm['arrhythmia complication'].astype('str'),
+    #      fm['infectious complication'].astype('str'), fm['other complication'].astype('str')],
+    #     sep='-'))
+    info['subject_idG'] = list(subject_idG)
+    noComplication = len(subject_idG) - np.sum(fm['complication'])
+    info['distribution'].append(noComplication)
+    print('distribution', info['distribution'])
+    # current_app.subject_idG = list(subject_idG)
+    return jsonify(info)
+
+
+@api.route('/patient_group', methods=['GET'])
+def get_patient_group():
+    conditions = json.loads(request.args.get('filterConditions'))
+    subject_id = int(request.args.get('subject_id'))
+    setSubjectIdG = request.args.get('setSubjectIdG')
+
+    table_names = ['PATIENTS', 'SURGERY_INFO', 'ADMISSIONS']
+    number_vari = [ 'Height', 'Weight', 'Surgical time (minutes)']
+
+    es = current_app.es
+    subject_idG = list(current_app.fm.index)
+
+    info = {'subject_idG' : subject_idG}
+    print('conditions',conditions)
+    # filter subject_idG according to the conditions
+    for i, table_name in enumerate(table_names):
+        column_names = filter_variable1[table_name]
+        hadm_df = es[table_name].df
+        tableFlag = False
+
+        for condition_name in conditions:
+            if condition_name in column_names:
+                tableFlag = True
+                print('conditions',condition_name, conditions[condition_name])
+
+                if(condition_name in number_vari):
+                    hadm_df = hadm_df[(hadm_df[condition_name]>=conditions[condition_name][0]) &  (hadm_df[condition_name]<=conditions[condition_name][1])]
+                elif(len(conditions[condition_name]) == 0):
+                    subject_idG = []
+                elif(condition_name == 'Age'):
+                    fiilter_flag = False
+                    if('< 1 month' in conditions[condition_name]):
+                        fiilter_flag = (fiilter_flag) | (hadm_df[condition_name]<=1)
+                    if('1-3 months' in conditions[condition_name]):
+                        fiilter_flag = (fiilter_flag) | (hadm_df[condition_name]>=1) & (hadm_df[condition_name]<=3) 
+                    if('3 months-1 year' in conditions[condition_name]):
+                        fiilter_flag = (fiilter_flag) | (hadm_df[condition_name]>=3) & (hadm_df[condition_name]<=12) 
+                    if('> 1 year' in conditions[condition_name]):
+                        fiilter_flag = (fiilter_flag) | (hadm_df[condition_name]>=12)
+                    hadm_df = hadm_df[fiilter_flag]
+                elif(condition_name == 'SURGERY_NAME' or condition_name == 'SURGERY_POSITION'):
+                    tmpDf = hadm_df[condition_name]
+                    print('SURGERY_NAME', conditions[condition_name])
+                    flag = tmpDf.apply(lambda x: np.array([t in x for t in conditions[condition_name]]).any())
+                    hadm_df = hadm_df[flag]
+                else:
+                    print('isin', condition_name, list(conditions[condition_name]))
+                    hadm_df = hadm_df[hadm_df[condition_name].isin(list(conditions[condition_name]))]
+                    if(condition_name == 'GENDER'):
+                        print('condition_name GENDER', hadm_df)
+
+        if tableFlag:
+            # if len(subject_idG) != 0:
+            hadm_df = hadm_df[hadm_df['SUBJECT_ID'].isin(subject_idG)]
+            subject_idG = hadm_df['SUBJECT_ID'].drop_duplicates().values.tolist()
+            print('ahahaha', subject_idG, len(subject_idG))
+
+    fm_ = current_app.fm
+    # r = fm_.loc[8511]
+    if subject_id:
+        r = fm_.loc[subject_id]
+        # r = r.drop(complication_type)
+    fm = fm_[fm_.index.isin(subject_idG)]
+    fm = fm.fillna(0)
+
+    # contact the prediction result, calculate the prediction truth
+    info['distribution'] = [np.sum(fm['lung complication']), np.sum(fm['cardiac complication']),
+         np.sum(fm['arrhythmia complication']), np.sum(fm['infectious complication']),
+         np.sum(fm['other complication'])]
     info['predictionG'] = list((fm['lung complication'].astype('str')).str.cat(
         [fm['cardiac complication'].astype('str'), fm['arrhythmia complication'].astype('str'),
          fm['infectious complication'].astype('str'), fm['other complication'].astype('str')],
         sep='-'))
     info['subject_idG'] = list(subject_idG)
+    noComplication = len(subject_idG) - np.sum(fm['complication'])
+    info['distribution'].append(noComplication)
+    print('distribution', info['distribution'])
 
-    # calculate the similarty
-    # if subject_id!=0:
-    #     similarity = fm.copy(deep=True)
-    #     similarity = similarity.fillna(0)
-    #     similarity = similarity.drop(complication_type, axis=1)
-    #     for t in fm_category_name:
-    #         r[t] = 1
-    #         similarity[t] = similarity[t].apply(lambda x: 1 if x==r[t] else 0)
-
-    # x = similarity.apply(lambda x: cosine_similarity(np.array(x).reshape(1,-1), np.array(
-    # r).reshape(1,-1))[0][0], axis=1)
-
-    #     info['similarty'] = list(x)
-
-    #     # sort by the similarity
-    #     list_of_tuples = list(zip(list(subject_idG), info['predictionG'], list(x)))
-    #     list_of_tuples = sorted(list_of_tuples, key=lambda s: s[2], reverse=True)
-    #     subject_idG, predictionG, x = zip(*list_of_tuples)
-    #     info['subject_idG'] = list(subject_idG)
-    #     info['predictionG'] = list(predictionG)
-    #     info['similarity'] = list(x)
-
-    current_app.subject_idG = subject_idG
+    if(setSubjectIdG):
+        current_app.subject_idG = list(subject_idG)
     return jsonify(info)
 
 
@@ -353,6 +434,7 @@ def get_prediction():
 
 @api.route('/feature_matrix', methods=['GET'])
 def get_feature_matrix():
+    # print('get_feature_matrix', len(current_app.subject_idG))
     return Response(current_app.fm[current_app.fm.index.isin(current_app.subject_idG)].to_csv(),
                     mimetype="text/csv")
 
@@ -393,6 +475,7 @@ def get_reference_value():
     table_info = META_INFO[table_name]
     references = {}
     df = current_app.es[table_name].df
+    print('current_app subject_idG', len(current_app.subject_idG))
     filter_df = df[df['SUBJECT_ID'].isin(current_app.subject_idG)]
     print('filter_df', len(filter_df))
     for group in filter_df.groupby(table_info.get('item_index')):
@@ -405,5 +488,5 @@ def get_reference_value():
             'ci95': [0 if np.isnan(mean - 1.960 * std) else (mean - 1.960 * std),
                      0 if np.isnan(mean + 1.960 * std) else (mean + 1.960 * std)]
         }
-    # print('final reference_value', references)
+    print('final reference_value', references)
     return jsonify(references)

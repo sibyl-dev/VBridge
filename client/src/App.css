@@ -37,6 +37,7 @@
 
 .ant-drawer-header {
     background-color: #e8f0fa;
+    height: 50px;
 }
 
 .ant-drawer-title {
@@ -50,6 +51,14 @@
     font-size: 18px;
     font-weight: bold;
     line-height: 30px;
+    margin-right: 20px;
+}
+
+.complication-title {
+    color: #fff;
+    font-size: 14px;
+    font-weight: bold;
+    line-height: 20px;
     margin-right: 20px;
 }
 
