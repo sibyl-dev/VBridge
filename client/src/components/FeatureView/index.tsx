@@ -14,7 +14,6 @@ import { arrayShallowCompare, confidenceThresholds, getReferenceValue, Reference
 
 import "./index.scss"
 
-
 export interface FeatureViewProps {
     patientMeta?: PatientMeta,
     tableNames?: string[],
@@ -151,6 +150,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
     public render() {
         const { predictionTargets, ...rest } = this.props;
         const { predictions, features, target, featureMatrix } = this.state;
+        console.log('FeatureView', features)
 
         return (
             <div className="feature-view">
@@ -356,31 +356,6 @@ export class FeatureBlock extends React.PureComponent<FeatureBlockProps, Feature
             className, depth, featureMatrix, focusedFeatures, getReferenceValue } = this.props;
         const { collapsed, expanded } = this.state
         const { name, alias, value, contribution, children, entityId } = feature;
-// <<<<<<< HEAD
-//         console.log('FeatureView', value)
-//         let series = undefined;
-//         let thresholds = [];
-//         let colorIndex = 3;
-//         // const barColor = d3.scaleSequential(d3.interpolateRdYlGn).domain([0, 6]);
-//         const barColor = (id: number) => {
-//             if (id > 3)
-//                 return d3.interpolateReds((id / 3 - 1) * 0.3);
-//             else if (id < 3)
-//                 return d3.interpolateBlues((1 - id / 3) * 0.3);
-//         }
-//         let thresholdsNum: number[] = []
-//         if (typeof (value) === typeof (0.0)) {
-//             series = featureMatrix?.getSeries(name).parseFloats().toArray();
-//             if (series) {
-//                 // console.log(series.where(row => row > (value as number)).count() / series.count());
-//                 thresholds = confidenceThresholds(series);
-//                 thresholdsNum = confidenceThresholds(series);
-//                 colorIndex = _.sum(thresholds.map(t => t < value!));
-//                 if(colorIndex!=3)
-//         			console.log('thresholds', name, thresholds, colorIndex, value)
-
-//             }
-// =======
         const referenceValue = getReferenceValue(feature.name);
         // const series = featureMatrix?.getSeries(name).parseFloats().toArray();
         let valueColor = '#fff';
@@ -393,9 +368,7 @@ export class FeatureBlock extends React.PureComponent<FeatureBlockProps, Feature
         if (focusedFeatures.length > 0) {
             if (this.hasFeature(feature, focusedFeatures)) showState = 'focused';
             else showState = 'unfocused';
-// >>>>>>> main
         }
-
 
         return <div className={className}>
             <div className="feature-row" style={{
@@ -420,18 +393,6 @@ export class FeatureBlock extends React.PureComponent<FeatureBlockProps, Feature
                         </Tooltip>
                         <Tooltip title={typeof (value) == typeof (0.0) ? beautifulPrinter(value) : value}>
                             <div className={"feature-block-cell feature-value"}
-{/* <<<<<<< HEAD
-//                                 style={{ width: cellWidth(1), backgroundColor: barColor(colorIndex)}}>
-//                                 <span className={"feature-block-cell-text"}>{beautifulPrinter(value)}
-//                                 {thresholdsNum && thresholdsNum.map((t,i) =>{
-//                                 	console.log('thresholds', t, i, value)
-//                                 	if(i<3 && t>value!)
-//                                 		return <ArrowDownOutlined/>
-//                                 	else if( i>=3 && t<value!)
-//                                 		return <ArrowUpOutlined/>
-//                                 })}
-//                                 </span>
-// =======*/}
                                 style={{ width: cellWidth(1), backgroundColor: valueColor }}>
                                 <span className={"feature-block-cell-text"}>{beautifulPrinter(value)}</span>
                             </div>

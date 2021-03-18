@@ -29,8 +29,8 @@ def create_app():
         fm, fl = featurization.generate_features()
 
     fm['SURGERY_NAME'] = fm['SURGERY_NAME'].apply(lambda row: row.split('+'))
-    fm = fm.set_index(es['SURGERY_INFO'].df['SUBJECT_ID'])
-    fm['SUBJECT_ID'] = fm.index
+    # fm = fm.set_index(es['SURGERY_INFO'].df['SUBJECT_ID'])
+    # fm['SUBJECT_ID'] = fm.index
     app.fm = fm
     app.fl = fl
 

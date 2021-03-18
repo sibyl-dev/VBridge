@@ -314,38 +314,58 @@ class App extends React.Component<AppProps, AppStates>{
   public render() {
 
     const { subjectIds, patientMeta, tableNames, tableRecords, featureMeta, predictionTargets,
-
-
       focusedFeatures, pinnedfocusedFeatures,
       itemDicts, signalMeta: dynamicRecords, patientInfoMeta, filterRange, visible, subjectIdG } = this.state
     const layout = this.layout;
-    const idGs: number [] = subjectIdG && subjectIdG.subject_idG.slice(0, 100)
+    const idGs: number [] = subjectIdG && subjectIdG.subject_idG
     const predictionG: string[] = subjectIdG && subjectIdG.predictionG.slice(0, 100)  
     const similarityG:number [] = subjectIdG && subjectIdG.similarity && subjectIdG.similarity.slice(0, 100)
     const complicationtypes = ['Lung Comp.','Cardiac Comp.','Arrhythmia Comp.','Infectious Comp.','Other Comp.', 'No Comp.']
-    const brieftcomplitype = ['L', 'C', 'A', 'I', 'O']
+    const brieftcomplitype = ['L', 'C', 'A', 'I', 'O', 'No']
     const distribution:number [] = subjectIdG && subjectIdG.distribution
+    let complicationRes:number[] = [0,0,0,0,0]
+    if(patientInfoMeta)
+      complicationRes = [patientInfoMeta['lung complication'], patientInfoMeta['cardiac complication'],patientInfoMeta['arrhythmia complication'],patientInfoMeta['infectious complication'],patientInfoMeta['other complication']]
     if(distribution)
       var x = getScaleLinear(0, 80, distribution);
+    const avatatColor = (id: number) => {
+            if (id == 0)
+                return '#cccccc'
+            else 
+                return '#6590f0'
+    }
     return (
       <div className='App'>
         <Layout>
           <Header className="app-header">
             <p className='system-name'>Bridges</p>
-            <span className="patient-selector-title">PatientId: </span>
-            <Select style={{ width: 120 }} onChange={this.selectPatientId} className="patient-selector">
-              {subjectIds && subjectIds.map((id, i) =>
-                <Option value={id} key={i}>{id}</Option>
-              )}
-            </Select>
-            <div className='aboutFilter' style={{marginLeft:'-190px', marginRight:'10px', float:'right'}}>
+             <div className='patientselector' style={{ float:'left', marginLeft:'300px'}} >
+                <span className="patient-selector-title">PatientId: </span>
+                <Select style={{ width: 120, marginRight:'20px' }} onChange={this.selectPatientId} className="patient-selector">
+                  {subjectIds && subjectIds.map((id, i) =>
+                    <Option value={id} key={i}>{id}</Option>
+                  )}
+                </Select>
+                 {brieftcomplitype&& complicationRes && brieftcomplitype.map((name,i) =>
+                   i<5?<Avatar style={{backgroundColor: avatatColor(complicationRes[i])}}>{name}</Avatar>:''
+                 )}
+              </div>
+
+            <div className='aboutFilter' style={{marginLeft:'100px', float:'left'}}>
 
             <Tooltip title="Filter">
               <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={this.showDrawer} style={{ marginLeft: '20px', zIndex: 1 }} />
             </Tooltip>
             <span className="patient-selector-title" style={{marginLeft:'20px'}}> Filtred Result: {subjectIdG && subjectIdG.subject_idG? subjectIdG.subject_idG.length:0} </span>
-            <span className="patient-selector-title" style={{marginLeft:'20px'}}> Prediction outcome: </span>
             
+            {brieftcomplitype  && distribution && brieftcomplitype.map((name,i) =>  
+                   <>
+                      <span style={{color: 'white', fontWeight:'bold'}}> {distribution[i]} </span>
+                      <Avatar style={{backgroundColor: avatatColor(distribution[i])}}> {name}</Avatar>
+                     </>
+            )}
+            
+            {/*<span className="patient-selector-title" style={{marginLeft:'20px'}}> Prediction outcome: </span>
              <Select mode="multiple" allowClear
                                       placeholder="Please select"
                                       maxTagCount='responsive'
@@ -364,6 +384,7 @@ class App extends React.Component<AppProps, AppStates>{
                  </>
               )}
             </Select>
+          */}
             </div>
           </Header>
           <Content>
