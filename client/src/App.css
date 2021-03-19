@@ -30,7 +30,20 @@
 .app-header .ant-row{
     line-height: 38px;
 }
-
+.predictionIcon{
+    width: 30px;
+    height: 30px;
+    border-radius: 15px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    float: left;
+    margin-top: 5px;
+}
+.proba-selected{
+    border: red 3px solid;
+    color: red;
+}
 #Filter {
     border: 2px solid black;
 }

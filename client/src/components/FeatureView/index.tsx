@@ -24,12 +24,12 @@ export interface FeatureViewProps {
     entityCategoricalColor?: (entityName: string | undefined) => string,
     abnormalityColor?: (abnoramlity: number) => string,
     focusedFeatures: string[],
-
     inspectFeature?: (feature: Feature) => void,
+    target: string,
 }
 
 export interface FeatureViewStates {
-    target: string,
+    // target: string,
     predictions?: (target: string) => number,
     featureDisplayValues?: DataFrame,
     features?: IDataFrame<number, Feature>,
@@ -43,15 +43,16 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
         super(props);
 
         this.state = {
-            target: this.props.predictionTargets[1]
+            // target: this.props.predictionTargets[1]
         };
         this.defaultCellWidth = this.defaultCellWidth.bind(this);
-        this.onSelectTarget = this.onSelectTarget.bind(this);
+        // this.onSelectTarget = this.onSelectTarget.bind(this);
         this.getReferenceValues = this.getReferenceValues.bind(this);
     }
 
     componentDidMount() {
         this.loadFeatureMatAndRefs();
+        this.updateFeatures();
     }
 
     private async loadFeatureMatAndRefs() {
@@ -85,13 +86,14 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
         return width[id];
     }
 
-    private onSelectTarget(target: string) {
-        this.setState({ target });
-    }
+    // private onSelectTarget(target: string) {
+    //     this.setState({ target });
+    // }
 
     private async updateFeatures() {
-        const { patientMeta, featureMeta, itemDicts } = this.props
-        const { target } = this.state;
+        let { patientMeta, featureMeta, itemDicts,target } = this.props
+        // const { target } = this.state;
+        console.log('updateFeatures', target)
         const subject_id = patientMeta?.subjectId;
         if (subject_id !== undefined) {
             const featureValues = await getFeatureValues({ subject_id });
@@ -141,23 +143,23 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
 
     componentDidUpdate(prevProps: FeatureViewProps, prevState: FeatureViewStates) {
         if (prevProps.patientMeta?.subjectId !== this.props.patientMeta?.subjectId
-            || prevState.target !== this.state.target) {
+            || prevProps.target !== this.props.target) {
             this.updatePrediction();
             this.updateFeatures();
         }
     }
 
     public render() {
-        const { predictionTargets, ...rest } = this.props;
-        const { predictions, features, target, featureMatrix } = this.state;
+        const { predictionTargets,target, ...rest} = this.props;
+        const { predictions, features, featureMatrix } = this.state;
         console.log('FeatureView', features)
 
         return (
             <div className="feature-view">
-                {predictionTargets && ProbaList({
+                {/*predictionTargets && ProbaList({
                     predictionTargets, predictions,
-                    selected: target, onClick: this.onSelectTarget
-                })}
+                    selected: target,
+                })*/}
                 <Divider />
                 {features && <FeatureList
                     {...rest}

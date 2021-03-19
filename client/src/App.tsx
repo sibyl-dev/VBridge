@@ -58,6 +58,7 @@ interface AppStates {
   selectedsubjectId?: number,
   conditions?: { [key: string]: any },
   visible?: boolean,
+  selected?: string,
 }
 
 class App extends React.Component<AppProps, AppStates>{
@@ -68,7 +69,7 @@ class App extends React.Component<AppProps, AppStates>{
     super(props);
     this.state = {
       signalMeta: [], pinnedSignalMeta: [], conditions: { '': '' },
-      focusedFeatures: [], pinnedfocusedFeatures: []
+      focusedFeatures: [], pinnedfocusedFeatures: [],
     };
 
     this.selectPatientId = this.selectPatientId.bind(this);
@@ -145,7 +146,8 @@ class App extends React.Component<AppProps, AppStates>{
       const subjectIdG = (await getPatientGroup({ filterConditions: this.state.conditions, subject_id: subjectId, setSubjectIdG: true }))
       this.setState({subjectIdG})
     }
-    this.setState({ patientMeta, tableRecords, patientInfoMeta, selectedsubjectId });
+    const selected='lung complication'
+    this.setState({ patientMeta, tableRecords, patientInfoMeta, selectedsubjectId, selected});
   }
   public async selectComparePatientId(subjectId: number) {
 
@@ -299,6 +301,11 @@ class App extends React.Component<AppProps, AppStates>{
     this.setState({ visible })
     // console.log('onClose', this.state.filterConditions)
   };
+  private onClick=(selected:string)=>{
+    console.log('onClick', selected)
+    if(this.state.selectedsubjectId)
+      this.setState({selected})
+  }
 
   private entityCategoricalColor(entityName?: string) {
     const { tableNames } = this.state;
@@ -316,11 +323,11 @@ class App extends React.Component<AppProps, AppStates>{
 
     const { subjectIds, patientMeta, tableNames, tableRecords, featureMeta, predictionTargets,
       focusedFeatures, pinnedfocusedFeatures,
-      itemDicts, signalMeta: dynamicRecords, patientInfoMeta, filterRange, visible, subjectIdG , selectedsubjectId} = this.state
+      itemDicts, signalMeta: dynamicRecords, patientInfoMeta, filterRange, visible, subjectIdG , selectedsubjectId, selected} = this.state
     const layout = this.layout;
     
     const distribution = subjectIdG && subjectIdG.distribution
-    const complicationtypes = ['Lung Comp.','Cardiac Comp.','Arrhythmia Comp.','Infectious Comp.','Other Comp.', 'No Comp.']
+    const complicationtypes = ['lung complication','cardiac complication','arrhythmia complication','infectious complication','other complication', 'No Comp.']
     const brieftcomplitype = ['L', 'C', 'A', 'I', 'O', 'No']
     // const distribution:number [] = subjectIdG && subjectIdG.distribution
     let complicationRes:number[] = [0,0,0,0,0]
@@ -366,7 +373,8 @@ class App extends React.Component<AppProps, AppStates>{
                   {brieftcomplitype&& complicationRes && brieftcomplitype.map((name,i) =>
                    i<5?  
                    <Tooltip title={complicationtypes[i]} placement="top">
-                     <Avatar style={{backgroundColor: avatatColor(complicationRes[i])}}>{name}</Avatar>
+                     <div className={'predictionIcon' + (selected && complicationtypes[i] === selected ? " proba-selected" : "")} style={{backgroundColor: avatatColor(complicationRes[i])}} onClick={this.onClick.bind(this,complicationtypes[i])}>
+                      <span>{name} </span></div>
                    </Tooltip>:''
                  )}
               </Col>
@@ -381,7 +389,7 @@ class App extends React.Component<AppProps, AppStates>{
           <Content>
             <Panel initialWidth={layout.featureViewWidth}
               initialHeight={window.innerHeight - layout.headerHeight} x={0} y={0} title="Feature View">
-              {featureMeta && predictionTargets && tableNames && <FeatureView
+              {featureMeta && predictionTargets && tableNames && patientMeta && selected&& <FeatureView
                 patientMeta={patientMeta}
                 featureMeta={featureMeta}
                 predictionTargets={predictionTargets}
@@ -392,6 +400,7 @@ class App extends React.Component<AppProps, AppStates>{
                 abnormalityColor={this.abnormalityColor}
                 focusedFeatures={[...pinnedfocusedFeatures, ...focusedFeatures]}
                 inspectFeature={this.updateSignalsByFeature}
+                target={selected}
               />}
             </Panel>
             <Panel initialWidth={layout.timelineViewWidth} initialHeight={layout.timelineViewHeight}

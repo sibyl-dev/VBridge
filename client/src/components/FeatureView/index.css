@@ -29,8 +29,8 @@
         }
     }
     button.proba-selected {
-        border: 2px solid rgb(78, 121, 167);
-        padding-left: 0px;
+        /*border: 2px solid rgb(78, 121, 167);
+        padding-left: 0px;*/
     }
     .feature-header {
         height: 30px;
