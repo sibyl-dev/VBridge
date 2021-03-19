@@ -78,7 +78,12 @@
 
 .between-view-link {
     stroke: #fff;
-    stroke-width: 1px;
-    fill: #aaa;
-    opacity: 0.1;
+    stroke-width: 2px;
+    fill: none;
+    opacity: 0.6;
+}
+
+.between-view-dot {
+    /* stroke: #fff; */
+    /* stroke-width: 1px; */
 }

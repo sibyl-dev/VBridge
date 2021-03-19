@@ -64,6 +64,7 @@
             .feature-block-cell {
                 margin-top: 5px;
                 margin-bottom: 5px;
+                max-height: 20px;
                 // height: calc(100% - 5px);
                 overflow: hidden;
                 .feature-block-cell-text {
@@ -71,20 +72,6 @@
                     display: flex;
                     justify-content: center;
                     align-items: center;
-                }
-                .neg-feature,
-                .pos-feature {
-                    height: 100%;
-                    margin-top: 3px;
-                    margin-bottom: 3px;
-                }
-                .neg-feature {
-                    background-color: #3C88E1;
-                    opacity: 80%;
-                }
-                .pos-feature {
-                    background-color: #FF0155;
-                    opacity: 80%;
                 }
             }
             .feature-value {
@@ -95,6 +82,30 @@
             }
             .feature-contribution {
                 margin-left: 10px;
+                display: flex;
+                .contribution-svg {
+                    width: 100%;
+                    height: 100%;
+                    rect.neg-feature {
+                        fill: #3C88E1;
+                        stroke: #3C88E1;
+                        stroke-width: 1px;
+                        opacity: 80%;
+                    }
+                    rect.pos-feature {
+                        fill: #FF0155;
+                        stroke: #FF0155;
+                        stroke-width: 1px;
+                        opacity: 80%;
+                    }
+                    rect.a-sub-b {
+                        // fill: #fff;
+                        mask: url(#mask-stripe)
+                    }
+                    rect.b-sub-a {
+                        fill: #fff;
+                    }
+                }
             }
         }
         .feature-block-hist {

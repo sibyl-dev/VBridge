@@ -203,14 +203,15 @@ export function beautifulPrinter(value: any, maxChar: number = 15): any {
 export function getOffsetById(id: string) {
   var e: HTMLElement | null = document.getElementById(id);
   if (e) {
-    var rect = e.getBoundingClientRect(),
+    const rect = e.getBoundingClientRect(),
       scrollLeft = window.pageXOffset || document.documentElement.scrollLeft,
       scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    return {
-      left: rect.left + scrollLeft,
-      right: rect.right + scrollLeft,
-      top: rect.top + scrollTop,
-      bottom: rect.bottom + scrollTop
-    }
+    if (rect)
+      return {
+        left: rect.left + scrollLeft,
+        right: rect.right + scrollLeft,
+        top: rect.top + scrollTop,
+        bottom: rect.bottom + scrollTop
+      }
   }
 }

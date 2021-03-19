@@ -107,8 +107,6 @@ class App extends React.Component<AppProps, AppStates>{
 
   componentDidMount() {
     this.init();
-    // this.paint();
-    // this.paintId = setInterval(this.paintLink, 200);
   }
 
   componentWillUnmount() {
@@ -116,12 +114,12 @@ class App extends React.Component<AppProps, AppStates>{
   }
 
   componentDidUpdate(prevProps: AppProps, prevState: AppStates) {
-    const {patientMeta, dynamicViewLink} = this.state;
+    const { patientMeta, dynamicViewLink } = this.state;
     if (prevState.patientMeta?.subjectId !== patientMeta?.subjectId) {
     }
     if (prevState.dynamicViewLink !== dynamicViewLink) {
       if (dynamicViewLink) {
-        this.paintId = setInterval(this.paintLink, 200);
+        this.paintId = setInterval(this.paintLink);
       }
       else {
         window.clearInterval(this.paintId);
@@ -139,10 +137,10 @@ class App extends React.Component<AppProps, AppStates>{
     const featureMeta = new DataFrame(await getFeatureMate());
     const predictionTargets = await getPredictionTargets();
 
-    const subjectIdG = (await getPatientGroup({ filterConditions: { 'aha': '' }, subject_id: 0, setSubjectIdG:true }))
+    const subjectIdG = (await getPatientGroup({ filterConditions: { 'aha': '' }, subject_id: 0, setSubjectIdG: true }))
     // const prediction = (await getPatientGroup({ filterConditions: filterConditions })).prediction
     console.log('init', subjectIdG, filterRange)
-    this.setState({ subjectIds, tableNames, filterRange, featureMeta, predictionTargets, itemDicts, subjectIdG});
+    this.setState({ subjectIds, tableNames, filterRange, featureMeta, predictionTargets, itemDicts, subjectIdG });
   }
 
   public async selectPatientId(subjectId: number) {
@@ -160,10 +158,10 @@ class App extends React.Component<AppProps, AppStates>{
 
   }
 
-  private async filterPatients(conditions: {[key: string]: any}, changeornot:boolean) {
-    if(changeornot && this.state.selectedsubjectId){
-        const subjectIdG = (await getPatientGroup({filterConditions: conditions, subject_id: this.state.selectedsubjectId, setSubjectIdG: true}))
-        this.setState({subjectIdG:subjectIdG, conditions: Object.assign({}, conditions)})
+  private async filterPatients(conditions: { [key: string]: any }, changeornot: boolean) {
+    if (changeornot && this.state.selectedsubjectId) {
+      const subjectIdG = (await getPatientGroup({ filterConditions: conditions, subject_id: this.state.selectedsubjectId, setSubjectIdG: true }))
+      this.setState({ subjectIdG: subjectIdG, conditions: Object.assign({}, conditions) })
     }
   }
 
@@ -314,7 +312,7 @@ class App extends React.Component<AppProps, AppStates>{
     const { tableNames } = this.state;
     let i = 0;
     if (tableNames && entityName)
-      i = tableNames?.indexOf(entityName) + 1;
+      i = (tableNames?.indexOf(entityName) + 1);
     return defaultCategoricalColor(i);
   }
 
@@ -324,29 +322,47 @@ class App extends React.Component<AppProps, AppStates>{
 
   private paintLink() {
     const { signalMetas } = this.state;
+    const { timelineViewHeight } = this.layout;
 
     const headerHeight = document.getElementById('header')?.offsetHeight || 0;
     const positions = signalMetas.map(signal => {
       const end = getOffsetById(`temporal-view-element-${signal.itemName}`);
-      if (end)
-        return signal.relatedFeatureNames.map(featureName => {
-          const start = getOffsetById(`feature-view-element-${featureName}`);
-          if (start)
-            return {
-              x1: start.right,
-              y1: (start.top + start.bottom) / 2,
-              x2: end.left,
-              y2: (end.top + end.bottom) / 2,
-              path: d3.line()([
-                [start.right, start.top],
-                [end.left, end.top],
-                [end.left, end.bottom],
-                [start.right, start.bottom],
-              ]),
-              color: this.entityCategoricalColor(signal.tableName)
-            }
-        }).filter(isDefined);
-    }).filter(isDefined);
+      if (end && end.top > (headerHeight + timelineViewHeight + 30)
+        && end.bottom < window.innerHeight) {
+        const starts = signal.relatedFeatureNames.map(featureName =>
+          getOffsetById(`feature-view-element-${featureName}`))
+          .filter(isDefined)
+          .filter(start => (start.top > 30 + headerHeight) &&
+            (start.bottom < window.innerHeight))
+          ;
+        return starts.map((start, i) => ({
+          start: start,
+          end: end,
+          x1: start.right,
+          y1: (start.top + start.bottom) / 2,
+          x2: end.left,
+          y2: (end.top + end.bottom) / 2,
+          // path: d3.path()
+          // path: d3.line()([
+          //   [start.right + 8, start.top + 2],
+          //   [end.left, end.top + (end.bottom - end.top) * i / starts.length],
+          //   [end.left, end.top + (end.bottom - end.top) * (i + 1) / starts.length],
+          //   [start.right + 8, start.bottom - 2],
+          // ]),
+          // path: d3.line()([
+          //   [start.right, start.top],
+          //   [end.left, end.top],
+          //   [end.left, end.bottom],
+          //   [start.right, start.bottom],
+          // ]),
+          // path: d3.line()([
+          //   [start.right, (start.top + start.bottom) / 2],
+          //   [end.left, (end.top + end.bottom) / 2],
+          // ]),
+          color: this.entityCategoricalColor(signal.tableName)
+        }))
+      }
+    }).filter(isDefined).filter(d => d.length > 0);
 
     const node = this.ref.current;
     if (node) {
@@ -369,12 +385,27 @@ class App extends React.Component<AppProps, AppStates>{
           update => update,
           exit => exit.remove()
         )
-        .attr('d', d => d.path)
-        .style('fill', d => d.color);
-        // .attr("x1", d => d.x1)
-        // .attr("x2", d => d.x2)
-        // .attr("y1", d => d.y1)
-        // .attr("y2", d => d.y2);
+        .attr('d', d => {
+          const delta = (d.x2 - d.x1) / 2;
+          const path = d3.path();
+          path.moveTo(d.x1, d.y1);
+          path.bezierCurveTo(d.x1 + delta, d.y1, d.x2 - delta, d.y2, d.x2, d.y2);
+          return path.toString()
+        })
+        // .style('fill', d => d.color)
+        .style('stroke', d => d.color);
+      base.selectAll(".between-view-dot")
+        .data(positions)
+        .join(
+          enter => enter.append("circle")
+            .attr("class", "between-view-dot"),
+          update => update,
+          exit => exit.remove()
+        )
+        .attr("cx", d => d[0].x2)
+        .attr("cy", d => d[0].y2)
+        .attr("r", 3)
+        .style('fill', d => d[0].color);
     }
   }
 
@@ -392,87 +423,64 @@ class App extends React.Component<AppProps, AppStates>{
       focusedFeatures, pinnedfocusedFeatures,
       itemDicts, signalMetas: dynamicRecords, patientInfoMeta, filterRange, visible, subjectIdG } = this.state;
     const layout = this.layout;
-    const idGs: number [] = subjectIdG && subjectIdG.subject_idG
-    const predictionG: string[] = subjectIdG && subjectIdG.predictionG.slice(0, 100)  
-    const similarityG:number [] = subjectIdG && subjectIdG.similarity && subjectIdG.similarity.slice(0, 100)
-    const complicationtypes = ['Lung Comp.','Cardiac Comp.','Arrhythmia Comp.','Infectious Comp.','Other Comp.', 'No Comp.']
+    const complicationtypes = ['Lung Comp.', 'Cardiac Comp.', 'Arrhythmia Comp.', 'Infectious Comp.', 'Other Comp.', 'No Comp.']
     const brieftcomplitype = ['L', 'C', 'A', 'I', 'O', 'No']
-    const distribution:number [] = subjectIdG && subjectIdG.distribution
-    let complicationRes:number[] = [0,0,0,0,0]
-    if(patientInfoMeta)
-      complicationRes = [patientInfoMeta['lung complication'], patientInfoMeta['cardiac complication'],patientInfoMeta['arrhythmia complication'],patientInfoMeta['infectious complication'],patientInfoMeta['other complication']]
-    if(distribution)
+    const distribution: number[] = subjectIdG && subjectIdG.distribution
+    let complicationRes: number[] = [0, 0, 0, 0, 0]
+    if (patientInfoMeta)
+      complicationRes = [patientInfoMeta['lung complication'], patientInfoMeta['cardiac complication'], patientInfoMeta['arrhythmia complication'], patientInfoMeta['infectious complication'], patientInfoMeta['other complication']]
+    if (distribution)
       var x = getScaleLinear(0, 80, distribution);
     const avatatColor = (id: number) => {
-            if (id == 0)
-                return '#cccccc'
-            else 
-                return '#7fa5ec'
+      if (id == 0)
+        return '#cccccc'
+      else
+        return '#7fa5ec'
     }
     return (
       <div className='App'>
         <Layout>
           <Header className="app-header" id="header">
             <p className='system-name'>Bridges</p>
-             <div className='patientselector' style={{ float:'left', marginLeft:'300px'}} >
-               <div className='selectProgress' style={{textAlign: 'left'}}>
+            <div className='patientselector' style={{ float: 'left', marginLeft: '300px' }} >
+              <div className='selectProgress' style={{ textAlign: 'left' }}>
                 <span className="patient-selector-title">PatientId: </span>
-                <Select style={{ width: 120, marginRight:'20px' }} onChange={this.selectPatientId} className="patient-selector">
+                <Select style={{ width: 120, marginRight: '20px' }} onChange={this.selectPatientId} className="patient-selector">
                   {subjectIds && subjectIds.map((id, i) =>
                     <Option value={id} key={i}>{id}</Option>
                   )}
                 </Select>
-               </div>
-               <div className='truthValue' style={{marginTop: '-20px'}}>
-                 <span className="complication-title"> Complication Prediction: </span>
-                 {brieftcomplitype&& complicationRes && brieftcomplitype.map((name,i) =>
-                   i<5?  
-                   <Tooltip title={complicationtypes[i]} placement="top">
-                     <Avatar style={{backgroundColor: avatatColor(complicationRes[i])}}>{name}</Avatar>
-                   </Tooltip>:''
-                 )}
-               </div>
               </div>
-
-            <div className='aboutFilter' style={{marginLeft:'100px', float:'left'}}>
-
-            <div className='filterProgress' style={{textAlign: 'left'}}>
-              <Tooltip title="Filter">
-                <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={this.showDrawer} style={{zIndex: 1 }} />
-              </Tooltip>
-              <span className="patient-selector-title" style={{marginLeft:'20px'}}> Filtered Result: {subjectIdG && subjectIdG.subject_idG? subjectIdG.subject_idG.length:0} </span>
+              <div className='truthValue' style={{ marginTop: '-20px' }}>
+                <span className="complication-title"> Complication Prediction: </span>
+                {brieftcomplitype && complicationRes && brieftcomplitype.map((name, i) =>
+                  i < 5 ?
+                    <Tooltip title={complicationtypes[i]} placement="top">
+                      <Avatar style={{ backgroundColor: avatatColor(complicationRes[i]) }}>{name}</Avatar>
+                    </Tooltip> : ''
+                )}
+              </div>
             </div>
-            <div className='truthValueDistri' style={{marginTop: '-20px'}}>
-              <span className="complication-title"> Complication Prediction Distribution: </span>
-              {brieftcomplitype  && distribution && brieftcomplitype.map((name,i) =>  
-                     <>
-                        <span style={{color: 'white', fontWeight:'bold'}}> {distribution[i]} </span>
-                        <Tooltip title={complicationtypes[i]} placement="top">
-                          <Avatar style={{backgroundColor: avatatColor(distribution[i])}}> {name}</Avatar>
-                        </Tooltip>
-                       </>
-              )}
-            </div>
-            {/*<span className="patient-selector-title" style={{marginLeft:'20px'}}> Prediction outcome: </span>
-             <Select mode="multiple" allowClear
-                                      placeholder="Please select"
-                                      maxTagCount='responsive'
-                                      dropdownMatchSelectWidth={true}
-                                      style={{ width: '300px' }} onChange={this.selectComparePatientId} className="compare-patient-selector">
-              {distribution && distribution.map((number, i) => 
-                <>
-                 <Option value={complicationtypes[i]} key={complicationtypes[i]} >
-                   <div style={{width: '48%'}}> {complicationtypes[i]} </div>
-                   <div className="number" style={{ width: '32%', opacity: Math.max(1 , 0.5) }}>
-                       <div className="neg-feature" style={{width: x(number)}} />  
-                   </div>
-                   <div style={{width: '20%'}}> {number} </div>
 
-                  </Option>
-                 </>
-              )}
-            </Select>
-          */}
+            <div className='aboutFilter' style={{ marginLeft: '100px', float: 'left' }}>
+
+              <div className='filterProgress' style={{ textAlign: 'left' }}>
+                <Tooltip title="Filter">
+                  <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={this.showDrawer} style={{ zIndex: 1 }} />
+                </Tooltip>
+                <span className="patient-selector-title" style={{ marginLeft: '20px' }}> Filtered Result: {subjectIdG && subjectIdG.subject_idG ? subjectIdG.subject_idG.length : 0} </span>
+              </div>
+              <div className='truthValueDistri' style={{ marginTop: '-20px' }}>
+                <span className="complication-title"> Complication Prediction Distribution: </span>
+                {brieftcomplitype && distribution && brieftcomplitype.map((name, i) =>
+                  <>
+                    <span style={{ color: 'white', fontWeight: 'bold' }}> {distribution[i]} </span>
+                    <Tooltip title={complicationtypes[i]} placement="top">
+                      <Avatar style={{ backgroundColor: avatatColor(distribution[i]) }}> {name}</Avatar>
+                    </Tooltip>
+                  </>
+                )}
+              </div>
             </div>
           </Header>
           <Content>
@@ -514,8 +522,8 @@ class App extends React.Component<AppProps, AppStates>{
               x={layout.featureViewWidth + 5} y={265} title={
                 <div className="view-title">
                   <span className="view-title-text">Temporal View</span>
-                  <Switch onChange={e => this.setState({dynamicViewLink: e})}/>
-                  <Switch onChange={e => this.setState({dynamicViewAlign: e})} checkedChildren="align" />
+                  <Switch onChange={e => this.setState({ dynamicViewLink: e })} />
+                  <Switch onChange={e => this.setState({ dynamicViewAlign: e })} checkedChildren="align" />
                 </div>
               }>
               {patientMeta && featureMeta && tableRecords && <DynamicView
@@ -544,7 +552,7 @@ class App extends React.Component<AppProps, AppStates>{
               />
               }
             </Panel>
-            <svg className="app-link-svg" ref={this.ref} />
+            <svg className="app-link-svg" ref={this.ref} style={{ height: window.innerHeight - layout.headerHeight }} />
             {/* {tableNames && <Panel initialWidth={400} initialHeight={435} x={1010} y={405}>
               <TableView
                 patientMeta={patientMeta}

@@ -2,9 +2,9 @@ import logging
 import math
 import json
 import csv
-import numpy as np
 
 import numpy as np
+import pandas as pd
 from flask.json import JSONEncoder
 from flask import request, jsonify, Blueprint, current_app, Response
 
@@ -410,7 +410,8 @@ def get_feature_meta():
             else:
                 feature_type = 'Pre-surgery Observations'
         else:
-            if f.get_name() in ['Height', 'Weight', 'Age', 'ADMISSIONS.ICD10_CODE_CN', 'ADMISSIONS.PATIENTS.GENDER']:
+            if f.get_name() in ['Height', 'Weight', 'Age', 
+                'ADMISSIONS.ICD10_CODE_CN', 'ADMISSIONS.PATIENTS.GENDER']:
                 feature_type = 'Patient Information'
             else:
                 feature_type = 'Surgery Information'
@@ -450,9 +451,47 @@ def get_feature_values():
 def get_shap_values():
     subject_id = int(request.args.get('subject_id'))
     target = request.args.get('target')
-    shap_values = current_app.model_manager.explain(subject_id, target)
+    shap_values = current_app.model_manager.explain(id=subject_id, target=target)
     return jsonify(shap_values.loc[0].to_dict())
 
+@api.route('/what_if_shap_values', methods=['GET'])
+def get_what_if_shap_values():
+    subject_id = int(request.args.get('subject_id'))
+    target = request.args.get('target')
+    shap_values = {}
+    fm = current_app.fm
+    model_manager = current_app.model_manager
+    targets = Modeler.prediction_targets()
+    stat = fm.agg(['mean', 'count', 'std']).T
+    stat['ci95_low'] = stat['mean'] - stat['std'] * 1.96
+    stat['ci95_high'] = stat['mean'] + stat['std'] * 1.96
+    target_fv = fm.loc[subject_id]
+
+    # What-if analysis on out-of-distribution high values
+    high_features = target_fv[target_fv > stat['ci95_high']].index
+    high_features = [f for f in high_features if f not in targets]
+    if len(high_features) > 0:
+        high_fm = pd.DataFrame(target_fv.values.repeat(len(high_features)).reshape(-1, len(high_features)), 
+                        columns=high_features, index=fm.columns)
+        for feature in high_features:
+            high_fm.loc[feature, feature] = stat.loc[feature]['ci95_high']
+        results = model_manager.explain(X=high_fm.T, target=target)
+        for i, feature in enumerate(high_features):
+            shap_values[feature] = results.loc[i, feature]
+
+    # What-if analysis on out-of-distribution low values
+    low_features = target_fv[target_fv < stat['ci95_low']].index
+    low_features = [f for f in low_features if f not in targets]
+    if len(low_features) > 0:
+        low_fm = pd.DataFrame(target_fv.values.repeat(len(low_features)).reshape(-1, len(low_features)), 
+                        columns=low_features, index=fm.columns)
+        for feature in low_features:
+            low_fm.loc[feature, feature] = stat.loc[feature]['ci95_low']
+        results = model_manager.explain(X=low_fm.T, target=target)
+        for i, feature in enumerate(low_features):
+            shap_values[feature] = results.loc[i, feature]
+    return jsonify(shap_values)
+    
 
 @api.route('/item_dict', methods=['GET'])
 def get_item_dict():
