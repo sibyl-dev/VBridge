@@ -9,6 +9,7 @@ export default class Header extends React.Component<IHeaderProps> {
     return (
       <div className="panel-header">
         <span className="panel-title">{this.props.title}</span>
+        
       </div>
     );
   }

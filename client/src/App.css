@@ -27,6 +27,40 @@
     float: left;
 }
 
+.header-name {
+    font-style: bold;
+    color: white;
+    font-size: 20px;
+    text-align: right;
+}
+
+.header-content {
+    font-style: bold;
+    color: white;
+    font-size: 20px;
+    margin-left: 20px;
+}
+
+.app-header .ant-row {
+    line-height: 38px;
+}
+
+.predictionIcon {
+    width: 30px;
+    height: 30px;
+    border-radius: 15px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    float: left;
+    margin-top: 5px;
+}
+
+.proba-selected {
+    border: #ff4e78 3px solid;
+    color: #ff4e78;
+}
+
 #Filter {
     border: 2px solid black;
 }

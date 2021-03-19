@@ -29,13 +29,13 @@ export interface FeatureViewProps {
     abnormalityColor?: (abnoramlity: number) => string,
     focusedFeatures: string[],
     display?: 'normal' | 'dense',
-
     inspectFeature?: (feature: Feature) => void,
+    target: string,
 }
 
 export interface FeatureViewStates {
-    target: string,
-    predictions?: (target: string) => number,
+    // target: string,
+    // predictions?: (target: string) => number,
     featureDisplayValues?: DataFrame,
     features?: IDataFrame<number, Feature>,
     featureMatrix?: IDataFrame<number, any>,
@@ -48,15 +48,16 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
         super(props);
 
         this.state = {
-            target: this.props.predictionTargets[1]
+            // target: this.props.predictionTargets[1]
         };
         this.defaultCellWidth = this.defaultCellWidth.bind(this);
-        this.onSelectTarget = this.onSelectTarget.bind(this);
+        // this.onSelectTarget = this.onSelectTarget.bind(this);
         this.getReferenceValues = this.getReferenceValues.bind(this);
     }
 
     componentDidMount() {
         this.loadFeatureMatAndRefs();
+        this.updateFeatures();
     }
 
     private async loadFeatureMatAndRefs() {
@@ -77,26 +78,19 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
         }
     }
 
-    private async updatePrediction() {
-        const subject_id = this.props.patientMeta?.subjectId;
-        if (subject_id !== undefined) {
-            const predictions = await getPrediction({ subject_id });
-            this.setState({ predictions })
-        }
-    }
-
     private defaultCellWidth(id: number) {
         const width = [150, 100, 150];
         return width[id];
     }
 
-    private onSelectTarget(target: string) {
-        this.setState({ target });
-    }
+    // private onSelectTarget(target: string) {
+    //     this.setState({ target });
+    // }
 
     private async updateFeatures() {
-        const { patientMeta, featureMeta, itemDicts } = this.props
-        const { target } = this.state;
+        let { patientMeta, featureMeta, itemDicts,target } = this.props
+        // const { target } = this.state;
+        console.log('updateFeatures', target)
         const subject_id = patientMeta?.subjectId;
         if (subject_id !== undefined) {
             const featureValues = await getFeatureValues({ subject_id });
@@ -152,23 +146,17 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
 
     componentDidUpdate(prevProps: FeatureViewProps, prevState: FeatureViewStates) {
         if (prevProps.patientMeta?.subjectId !== this.props.patientMeta?.subjectId
-            || prevState.target !== this.state.target) {
-            this.updatePrediction();
+            || prevProps.target !== this.props.target) {
             this.updateFeatures();
         }
     }
 
     public render() {
-        const { predictionTargets, ...rest } = this.props;
-        const { predictions, features, target, featureMatrix } = this.state;
+        const { predictionTargets,target, ...rest} = this.props;
+        const { features, featureMatrix } = this.state;
 
         return (
             <div className="feature-view">
-                {predictionTargets && ProbaList({
-                    predictionTargets, predictions,
-                    selected: target, onClick: this.onSelectTarget
-                })}
-                <Divider />
                 {features && <FeatureList
                     {...rest}
                     features={features}
@@ -181,25 +169,25 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
     }
 }
 
-function ProbaList(params: {
-    predictionTargets: string[],
-    predictions?: (target: string) => number,
-    selected?: string,
-    onClick?: (value: string) => void,
-}) {
-    const { predictions, selected, onClick } = params;
-    const predictionTargets = params.predictionTargets.filter(t => t !== 'complication');
-    return <div className="proba-list">
-        {predictionTargets.map(target =>
-            <Button block key={target} className={"proba-item" + (selected && target === selected ? " proba-selected" : "")}
-                onClick={() => onClick && onClick(target)}>
-                <div className="proba-target-name">{target}</div>
-                <div className="proba-value">{predictions ? predictions(target).toFixed(2) : '-'}</div>
-                <div className="proba-bar" style={{ height: "100%", width: `${predictions ? predictions(target) * 100 : 1}%` }}></div>
-            </Button>
-        )}
-    </div>
-}
+// function ProbaList(params: {
+//     predictionTargets: string[],
+//     predictions?: (target: string) => number,
+//     selected?: string,
+//     onClick?: (value: string) => void,
+// }) {
+//     const { predictions, selected, onClick } = params;
+//     const predictionTargets = params.predictionTargets.filter(t => t !== 'complication');
+//     return <div className="proba-list">
+//         {predictionTargets.map(target =>
+//             <Button block key={target} className={"proba-item" + (selected && target === selected ? " proba-selected" : "")}
+//                 onClick={() => onClick && onClick(target)}>
+//                 <div className="proba-target-name">{target}</div>
+//                 <div className="proba-value">{predictions ? predictions(target).toFixed(2) : '-'}</div>
+//                 <div className="proba-bar" style={{ height: "100%", width: `${predictions ? predictions(target) * 100 : 1}%` }}></div>
+//             </Button>
+//         )}
+//     </div>
+// }
 
 export interface FeatureListProps {
     className?: string,
