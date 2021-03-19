@@ -156,11 +156,11 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
 
         return (
             <div className="feature-view">
-                {/*predictionTargets && ProbaList({
+                {/*{predictionTargets && ProbaList({
                     predictionTargets, predictions,
                     selected: target,
-                })*/}
-                <Divider />
+                })}
+                <Divider />*/}
                 {features && <FeatureList
                     {...rest}
                     features={features}
