@@ -140,6 +140,15 @@ class App extends React.Component<AppProps, AppStates>{
   public async selectPatientId(subjectId: number) {
     const selectedsubjectId = subjectId
     const patientMeta = await getPatientMeta({ subject_id: subjectId });
+    console.log('selectPatientId', patientMeta)
+    console.log(patientMeta.AdmitTime)
+    console.log(patientMeta.DOB)
+    console.log(patientMeta.days)
+    // if(patientMeta){
+    //   let dob:Date = new Date(patientMeta.DOB)
+    //   let AdmitTime:Date = patientMeta.AdmitTime(AdmitTime.valueOf() - dob.valueOf())/1000/60/60/24
+    //   let days:number =  
+    // }
     const patientInfoMeta = await getPatientInfoMeta({ subject_id: subjectId });
     const tableRecords = await this.loadPatientRecords(subjectId);
     if (this.state.conditions) {
@@ -437,6 +446,7 @@ class App extends React.Component<AppProps, AppStates>{
                 patientInfoMeta={patientInfoMeta}
                 updateFocusedFeatures={this.updateFocusedFeatures}
                 updatePinnedFocusedFeatures={this.updatePinnedFocusedFeatures}
+                days={patientMeta && patientMeta.days}
               />
               }
             </Panel>

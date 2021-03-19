@@ -35,8 +35,8 @@
     font-weight: bold;
     display: flex;
     justify-content: center;
-    /*align-items: center;*/
-    padding-top:21px;
+    align-items: center;
+    /*padding-top:21px;*/
     line-height: 14px;
 }
 

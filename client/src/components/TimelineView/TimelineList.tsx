@@ -99,6 +99,7 @@ export class TimelineList extends React.Component<TimelineListProps, TimelineLis
         const { timeScale, color } = this.props;
         const style = { ...defaultTimelineStyle, ...this.props.timelineStyle };
         const { width, height, margin } = style;
+        console.log('TimelineList paint', style.margin, defaultTimelineStyle, this.props.timelineStyle )
         const node = this.ref.current;
         let events = this.props.events;
         if (timeScale) {

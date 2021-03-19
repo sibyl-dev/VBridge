@@ -22,6 +22,7 @@ export function drawTimeline(params: {
     onMouseLeave?: () => void;
 }) {
     const { color, events, node, timeScale, onBrush, selectedX, onMouseOver, onMouseLeave} = params
+    console.log('drawTimeline', params)
     const root = d3.select(node);
     const margin = getMargin(params.margin || {});
     const height = params.height - margin.top - margin.bottom;

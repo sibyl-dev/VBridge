@@ -110,6 +110,7 @@ def get_patient_meta():
     patient_df = es["PATIENTS"].df
     info['GENDER'] = patient_df[patient_df['SUBJECT_ID'] == subject_id]['GENDER'].values[0]
     info['DOB'] = str(patient_df[patient_df['SUBJECT_ID'] == subject_id]['DOB'].values[0])
+    info['days'] = 0
 
     return jsonify(info)
 
@@ -132,6 +133,7 @@ def get_patientinfo_meta():
         for i, col in enumerate(column_names):
             info[col] = str(record[col].values[0])
     # print('patientinfo_meta', info)
+    # info['ageDays'] = info['']
 
     return jsonify(info)
 

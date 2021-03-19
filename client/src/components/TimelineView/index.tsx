@@ -88,7 +88,7 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
         const startDate = patientMeta && patientMeta.AdmitTime;
         const endDate = patientMeta && patientMeta.SurgeryBeginTime;
         const width = 700;
-        const margin: IMargin = { left: 15, right: 15, top: 15, bottom: 0 }
+        const margin: IMargin = { left: 15, right: 15, top: 0, bottom: 0 }
         if (!timeScale) {
             const extent: [Date, Date] | undefined = startDate && endDate && [startDate, endDate];
             timeScale = extent && getScaleTime(0, width - margin.left - margin.right, undefined, extent);

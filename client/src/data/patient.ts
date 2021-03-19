@@ -3,6 +3,7 @@ export type PatientMeta = {
     AdmitTime: Date,
     SurgeryBeginTime: Date,
     SurgeryEndTime: Date,
-    DOB: string,
+    DOB: Date,
     GENDER: string,
+    days: number,
 }
