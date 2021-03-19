@@ -133,6 +133,7 @@ class App extends React.Component<AppProps, AppStates>{
     // const prediction = (await getPatientGroup({ filterConditions: filterConditions })).prediction
     console.log('init', subjectIdG, filterRange)
     this.setState({ subjectIds, tableNames, filterRange, featureMeta, predictionTargets, itemDicts, subjectIdG});
+
   }
 
   public async selectPatientId(subjectId: number) {
@@ -142,7 +143,7 @@ class App extends React.Component<AppProps, AppStates>{
     const tableRecords = await this.loadPatientRecords(subjectId);
     if (this.state.conditions) {
       const subjectIdG = (await getPatientGroup({ filterConditions: this.state.conditions, subject_id: subjectId, setSubjectIdG: true }))
-      this.setState({ subjectIdG })
+      this.setState({subjectIdG})
     }
     this.setState({ patientMeta, tableRecords, patientInfoMeta, selectedsubjectId });
   }
@@ -151,8 +152,8 @@ class App extends React.Component<AppProps, AppStates>{
   }
 
   private async filterPatients(conditions: {[key: string]: any}, changeornot:boolean) {
-    if(changeornot && this.state.selectedsubjectId){
-        const subjectIdG = (await getPatientGroup({filterConditions: conditions, subject_id: this.state.selectedsubjectId, setSubjectIdG: true}))
+    if(changeornot){
+        const subjectIdG = (await getPatientGroup({filterConditions: conditions, subject_id: 0, setSubjectIdG: true}))
         this.setState({subjectIdG:subjectIdG, conditions: Object.assign({}, conditions)})
     }
   }
@@ -315,14 +316,13 @@ class App extends React.Component<AppProps, AppStates>{
 
     const { subjectIds, patientMeta, tableNames, tableRecords, featureMeta, predictionTargets,
       focusedFeatures, pinnedfocusedFeatures,
-      itemDicts, signalMeta: dynamicRecords, patientInfoMeta, filterRange, visible, subjectIdG } = this.state
+      itemDicts, signalMeta: dynamicRecords, patientInfoMeta, filterRange, visible, subjectIdG , selectedsubjectId} = this.state
     const layout = this.layout;
-    const idGs: number [] = subjectIdG && subjectIdG.subject_idG
-    const predictionG: string[] = subjectIdG && subjectIdG.predictionG.slice(0, 100)  
-    const similarityG:number [] = subjectIdG && subjectIdG.similarity && subjectIdG.similarity.slice(0, 100)
+    
+    const distribution = subjectIdG && subjectIdG.distribution
     const complicationtypes = ['Lung Comp.','Cardiac Comp.','Arrhythmia Comp.','Infectious Comp.','Other Comp.', 'No Comp.']
     const brieftcomplitype = ['L', 'C', 'A', 'I', 'O', 'No']
-    const distribution:number [] = subjectIdG && subjectIdG.distribution
+    // const distribution:number [] = subjectIdG && subjectIdG.distribution
     let complicationRes:number[] = [0,0,0,0,0]
     if(patientInfoMeta)
       complicationRes = [patientInfoMeta['lung complication'], patientInfoMeta['cardiac complication'],patientInfoMeta['arrhythmia complication'],patientInfoMeta['infectious complication'],patientInfoMeta['other complication']]
@@ -377,64 +377,6 @@ class App extends React.Component<AppProps, AppStates>{
               </Col>
               <Col span={6}/>
             </Row>
-          {/*
-            <p className='system-name'>Bridges</p>
-             <div className='patientselector' style={{ float:'left', marginLeft:'300px'}} >
-               <div className='selectProgress' style={{textAlign: 'left'}}>
-                <span className="patient-selector-title">PatientId: </span>
-                <Select style={{ width: 120, marginRight:'20px' }} onChange={this.selectPatientId} className="patient-selector">
-                  {subjectIds && subjectIds.map((id, i) =>
-                    <Option value={id} key={i}>{id}</Option>
-                  )}
-                </Select>
-               </div>
-               <div className='truthValue' style={{marginTop: '-20px'}}>
-                 <span className="complication-title"> Prediction: </span>
-                 {brieftcomplitype&& complicationRes && brieftcomplitype.map((name,i) =>
-                   i<5?  
-                   <Tooltip title={complicationtypes[i]} placement="top">
-                     <Avatar style={{backgroundColor: avatatColor(complicationRes[i])}}>{name}</Avatar>
-                   </Tooltip>:''
-                 )}
-               </div>
-              </div>
-
-            <div className='aboutFilter' style={{marginLeft:'100px', float:'left'}}>
-
-            <div className='filterProgress' style={{textAlign: 'left'}}>
-              
-              <span className="patient-selector-title" style={{marginLeft:'20px', textAlign: 'right'}}> #Comparative Group:</span>
-              <Tooltip title="Filter">
-                <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={this.showDrawer} style={{zIndex: 1 }} />
-              </Tooltip>
-              <span className="patient-selector-title"> {subjectIdG && subjectIdG.subject_idG? subjectIdG.subject_idG.length:0} </span>
-            </div>
-            <div className='ComparativeGroup' style={{marginTop: '-20px'}}>
-              <span className="complication-title" style={{textAlign: 'right'}}> #Healthy Group: </span>
-              <span className='complication-number' style={{color:'white'}}> {distribution?distribution[5]:0} </span>
-            </div>
-            </div>
-            */}
-            {/*<span className="patient-selector-title" style={{marginLeft:'20px'}}> Prediction outcome: </span>
-             <Select mode="multiple" allowClear
-                                      placeholder="Please select"
-                                      maxTagCount='responsive'
-                                      dropdownMatchSelectWidth={true}
-                                      style={{ width: '300px' }} onChange={this.selectComparePatientId} className="compare-patient-selector">
-              {distribution && distribution.map((number, i) => 
-                <>
-                 <Option value={complicationtypes[i]} key={complicationtypes[i]} >
-                   <div style={{width: '48%'}}> {complicationtypes[i]} </div>
-                   <div className="number" style={{ width: '32%', opacity: Math.max(1 , 0.5) }}>
-                       <div className="neg-feature" style={{width: x(number)}} />  
-                   </div>
-                   <div style={{width: '20%'}}> {number} </div>
-
-                  </Option>
-                 </>
-              )}
-            </Select>
-          */}
           </Header>
           <Content>
             <Panel initialWidth={layout.featureViewWidth}
@@ -498,19 +440,18 @@ class App extends React.Component<AppProps, AppStates>{
               />
             </Panel>
             }*/}
-            {tableNames &&
+            {tableNames && 
               <Drawer title="Filter View" placement="right" closable={false} onClose={this.onClose} visible={visible} width={450} >
                 <p>
                   <FilterView
-                    patientIds={subjectIds}
+                    selectedsubjectId={selectedsubjectId}
                     filterRange={filterRange}
                     filterPatients={this.filterPatients}
                     onClose={this.onClose}
-                    contribution={distribution}
                     patientInfoMeta={patientInfoMeta}
                     visible={visible}
                     subjectIdG={subjectIdG && subjectIdG.subject_idG}
-                    distributionApp={subjectIdG && subjectIdG.distribution}
+                    distributionApp={distribution}
                   />
                 </p>
               </Drawer>

@@ -1,7 +1,7 @@
 
 import * as React from "react";
 import { Row, Col, Divider, Select, Checkbox} from "antd"
-
+import "./MultiSelect.css";
 export interface MultiSelctProps {
     filterName: string,
     contents: string[],
@@ -28,6 +28,7 @@ export default class MultiSelect extends React.Component<MultiSelctProps, MultiS
 
         this.handleMultiSelect = this.handleMultiSelect.bind(this)
         this.onCheckAllChange = this.onCheckAllChange.bind(this)
+        this.onChange = this.onChange.bind(this)
     }
     public init(){
         const value = this.props.defaultValue
@@ -86,48 +87,79 @@ export default class MultiSelect extends React.Component<MultiSelctProps, MultiS
         this.setState({value, checkedAll, indeterminate})
         updateConditions(filterName, value, checkedAll)
    }
+   onChange(listV:any){
+       var {contents, updateConditions, filterName} = this.props
+       this.setState({value: listV})
+       let checkedAll = false
+       if(listV.length == contents.length)
+            checkedAll = true
+       updateConditions(filterName, listV, checkedAll)
+
+   }
     public render() {
         var {filterName, contents, defaultValue, key} = this.props
         var {value, indeterminate, checkedAll} = this.state
         
         const name1 = filterName.replace(/_/g," ")
         console.log('MultiSelect', this.props)
-
-        if(defaultValue && value)
-	        return(
-	        	<>
-	                <Divider orientation="center"></Divider>
-	                <Row>
-	                   <Col span={6} className='filterName' > {name1}: </Col>
-	                   <Col span={2}/>
-	                   <Col span={14}>  
-	                           <Select
-	                              mode="multiple"
-	                              allowClear
-	                              style={{ width: '100%' }}
-	                              placeholder="Please select"
-	                              maxTagCount='responsive'
-	                              dropdownMatchSelectWidth={true}
-	                              value={value}
-	                              key={filterName}
-	                              defaultValue={defaultValue}
-	                              onChange={this.handleMultiSelect.bind(this)}
-	                            >
-	                               {contents.map((content,i) =>
-	                                        <Select.Option key={i} value={content}>
-	                                            {content} 
-	                                         </Select.Option>
-	                                    
-	                                )}
-	                            </Select> 
-
-	                   </Col>
-	                   <Col span={2}>
-	                       <Checkbox indeterminate={indeterminate} style={{ marginLeft: '10px' }} checked={checkedAll} onChange={this.onCheckAllChange.bind(this)}/>
-	                   </Col>
-	                </Row> 
-	           </>
-	    	)
+        if(defaultValue && value){
+            if(contents.length<=4 || filterName=='Age'){
+    	        return(
+    	        	<>
+                        <Checkbox.Group className={filterName} style={{width: '100%',}} value={value} defaultValue={defaultValue} onChange={this.onChange}>
+                           {contents.map((content,i) =>{
+                               if(i){
+                                   return (
+                                      <Row>
+                                          <Col span={8} />
+                                          <Col span={14} style={{textAlign: 'left'}}>  
+                                            <Checkbox value={content} key={i}>{content}</Checkbox>
+                                           </Col>
+                                       </Row>)
+                               }
+                               else{
+                                   return (<Row>
+                                       <Col span={6} className='filterName' style={{textAlign:'right'}}> {name1}: </Col>
+                                       <Col span={2}/>
+                                        <Col span={14} style={{textAlign: 'left'}}>  
+                                            <Checkbox value={content} key={i}>{content}</Checkbox>
+                                        </Col>
+                                    </Row>)
+                               }
+                            }
+                            )}
+                       </Checkbox.Group>
+    	           </>
+    	    	)
+            }
+            else{
+                return (<Row>
+                               <Col span={6} className='filterName' > {name1}: </Col>
+                               <Col span={2}/>
+                               <Col span={14}>  
+                                       <Select
+                                          mode="multiple"
+                                          allowClear
+                                          style={{ width: '100%' }}
+                                          placeholder="Please select"
+                                          maxTagCount='responsive'
+                                          dropdownMatchSelectWidth={true}
+                                          value={value}
+                                          key={filterName}
+                                          defaultValue={defaultValue}
+                                          onChange={this.handleMultiSelect.bind(this)}
+                                        >
+                                           {contents.map((content,i) =>
+                                                    <Select.Option key={i} value={content}>
+                                                        {content} 
+                                                     </Select.Option>
+                                                
+                                            )}
+                                        </Select> 
+                               </Col>
+                       </Row>)
+            }
+        }
     }
 
 }

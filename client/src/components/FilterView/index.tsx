@@ -17,11 +17,10 @@ import { IDataFrame } from "data-forge";
 
 const { Option } = Select
 export interface FliterViewProps {
-    patientIds?: number[],
+    selectedsubjectId?:(number | undefined),
     filterRange?: { [key: string]: any },
     filterPatients?: (condition: {[key: string]: any}, changeornot:boolean) => void,
     onClose?:()=>void,
-    contribution?: number [],
     visible?: boolean,
     patientInfoMeta?: { [key: string]: any },
     subjectIdG?: number[],
@@ -60,13 +59,13 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
             checkedList: Array(8).fill(['Empty']),
             changeornot: false ,
             cancel: false,
-            filter_name: [  'Height', 'Weight', 'Surgical time (minutes)',
-                            'GENDER',  
-                            'Age',
+            filter_name: [  'Age','SURGERY_NAME', 'GENDER',  'Height', 'Weight', 'Surgical time (minutes)',
+                            
+                            
                             // 'ETHNICITY',
                             // 'ADMISSION_DEPARTMENT', 
                             // 'DIAGNOSIS', 'ICD10_CODE_CN', 
-                            'SURGERY_NAME', 
+                            
                             // 'ANES_METHOD','SURGERY_POSITION', 
                               ], 
             categorical_name:[
@@ -82,22 +81,26 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
     public async init() {
         var checkedList = Array(8).fill([])
         console.log('checkedList', this.props.filterRange, this.state.checkedList)
-        const {filterRange, patientInfoMeta, visible, filterPatients, distributionApp, subjectIdG} = this.props
+        const {filterRange, patientInfoMeta, visible, filterPatients, distributionApp, subjectIdG, selectedsubjectId} = this.props
         var {categorical_name, numerical_name,  defaultValue, filterConditions} = this.state
         defaultValue = {'':''}
-        filterConditions= {'': ''}
-
-        if(patientInfoMeta && categorical_name && numerical_name){
+        filterConditions= {'': '', 'SURGERY_NAME':[]}
+        
+        if(categorical_name && numerical_name && filterRange){
             numerical_name.map((name,idx)=>{
-                if(defaultValue)  defaultValue[name] = [ Math.floor(patientInfoMeta[name]*0.9), Math.ceil(patientInfoMeta[name]*1.1) ]
+                if(defaultValue)  defaultValue[name] = filterRange[name]
             })
             categorical_name.map((name, idx) =>{
-                if(defaultValue) defaultValue[name] = new Array(patientInfoMeta[name])
+                if(defaultValue) defaultValue[name] =filterRange[name]
             })
-            defaultValue['SURGERY_NAME'] = patientInfoMeta['SURGERY_NAME'].split('+')
-            defaultValue['Age'] = new Array(this.judgeTheAge(patientInfoMeta['Age']))
+            defaultValue['SURGERY_NAME'] = []
+            defaultValue['Age'] = filterRange['Age']
         
         }
+        if(patientInfoMeta)
+            defaultValue['Age'] = new Array(this.judgeTheAge(patientInfoMeta['Age']))
+
+
         if(filterPatients)
             filterPatients(defaultValue, true)
         console.log('here defaultValue', defaultValue)
@@ -123,9 +126,9 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
         this.setState({ featureMatrix });
     }
     componentDidUpdate(prevProps: FliterViewProps){
-        // if(this.props.subjectIdG && prevProps.subjectIdG?.sort().toString() !== this.props.subjectIdG.sort().toString()) {
-        //     this.loadFeatureMatrix()
-        // }
+        if(this.props.selectedsubjectId && prevProps.selectedsubjectId !== this.props.selectedsubjectId) {
+            this.init()
+        }
     }
     componentWillReceiveProps(nextProps: FliterViewProps) {
         if (nextProps.visible) 
@@ -205,7 +208,7 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
         this.updateConditions('GENDER', value, coverAll)
     }
     public render() {
-        const { filterRange, patientIds, onClose, filterPatients,patientInfoMeta,  } = this.props
+        const { filterRange, selectedsubjectId, onClose, filterPatients,patientInfoMeta } = this.props
         const { expandItem, PATIENTS, ADMISSIONS, SURGERY_INFO, defaultValue, filter_name, checkedList, indeterminate, 
             checkedAll, tmpConditions, filterConditions, cancel, featureMatrix, distributionFilter, allPatientNumber } = this.state;
         console.log('filterConditions', filterConditions, 'tmpConditions', tmpConditions)
@@ -222,14 +225,14 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
         if(distributionFilter)
               var x = getScaleLinear(0, 80, distributionFilter);
 
-       
+        
         return (
             <div id='FilterView'>
-             { filter_name && patientInfoMeta && defaultValue && filterRange && filter_name.map((name,idx) => {
+             { filter_name && defaultValue && filterRange && filter_name.map((name,idx) => {
                 if(name == 'GENDER'){
                     return <>
                         <Divider orientation="left"/>
-                        <Checkbox.Group style={{ width: '100%' }} value={defaultValue[name]} defaultValue={patientInfoMeta[name]} onChange={this.onCheckGender}>
+                        <Checkbox.Group style={{ width: '100%' }} value={defaultValue[name]} defaultValue={defaultValue[name]} onChange={this.onCheckGender}>
                             <Row>
                                   <Col span={6} className='filterName'>{name}:</Col>
                                   <Col span={2}/>
@@ -249,36 +252,34 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
                     var value: any = ['Empty']
                     if(defaultValue)
                         value = defaultValue[name]
-                    if(indeterminate && checkedAll)
+                    // if(indeterminate && checkedAll)
                         return (
+                            <>
+                            {name!='Age'?<><Divider orientation='left'/> <Divider orientation="center"> Patient Must Have:</Divider></>:''}
                             <MultiSelect  filterName={name}
-                                           contents={ name=='SURGERY_NAME'? patientInfoMeta[name].split('+'):filterRange[name]}
+                                           contents={ name=='SURGERY_NAME' && patientInfoMeta? patientInfoMeta[name].split('+'):filterRange[name]}
                                            key={idx}
                                            defaultValue={value}
                                            cancel={cancel?cancel: false}
                                            updateConditions={this.updateConditions}/>
+                            </>
                         )
-   
+
                 }
                 // numberic data type, using slider
                 else{
                     const max = Math.ceil(filterRange[name][1])
                     const min = Math.floor(filterRange[name][0])
                     var series = featureMatrix?.getSeries(name).parseFloats().toArray();
-                    // if (series) {
-                    //     // console.log(series.where(row => row > (value as number)).count() / series.count());
-                    //     var thresholds = confidenceThresholds(series);
-                    //     var colorIndex = _.sum(thresholds.map(t => t < value!));
-                    // }
                     return(<>
-                                {name!='Height'? <Divider orientation="left"/>:''}
+                                <Divider orientation="left"/>
                                 <RangeChose filterName={name} 
                                             key={idx} 
                                             min={min}
                                             max={max}
                                             cancel={cancel? cancel: false}
                                             data={series}
-                                            referenceValue={patientInfoMeta[name]}
+                                            referenceValue={patientInfoMeta ? patientInfoMeta[name]:min}
                                             defaultValue={defaultValue?defaultValue[name]:[0,0]}
                                             updateConditions={this.updateConditions}
                                 />
@@ -304,7 +305,7 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
            <Divider orientation="left"/>
             <Row>
                  <Col span={10}> Number of Patients: </Col>
-                 <Col span={10}> {allPatientNumber} </Col>
+                 <Col span={10}> {allPatientNumber?allPatientNumber:0} </Col>
              </Row>
            <Divider orientation="left"/>
            <Row>
@@ -320,5 +321,7 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
 
              </div>
         )
+
+
     }
 }

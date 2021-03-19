@@ -269,7 +269,7 @@ def get_patient_group():
 
                 if(condition_name in number_vari):
                     hadm_df = hadm_df[(hadm_df[condition_name]>=conditions[condition_name][0]) &  (hadm_df[condition_name]<=conditions[condition_name][1])]
-                elif(len(conditions[condition_name]) == 0):
+                elif(len(conditions[condition_name]) == 0 and condition_name!='SURGERY_NAME'):
                     subject_idG = []
                 elif(condition_name == 'Age'):
                     fiilter_flag = False
@@ -282,7 +282,14 @@ def get_patient_group():
                     if('> 1 year' in conditions[condition_name]):
                         fiilter_flag = (fiilter_flag) | (hadm_df[condition_name]>=12)
                     hadm_df = hadm_df[fiilter_flag]
-                elif(condition_name == 'SURGERY_NAME' or condition_name == 'SURGERY_POSITION'):
+                elif(condition_name == 'SURGERY_NAME'):
+                    # do nothing when he is []
+                    if(len(conditions[condition_name])):
+                        tmpDf = hadm_df[condition_name]
+                        flag = tmpDf.apply(lambda x: np.array([t in x for t in conditions[condition_name]]).all())
+                        hadm_df = hadm_df[flag]
+
+                elif(condition_name == 'SURGERY_POSITION'):
                     tmpDf = hadm_df[condition_name]
                     print('SURGERY_NAME', conditions[condition_name])
                     flag = tmpDf.apply(lambda x: np.array([t in x for t in conditions[condition_name]]).any())
