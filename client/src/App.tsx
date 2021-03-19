@@ -338,6 +338,46 @@ class App extends React.Component<AppProps, AppStates>{
       <div className='App'>
         <Layout>
           <Header className="app-header">
+            <Row>
+              <Col span={2} className='system-name'>Bridges</Col>
+              <Col span={4} />
+              <Col span={2} className='header-name'> PatientId: </Col>
+              <Col span={4} className='header-content'>
+                <Select style={{ width: 120, marginRight:'20px' }} onChange={this.selectPatientId} className="patient-selector">
+                  {subjectIds && subjectIds.map((id, i) =>
+                    <Option value={id} key={i}>{id}</Option>
+                  )}
+                </Select>
+              </Col>
+              <Col span={1} />
+              <Col span={3} className='header-name'> #Comparative Group: </Col>
+              <Col span={2} className='header-content'>
+                  <Tooltip title="Filter">
+                    <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={this.showDrawer} style={{zIndex: 1 }} />
+                  </Tooltip>
+                  <span className="header-name"> {subjectIdG && subjectIdG.subject_idG? subjectIdG.subject_idG.length:0} </span>
+              </Col>
+              <Col span={6}/>
+            </Row>
+            <Row>
+              <Col span={6} />
+              <Col span={2} className='header-name'>Predictions: </Col>
+              <Col span={4} className='header-content'>
+                  {brieftcomplitype&& complicationRes && brieftcomplitype.map((name,i) =>
+                   i<5?  
+                   <Tooltip title={complicationtypes[i]} placement="top">
+                     <Avatar style={{backgroundColor: avatatColor(complicationRes[i])}}>{name}</Avatar>
+                   </Tooltip>:''
+                 )}
+              </Col>
+              <Col span={1}/>
+              <Col span={3} className='header-name'> #Healthy Group: </Col>
+              <Col span={2} className='header-content'>
+                {distribution?distribution[5]:0} 
+              </Col>
+              <Col span={6}/>
+            </Row>
+          {/*
             <p className='system-name'>Bridges</p>
              <div className='patientselector' style={{ float:'left', marginLeft:'300px'}} >
                <div className='selectProgress' style={{textAlign: 'left'}}>
@@ -349,7 +389,7 @@ class App extends React.Component<AppProps, AppStates>{
                 </Select>
                </div>
                <div className='truthValue' style={{marginTop: '-20px'}}>
-                 <span className="complication-title"> Complication Prediction: </span>
+                 <span className="complication-title"> Prediction: </span>
                  {brieftcomplitype&& complicationRes && brieftcomplitype.map((name,i) =>
                    i<5?  
                    <Tooltip title={complicationtypes[i]} placement="top">
@@ -362,22 +402,19 @@ class App extends React.Component<AppProps, AppStates>{
             <div className='aboutFilter' style={{marginLeft:'100px', float:'left'}}>
 
             <div className='filterProgress' style={{textAlign: 'left'}}>
+              
+              <span className="patient-selector-title" style={{marginLeft:'20px', textAlign: 'right'}}> #Comparative Group:</span>
               <Tooltip title="Filter">
                 <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={this.showDrawer} style={{zIndex: 1 }} />
               </Tooltip>
-              <span className="patient-selector-title" style={{marginLeft:'20px'}}> Filtered Result: {subjectIdG && subjectIdG.subject_idG? subjectIdG.subject_idG.length:0} </span>
+              <span className="patient-selector-title"> {subjectIdG && subjectIdG.subject_idG? subjectIdG.subject_idG.length:0} </span>
             </div>
-            <div className='truthValueDistri' style={{marginTop: '-20px'}}>
-              <span className="complication-title"> Complication Prediction Distribution: </span>
-              {brieftcomplitype  && distribution && brieftcomplitype.map((name,i) =>  
-                     <>
-                        <span style={{color: 'white', fontWeight:'bold'}}> {distribution[i]} </span>
-                        <Tooltip title={complicationtypes[i]} placement="top">
-                          <Avatar style={{backgroundColor: avatatColor(distribution[i])}}> {name}</Avatar>
-                        </Tooltip>
-                       </>
-              )}
+            <div className='ComparativeGroup' style={{marginTop: '-20px'}}>
+              <span className="complication-title" style={{textAlign: 'right'}}> #Healthy Group: </span>
+              <span className='complication-number' style={{color:'white'}}> {distribution?distribution[5]:0} </span>
             </div>
+            </div>
+            */}
             {/*<span className="patient-selector-title" style={{marginLeft:'20px'}}> Prediction outcome: </span>
              <Select mode="multiple" allowClear
                                       placeholder="Please select"
@@ -398,7 +435,6 @@ class App extends React.Component<AppProps, AppStates>{
               )}
             </Select>
           */}
-            </div>
           </Header>
           <Content>
             <Panel initialWidth={layout.featureViewWidth}

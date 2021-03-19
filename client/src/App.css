@@ -15,7 +15,21 @@
     float: left;
     font-size: 30px;
 }
-
+.header-name{
+    font-style: bold;
+    color: white;
+    font-size: 20px;
+    text-align: right;
+}
+.header-content{
+    font-style: bold;
+    color: white;
+    font-size: 20px;
+    margin-left: 20px;
+}
+.app-header .ant-row{
+    line-height: 38px;
+}
 
 #Filter {
     border: 2px solid black;
@@ -50,6 +64,7 @@
     line-height: 20px;
     margin-right: 20px;
 }
+
 
 .ant-select-item-option-content {
     display: flex;
