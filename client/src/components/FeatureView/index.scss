@@ -198,6 +198,7 @@
     width: 100%;
     display: flex;
     flex-wrap: wrap;
+    margin-bottom: 10px;
     .legend-block {
         display: flex;
         justify-content: center;
@@ -219,7 +220,7 @@
     width: 100%;
     display: flex;
     .legend-anno {
-        font-size: 14px;
+        font-size: 10px;
         margin-left: 10px;
         margin-right: 10px;
     }

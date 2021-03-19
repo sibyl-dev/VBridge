@@ -41,7 +41,7 @@ export interface DynamicViewProps {
 }
 
 export interface DynamicViewStates {
-    signals: Signal[]
+    signalGroups: IDataFrame<number, Signal>[]
 }
 
 export default class DynamicView extends React.PureComponent<DynamicViewProps, DynamicViewStates> {
@@ -49,7 +49,7 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
     constructor(props: DynamicViewProps) {
         super(props);
         this.state = {
-            signals: props.signalMetas.map(s => this.buildSignal(s))
+            signalGroups: []
         };
 
         this.onPin = this.onPin.bind(this);
@@ -68,7 +68,8 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
         const signals = this.props.signalMetas
             .map(s => this.buildSignal(s))
             .filter(s => s.data && s.data.values.count());
-        this.setState({ signals });
+        const signalGroups = new DataFrame(signals).groupBy(row => row.tableName).toArray();
+        this.setState({ signalGroups });
     }
 
     private buildSignal(record: SignalMeta): Signal {
@@ -96,28 +97,32 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
 
     public render() {
         const { patientMeta, itemDicts, color, updateFocusedFeatures, removeSignal, className } = this.props;
-        const { signals } = this.state;
+        const { signalGroups } = this.state;
         return (
             <div>
-                <div>
-                    {/* <Search placeholder="input search text" style={{ marginLeft: 10, marginRight: 10, width: "90%" }} enterButton /> */}
+                {/* <div>
+                    <Search placeholder="input search text" style={{ marginLeft: 10, marginRight: 10, width: "90%" }} enterButton />
                 </div>
-                <Divider />
+                <Divider /> */}
                 <div>
-                    {signals.map((signal, i) =>
-                        <DynamicCard
-                            className={className}
-                            signal={signal}
-                            key={signal.itemName}
-                            itemDicts={itemDicts}
-                            align={false}
-                            margin={{ bottom: 20, left: 25, top: 15, right: 25 }}
-                            color={color && color(signal.tableName)}
-                            // onHover={updateFocusedFeatures && (() => updateFocusedFeatures(signal.relatedFeatureNames))}
-                            // onLeave={updateFocusedFeatures && (() => updateFocusedFeatures([]))}
-                            onRemove={removeSignal && (() => removeSignal(signal))}
-                            onPin={() => this.onPin(signal)}
-                        />)}
+                    {signalGroups.map(group => <div key={group.first().tableName}>
+                        <Divider>{group.first().tableName}</Divider>
+                        {group.toArray().map((signal, i) =>
+                            <DynamicCard
+                                className={className}
+                                signal={signal}
+                                key={signal.itemName}
+                                itemDicts={itemDicts}
+                                align={false}
+                                margin={{ bottom: 20, left: 25, top: 15, right: 25 }}
+                                color={color && color(signal.tableName)}
+                                // onHover={updateFocusedFeatures && (() => updateFocusedFeatures(signal.relatedFeatureNames))}
+                                // onLeave={updateFocusedFeatures && (() => updateFocusedFeatures([]))}
+                                onRemove={removeSignal && (() => removeSignal(signal))}
+                                onPin={() => this.onPin(signal)}
+                            />)}
+                    </div>
+                    )}
                 </div>
             </div>
         )
