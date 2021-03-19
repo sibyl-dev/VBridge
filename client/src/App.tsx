@@ -13,7 +13,10 @@ import TimelineView from "./components/TimelineView"
 import DynamicView, { SignalMeta } from "./components/DynamicView"
 import FilterView from "./components/FilterView"
 
-import { getFeatureMate, getPatientIds, getPatientMeta, getPatientInfoMeta, getPatientRecords, getPredictionTargets, getTableNames, getPatientFilterRange, getPatientGroup, getItemDict, getPrediction } from "./router/api"
+import {
+  getFeatureMate, getPatientIds, getPatientMeta, getPatientInfoMeta, getPatientRecords,
+  getPredictionTargets, getTableNames, getPatientFilterRange, getPatientGroup, getItemDict, getPrediction
+} from "./router/api"
 import { PatientMeta } from 'data/patient';
 import { Entity, ItemDict } from 'data/table';
 import { patientInfoMeta } from 'data/metaInfo';
@@ -87,8 +90,7 @@ class App extends React.Component<AppProps, AppStates>{
     this.filterPatients = this.filterPatients.bind(this)
     this.buildRecordTS = this.buildRecordTS.bind(this);
     this.updateRecordTS = this.updateRecordTS.bind(this);
-    this.showDrawer = this.showDrawer.bind(this)
-    this.onClose = this.onClose.bind(this)
+    this.showDrawer = this.showDrawer.bind(this);
 
     // Call-backs to update the Temporal View
     this.updateSignals = this.updateSignals.bind(this);
@@ -320,16 +322,15 @@ class App extends React.Component<AppProps, AppStates>{
     this.setState({ visible })
     // console.log('onClose', this.state.filterConditions)
   };
-  private onClick = (selected: string) => {
-    if (this.state.selectedsubjectId)
-      this.setState({ selected })
-  }
 
   private entityCategoricalColor(entityName?: string) {
     const { tableNames } = this.state;
     let i = 0;
-    if (tableNames && entityName)
+    if (tableNames && entityName) {
       i = (tableNames?.indexOf(entityName) + 1);
+    }
+    if (i === 1) i = 3;
+    else if (i === 3) i = 1;
     return defaultCategoricalColor(i);
   }
 
@@ -442,14 +443,6 @@ class App extends React.Component<AppProps, AppStates>{
     const layout = this.layout;
 
     const distribution = subjectIdG && subjectIdG.distribution;
-    if (distribution)
-      var x = getScaleLinear(0, 80, distribution);
-    const avatatColor = (id: number) => {
-      if (id == 0)
-        return '#cccccc'
-      else
-        return '#7fa5ec'
-    }
     return (
       <div className='App'>
 

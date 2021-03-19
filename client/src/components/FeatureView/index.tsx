@@ -3,7 +3,7 @@ import { PatientMeta } from "data/patient";
 import * as React from "react";
 import * as d3 from "d3";
 import { Button, Divider, Tooltip, Input } from "antd"
-import { getFeatureMatrix, getFeatureValues, getPrediction, getSHAPValues, getWhatIfSHAPValues } from "router/api";
+import { getFeatureMatrix, getFeatureValues, getSHAPValues, getWhatIfSHAPValues } from "router/api";
 import { DataFrame, IDataFrame } from "data-forge";
 import * as _ from "lodash"
 import { getScaleLinear, beautifulPrinter } from "visualization/common";
@@ -13,7 +13,7 @@ import {
 } from "@ant-design/icons"
 import { ItemDict } from "data/table";
 import Histogram from "visualization/Histogram";
-import { arrayShallowCompare, confidenceThresholds, getReferenceValue, ReferenceValue } from "data/common";
+import { arrayShallowCompare, getReferenceValue, ReferenceValue } from "data/common";
 
 import "./index.scss"
 
@@ -34,8 +34,6 @@ export interface FeatureViewProps {
 }
 
 export interface FeatureViewStates {
-    // target: string,
-    // predictions?: (target: string) => number,
     featureDisplayValues?: DataFrame,
     features?: IDataFrame<number, Feature>,
     featureMatrix?: IDataFrame<number, any>,
@@ -47,11 +45,8 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
     constructor(props: FeatureViewProps) {
         super(props);
 
-        this.state = {
-            // target: this.props.predictionTargets[1]
-        };
+        this.state = {};
         this.defaultCellWidth = this.defaultCellWidth.bind(this);
-        // this.onSelectTarget = this.onSelectTarget.bind(this);
         this.getReferenceValues = this.getReferenceValues.bind(this);
     }
 
@@ -84,7 +79,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
     }
 
     private async updateFeatures() {
-        let { patientMeta, featureMeta, itemDicts,target } = this.props
+        let { patientMeta, featureMeta, itemDicts, target } = this.props
         console.log('updateFeatures', target)
         const subject_id = patientMeta?.subjectId;
         if (subject_id !== undefined) {
@@ -146,17 +141,42 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
     }
 
     public render() {
-        const { predictionTargets,target, ...rest} = this.props;
+        const { predictionTargets, target, tableNames, entityCategoricalColor, abnormalityColor, ...rest } = this.props;
         const { features, featureMatrix } = this.state;
 
         return (
             <div className="feature-view">
+                <div className="legend-container">
+                    {entityCategoricalColor && <div className="category-legend-container">
+                        <div className="legend-block">
+                            <div className='legend-rect' style={{ backgroundColor: entityCategoricalColor(undefined) }} />
+                            <span className='legend-name'>{"Patient Info & Surgery Info"}</span>
+                        </div>
+                        {tableNames && tableNames.map(name =>
+                            <div className="legend-block">
+                                <div className='legend-rect' style={{ backgroundColor: entityCategoricalColor(name) }} />
+                                <span className='legend-name'>{name.toLocaleLowerCase()}</span>
+                            </div>
+                        )}
+                    </div>}
+                    {abnormalityColor && <div className="abnormality-legend-container">
+                        <span className="legend-anno">Normal</span>
+                        <div className="legend-color-bar" 
+                        // style={{backgroundColor: `linear-gradient(${abnormalityColor(1)}, ${abnormalityColor(1.75)}, ${abnormalityColor(2.5)})`}}/>
+                        style={{backgroundImage: `linear-gradient( to right, ${abnormalityColor(1)}, ${abnormalityColor(1.75)}, 
+                        ${abnormalityColor(2.5)})`}}/>
+                        <span className="legend-anno">Abnormal</span>
+                    </div>}
+                </div>
+                <Divider />
                 {features && <FeatureList
                     {...rest}
                     features={features}
                     cellWidth={this.defaultCellWidth}
                     featureMatrix={featureMatrix}
                     getReferenceValue={this.getReferenceValues}
+                    entityCategoricalColor={entityCategoricalColor}
+                    abnormalityColor={abnormalityColor}
                 />}
             </div>
         )
@@ -478,10 +498,10 @@ const paintContributions = (params: {
             {negSegValue[0] > 0 && <rect className="neg-feature a-and-b"
                 width={x(negSegValue[0]) - x(0)} height={16} transform={`translate(${x(-negSegValue[0])}, 0)`} />}
             {negSegValue[1] > 0 && <rect className="neg-feature a-sub-b"
-                width={x(negSegValue[1]) - x(0)} height={16} transform={`translate(${x(-negSegValue[1]-negSegValue[0])}, 0)`} />}
+                width={x(negSegValue[1]) - x(0)} height={16} transform={`translate(${x(-negSegValue[1] - negSegValue[0])}, 0)`} />}
             {negSegValue[2] > 0 && <rect className="neg-feature b-sub-a"
-                width={x(negSegValue[2]) - x(0)} height={16} transform={`translate(${x(-negSegValue[2]-negSegValue[0])}, 0)`} />}
-                
+                width={x(negSegValue[2]) - x(0)} height={16} transform={`translate(${x(-negSegValue[2] - negSegValue[0])}, 0)`} />}
+
             {posSegValue[0] > 0 && <rect className="pos-feature a-and-b"
                 width={x(posSegValue[0]) - x(0)} height={16} transform={`translate(${x(0)}, 0)`} />}
             {posSegValue[1] > 0 && <rect className="pos-feature a-sub-b"

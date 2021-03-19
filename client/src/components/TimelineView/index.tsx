@@ -86,7 +86,7 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
         const { patientMeta, tableRecords, onSelectEvents } = this.props;
         let { timeScale, events } = this.state;
         const startDate = patientMeta && patientMeta.AdmitTime;
-        const endDate = patientMeta && patientMeta.SurgeryBeginTime;
+        const endDate = patientMeta && patientMeta.SurgeryEndTime;
         const width = 700;
         const margin: IMargin = { left: 15, right: 15, top: 15, bottom: 0 }
         if (!timeScale) {
