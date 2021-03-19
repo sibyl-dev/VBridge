@@ -343,6 +343,7 @@ class App extends React.Component<AppProps, AppStates>{
     }
     return (
       <div className='App'>
+        
         <Layout>
           <Header className="app-header">
             <Row>
@@ -450,7 +451,7 @@ class App extends React.Component<AppProps, AppStates>{
             </Panel>
             }*/}
             {tableNames && 
-              <Drawer title="Filter View" placement="right" closable={false} onClose={this.onClose} visible={visible} width={450} >
+              <Drawer mask={false} title="Filter View" placement="right" closable={false} onClose={this.onClose} visible={visible} width={450} >
                 <p>
                   <FilterView
                     selectedsubjectId={selectedsubjectId}
@@ -465,10 +466,13 @@ class App extends React.Component<AppProps, AppStates>{
                 </p>
               </Drawer>
             }
+            
 
           </Content>
         </Layout>
+        
       </div>
+
     )
   }
 }

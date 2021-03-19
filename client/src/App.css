@@ -41,8 +41,8 @@
     margin-top: 5px;
 }
 .proba-selected{
-    border: red 3px solid;
-    color: red;
+    border: #ff4e78 3px solid;
+    color: #ff4e78;
 }
 #Filter {
     border: 2px solid black;
