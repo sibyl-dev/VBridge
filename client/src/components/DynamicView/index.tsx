@@ -27,6 +27,7 @@ export interface Signal extends SignalMeta {
 }
 
 export interface DynamicViewProps {
+    className: string,
     patientMeta: PatientMeta,
     featureMeta: IDataFrame<number, FeatureMeta>,
     itemDicts?: ItemDict,
@@ -53,7 +54,7 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
 
         this.onPin = this.onPin.bind(this);
     }
-    componentDidMount(){
+    componentDidMount() {
         this.initSignals();
     }
 
@@ -94,7 +95,7 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
     }
 
     public render() {
-        const { patientMeta, itemDicts, color, updateFocusedFeatures, removeSignal } = this.props;
+        const { patientMeta, itemDicts, color, updateFocusedFeatures, removeSignal, className } = this.props;
         const { signals } = this.state;
         return (
             <div>
@@ -105,13 +106,15 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
                 <div>
                     {signals.map((signal, i) =>
                         <DynamicCard
+                            className={className}
                             signal={signal}
+                            key={signal.itemName}
                             itemDicts={itemDicts}
                             align={false}
                             margin={{ bottom: 20, left: 25, top: 15, right: 25 }}
                             color={color && color(signal.tableName)}
-                            onHover={updateFocusedFeatures && (() => updateFocusedFeatures(signal.relatedFeatureNames))}
-                            onLeave={updateFocusedFeatures && (() => updateFocusedFeatures([]))}
+                            // onHover={updateFocusedFeatures && (() => updateFocusedFeatures(signal.relatedFeatureNames))}
+                            // onLeave={updateFocusedFeatures && (() => updateFocusedFeatures([]))}
                             onRemove={removeSignal && (() => removeSignal(signal))}
                             onPin={() => this.onPin(signal)}
                         />)}
@@ -137,6 +140,7 @@ const defaultTimeSeriesStyle: TimeSeriesStyle = {
 
 export interface DynamicCardProps extends Partial<TimeSeriesStyle> {
     signal: Signal,
+    className: string,
     align?: boolean,
     // timeSeriesStyle: Partial<TimeSeriesStyle>,
     itemDicts?: ItemDict,
@@ -146,6 +150,7 @@ export interface DynamicCardProps extends Partial<TimeSeriesStyle> {
     onLeave?: () => void;
     onPin?: () => void;
     onRemove?: () => void;
+    // subjectIdG?: number[],
 }
 
 export interface DynamicCardStates {
@@ -172,6 +177,10 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
         // this.loadReferenceValues();
     }
     componentDidUpdate(prevProps: DynamicCardProps, prevState: DynamicCardStates) {
+        // if (prevProps.subjectIdG?.sort().toString() !== this.props.subjectIdG?.sort().toString()) {
+        //     //why comment here?
+        //     this.loadReferenceValues();
+        // }
     }
 
     private async loadReferenceValues() {
@@ -182,7 +191,7 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
         });
         const referenceValue = valueFn(itemName);
         this.setState({ referenceValue });
-        console.log('loadReferenceValues', this.state.referenceValue)
+        // console.log('loadReferenceValues', this.state.referenceValue)
     }
 
     private onExpand() {
@@ -199,14 +208,15 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
     }
 
     public render() {
-        const { signal, itemDicts, width, height, color, margin, onHover, onLeave, onRemove } =
+        const { className, signal, itemDicts, width, height, color, margin, onHover, onLeave, onRemove } =
             { ...defaultTimeSeriesStyle, ...this.props };
         const { expand, referenceValue, pinned } = this.state;
         const { tableName, itemName, data } = signal;
         const itemLabel = itemDicts && itemDicts(tableName, itemName)?.LABEL;
         // console.log(data.values.toArray());
 
-        return <div className={"ts-card"} style={{ borderLeftColor: color || '#aaa', borderLeftWidth: 4 }}
+        return <div className={"ts-card"} id={`${className}-${signal.itemName}`}
+            style={{ borderLeftColor: color || '#aaa', borderLeftWidth: 4 }}
             onMouseOver={onHover} onMouseOut={onLeave}>
             <div className={"ts-title-float"} style={{ width: width }}>
                 <span className={"ts-title-float-text"}>{`${itemLabel || itemName}`}</span>
@@ -224,11 +234,12 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
                 referenceValue={referenceValue}
                 height={expand ? height : 30}
                 width={width}
-                margin={expand ? margin : { ...margin, top: 20, bottom: 10 }}
+                margin={expand ? margin : { ...margin, top: 12, bottom: 2 }}
                 color={color}
-                yScale={expand ? undefined : getScaleLinear(0, 0, undefined, [-1, 1])}
+                // yScale={expand ? undefined : getScaleLinear(0, 0, undefined, [-1, 1])}
                 drawXAxis={expand}
                 drawYAxis={expand}
+                drawDots={expand}
                 drawReferences={expand && referenceValue != undefined}
             />}
         </div>

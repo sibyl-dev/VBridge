@@ -27,7 +27,7 @@ def test(model, X, y):
     y_pred = model.predict(X)
     scores = {}
     for name, func in classification_metrics.items():
-        if name is 'AUROC':
+        if name == 'AUROC':
             scores[name] = func(y, y_pred_proba[:, 1])
         else:
             scores[name] = func(y, y_pred)
@@ -102,6 +102,8 @@ class Modeler:
         X = self._imputer.transform(X)
         X = self._scaler.transform(X)
         dummy_columns = self._one_hot_encoder.dummy_columns
+
+        # print('SHAP', X, dummy_columns)
         shap_values = pd.DataFrame(self._explainer.shap_values(X), columns=dummy_columns)
         for original_col, dummies in self._one_hot_encoder.dummy_dict.items():
             sub_dummy_column = ["{}_{}".format(original_col, cat) for cat in dummies]

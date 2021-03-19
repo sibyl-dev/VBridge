@@ -26,3 +26,7 @@ span.panel-title {
     margin-left: 10px;
     font-weight: bold;
 }
+
+.ant-layout-header{
+    height: 80px;
+}

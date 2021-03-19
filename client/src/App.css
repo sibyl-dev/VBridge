@@ -16,6 +16,62 @@
     font-size: 30px;
 }
 
+.view-title {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+    align-items: center;
+}
+
+.view-title-text {
+    float: left;
+}
+
+.header-name {
+    font-style: bold;
+    color: white;
+    font-size: 20px;
+    text-align: right;
+}
+
+.header-content {
+    font-style: bold;
+    color: white;
+    font-size: 20px;
+    margin-left: 20px;
+}
+
+.app-header {
+    line-height: 38px;
+}
+
+.prediction-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    float: left;
+    margin-top: 5px;
+    margin-left: 2px;
+    margin-right: 2px;
+    border: #001529 2px solid;
+}
+
+.prediction-icon.inactive {
+    background-color: #ccc;
+}
+
+.prediction-icon.active {
+    background-color: #7fa5ec;
+}
+
+.prediction-icon.selected {
+    border: #ff4e78 2px solid;
+    /* color: #ff4e78; */
+}
+
 #Filter {
     border: 2px solid black;
 }
@@ -26,6 +82,7 @@
 
 .ant-drawer-header {
     background-color: #e8f0fa;
+    height: 50px;
 }
 
 .ant-drawer-title {
@@ -42,8 +99,36 @@
     margin-right: 20px;
 }
 
+.complication-title {
+    color: #fff;
+    font-size: 14px;
+    font-weight: bold;
+    line-height: 20px;
+    margin-right: 20px;
+}
+
 .ant-select-item-option-content {
     display: flex;
     justify-content: center;
     align-items: center;
+}
+
+.app-link-svg {
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    left: 0px;
+    pointer-events: none;
+}
+
+.between-view-link {
+    stroke: #fff;
+    stroke-width: 2px;
+    fill: none;
+    opacity: 0.6;
+}
+
+.between-view-dot {
+    /* stroke: #fff; */
+    /* stroke-width: 1px; */
 }

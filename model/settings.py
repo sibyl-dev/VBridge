@@ -229,7 +229,9 @@ interesting_info_meta = {
                      ],
 }
 
-filter_variable = {
+
+filter_variable = [ 'Height', 'Weight', 'Surgical time (minutes)', 'GENDER', 'Age', 'SURGERY_NAME',  ]
+filter_variable1 = {
     'PATIENTS': ['GENDER'],
     'ADMISSIONS': ['LANGUAGE', 'RELIGION', 'MARITAL_STATUS', 'ETHNICITY', 'ADMISSION_DEPARTMENT',
                    'INSURANCE', 'DIAGNOSIS', 'ICD10_CODE_CN', ],
