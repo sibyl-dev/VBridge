@@ -41,24 +41,35 @@
     margin-left: 20px;
 }
 
-.app-header .ant-row {
+.app-header {
     line-height: 38px;
 }
 
-.predictionIcon {
-    width: 30px;
-    height: 30px;
-    border-radius: 15px;
+.prediction-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 16px;
     display: flex;
     justify-content: center;
     align-items: center;
     float: left;
     margin-top: 5px;
+    margin-left: 2px;
+    margin-right: 2px;
+    border: #001529 2px solid;
 }
 
-.proba-selected {
-    border: #ff4e78 3px solid;
-    color: #ff4e78;
+.prediction-icon.inactive {
+    background-color: #ccc;
+}
+
+.prediction-icon.active {
+    background-color: #7fa5ec;
+}
+
+.prediction-icon.selected {
+    border: #ff4e78 2px solid;
+    /* color: #ff4e78; */
 }
 
 #Filter {

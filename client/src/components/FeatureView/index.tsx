@@ -83,13 +83,8 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
         return width[id];
     }
 
-    // private onSelectTarget(target: string) {
-    //     this.setState({ target });
-    // }
-
     private async updateFeatures() {
         let { patientMeta, featureMeta, itemDicts,target } = this.props
-        // const { target } = this.state;
         console.log('updateFeatures', target)
         const subject_id = patientMeta?.subjectId;
         if (subject_id !== undefined) {
@@ -105,7 +100,6 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                     contributionIfNormal: whatIfShapValues(row['name']!)
                 };
             });
-            console.log(L1Features);
             // level-2: group-by item
             const individualFeatures = L1Features.where(row => row.whereItem.length == 0);
             const whereFeatures = L1Features.where(row => row.whereItem.length > 0);
@@ -168,26 +162,6 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
         )
     }
 }
-
-// function ProbaList(params: {
-//     predictionTargets: string[],
-//     predictions?: (target: string) => number,
-//     selected?: string,
-//     onClick?: (value: string) => void,
-// }) {
-//     const { predictions, selected, onClick } = params;
-//     const predictionTargets = params.predictionTargets.filter(t => t !== 'complication');
-//     return <div className="proba-list">
-//         {predictionTargets.map(target =>
-//             <Button block key={target} className={"proba-item" + (selected && target === selected ? " proba-selected" : "")}
-//                 onClick={() => onClick && onClick(target)}>
-//                 <div className="proba-target-name">{target}</div>
-//                 <div className="proba-value">{predictions ? predictions(target).toFixed(2) : '-'}</div>
-//                 <div className="proba-bar" style={{ height: "100%", width: `${predictions ? predictions(target) * 100 : 1}%` }}></div>
-//             </Button>
-//         )}
-//     </div>
-// }
 
 export interface FeatureListProps {
     className?: string,

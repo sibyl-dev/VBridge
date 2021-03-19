@@ -13,7 +13,7 @@ import TimelineView from "./components/TimelineView"
 import DynamicView, { SignalMeta } from "./components/DynamicView"
 import FilterView from "./components/FilterView"
 
-import { getFeatureMate, getPatientIds, getPatientMeta, getPatientInfoMeta, getPatientRecords, getPredictionTargets, getTableNames, getPatientFilterRange, getPatientGroup, getItemDict } from "./router/api"
+import { getFeatureMate, getPatientIds, getPatientMeta, getPatientInfoMeta, getPatientRecords, getPredictionTargets, getTableNames, getPatientFilterRange, getPatientGroup, getItemDict, getPrediction } from "./router/api"
 import { PatientMeta } from 'data/patient';
 import { Entity, ItemDict } from 'data/table';
 import { patientInfoMeta } from 'data/metaInfo';
@@ -44,6 +44,7 @@ interface AppStates {
   //patient information
   tableRecords?: Entity<number, any>[],
   patientMeta?: PatientMeta,
+  predictions?: (target: string) => number,
 
   //for view communication
   signalMetas: SignalMeta[],
@@ -82,6 +83,7 @@ class App extends React.Component<AppProps, AppStates>{
     this.selectPatientId = this.selectPatientId.bind(this);
     this.selectComparePatientId = this.selectComparePatientId.bind(this)
     this.loadPatientRecords = this.loadPatientRecords.bind(this);
+    this.loadPredictions = this.loadPredictions.bind(this);
     this.filterPatients = this.filterPatients.bind(this)
     this.buildRecordTS = this.buildRecordTS.bind(this);
     this.updateRecordTS = this.updateRecordTS.bind(this);
@@ -117,6 +119,7 @@ class App extends React.Component<AppProps, AppStates>{
   componentDidUpdate(prevProps: AppProps, prevState: AppStates) {
     const { patientMeta, dynamicViewLink } = this.state;
     if (prevState.patientMeta?.subjectId !== patientMeta?.subjectId) {
+      this.loadPredictions();
     }
     if (prevState.dynamicViewLink !== dynamicViewLink) {
       if (dynamicViewLink) {
@@ -142,6 +145,14 @@ class App extends React.Component<AppProps, AppStates>{
     // const prediction = (await getPatientGroup({ filterConditions: filterConditions })).prediction
     console.log('init', subjectIdG, filterRange)
     this.setState({ subjectIds, tableNames, filterRange, featureMeta, predictionTargets, itemDicts, subjectIdG });
+  }
+
+  private async loadPredictions() {
+    const { patientMeta } = this.state;
+    if (patientMeta) {
+      const predictions = await getPrediction({ subject_id: patientMeta?.subjectId });
+      this.setState({ predictions });
+    }
   }
 
   public async selectPatientId(subjectId: number) {
@@ -310,7 +321,6 @@ class App extends React.Component<AppProps, AppStates>{
     // console.log('onClose', this.state.filterConditions)
   };
   private onClick = (selected: string) => {
-    console.log('onClick', selected)
     if (this.state.selectedsubjectId)
       this.setState({ selected })
   }
@@ -427,17 +437,11 @@ class App extends React.Component<AppProps, AppStates>{
   public render() {
 
     const { subjectIds, patientMeta, tableNames, tableRecords, featureMeta, predictionTargets,
-      focusedFeatures, pinnedfocusedFeatures, selected, selectedsubjectId,
-      itemDicts, signalMetas: dynamicRecords, patientInfoMeta, filterRange, visible, subjectIdG } = this.state;
+      focusedFeatures, pinnedfocusedFeatures, selected, selectedsubjectId, predictions,
+      itemDicts, signalMetas, patientInfoMeta, filterRange, visible, subjectIdG } = this.state;
     const layout = this.layout;
 
-    const distribution = subjectIdG && subjectIdG.distribution
-    const complicationtypes = ['lung complication', 'cardiac complication', 'arrhythmia complication', 'infectious complication', 'other complication', 'No Comp.']
-    const brieftcomplitype = ['L', 'C', 'A', 'I', 'O', 'No']
-    // const distribution:number [] = subjectIdG && subjectIdG.distribution
-    let complicationRes: number[] = [0, 0, 0, 0, 0]
-    if (patientInfoMeta)
-      complicationRes = [patientInfoMeta['lung complication'], patientInfoMeta['cardiac complication'], patientInfoMeta['arrhythmia complication'], patientInfoMeta['infectious complication'], patientInfoMeta['other complication']]
+    const distribution = subjectIdG && subjectIdG.distribution;
     if (distribution)
       var x = getScaleLinear(0, 80, distribution);
     const avatatColor = (id: number) => {
@@ -453,10 +457,10 @@ class App extends React.Component<AppProps, AppStates>{
           <Header className="app-header" id="header">
             <Row>
               <Col span={2} className='system-name'>Bridges</Col>
-              <Col span={4} />
-              <Col span={2} className='header-name'> PatientId: </Col>
+              <Col span={8} />
+              <Col span={2} className='header-name'> Patient: </Col>
               <Col span={4} className='header-content'>
-                <Select style={{ width: 120, marginRight: '20px' }} onChange={this.selectPatientId} className="patient-selector">
+                <Select style={{ width: 170, marginRight: '20px' }} onChange={this.selectPatientId} className="patient-selector">
                   {subjectIds && subjectIds.map((id, i) =>
                     <Option value={id} key={i}>{id}</Option>
                   )}
@@ -464,30 +468,32 @@ class App extends React.Component<AppProps, AppStates>{
               </Col>
               <Col span={4} className='header-name'> #Comparative Group: </Col>
               <Col span={2} className='header-content'>
+                <span className="header-name"> {subjectIdG && subjectIdG.subject_idG ? subjectIdG.subject_idG.length : 0} </span>
                 <Tooltip title="Filter">
                   <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={this.showDrawer} style={{ zIndex: 1 }} />
                 </Tooltip>
-                <span className="header-name"> {subjectIdG && subjectIdG.subject_idG ? subjectIdG.subject_idG.length : 0} </span>
               </Col>
-              <Col span={6} />
+              <Col span={2} />
             </Row>
             <Row>
-              <Col span={6} />
+              <Col span={10} />
               <Col span={2} className='header-name'>Predictions: </Col>
               <Col span={4} className='header-content'>
-                {brieftcomplitype && complicationRes && brieftcomplitype.map((name, i) =>
-                  i < 5 ?
-                    <Tooltip title={complicationtypes[i]} placement="top">
-                      <div className={'predictionIcon' + (selected && complicationtypes[i] === selected ? " proba-selected" : "")} style={{ backgroundColor: avatatColor(complicationRes[i]) }} onClick={this.onClick.bind(this, complicationtypes[i])}>
-                        <span>{name} </span></div>
-                    </Tooltip> : ''
+                {predictionTargets && predictionTargets.filter(t => t !== 'complication').map((name, i) =>
+                  <Tooltip title={name} placement="top" key={name}>
+                    <div className={'prediction-icon' + (selected && name === selected ? " selected" : "") +
+                      ((predictions && predictions(name) > 0.5000) ? " active" : " inactive")}
+                      onClick={() => this.setState({ selected: name })}>
+                      <span>{name.toUpperCase()[0]} </span>
+                    </div>
+                  </Tooltip>
                 )}
               </Col>
               <Col span={4} className='header-name'> #Healthy Group: </Col>
               <Col span={2} className='header-content'>
                 {distribution ? distribution[5] : 0}
               </Col>
-              <Col span={6} />
+              <Col span={2} />
             </Row>
           </Header>
           <Content>
@@ -539,7 +545,7 @@ class App extends React.Component<AppProps, AppStates>{
                 patientMeta={patientMeta}
                 featureMeta={featureMeta}
                 tableRecords={tableRecords}
-                signalMetas={dynamicRecords}
+                signalMetas={signalMetas}
                 itemDicts={itemDicts}
                 color={this.entityCategoricalColor}
                 updateFocusedFeatures={this.updateFocusedFeatures}
