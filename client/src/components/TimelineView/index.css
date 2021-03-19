@@ -29,13 +29,15 @@
 .timeline-title {
     /* height: 100%; */
     width: 80px;
-    height: 30px;
+    height: 45px;
     float: left;
     font-size: 10px;
     font-weight: bold;
     display: flex;
     justify-content: center;
-    align-items: center;
+    /*align-items: center;*/
+    padding-top:21px;
+    line-height: 14px;
 }
 
 .timeline-content,

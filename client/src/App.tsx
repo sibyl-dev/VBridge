@@ -357,8 +357,7 @@ class App extends React.Component<AppProps, AppStates>{
                   )}
                 </Select>
               </Col>
-              <Col span={1} />
-              <Col span={3} className='header-name'> #Comparative Group: </Col>
+              <Col span={4} className='header-name'> #Comparative Group: </Col>
               <Col span={2} className='header-content'>
                   <Tooltip title="Filter">
                     <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={this.showDrawer} style={{zIndex: 1 }} />
@@ -379,8 +378,7 @@ class App extends React.Component<AppProps, AppStates>{
                    </Tooltip>:''
                  )}
               </Col>
-              <Col span={1}/>
-              <Col span={3} className='header-name'> #Healthy Group: </Col>
+              <Col span={4} className='header-name'> #Healthy Group: </Col>
               <Col span={2} className='header-content'>
                 {distribution?distribution[5]:0} 
               </Col>
@@ -451,7 +449,7 @@ class App extends React.Component<AppProps, AppStates>{
             </Panel>
             }*/}
             {tableNames && 
-              <Drawer mask={false} title="Filter View" placement="right" closable={false} onClose={this.onClose} visible={visible} width={450} >
+              <Drawer maskClosable={false} title="Filter View" placement="right" closable={false} onClose={this.onClose} visible={visible} width={450} >
                 <p>
                   <FilterView
                     selectedsubjectId={selectedsubjectId}
@@ -470,7 +468,7 @@ class App extends React.Component<AppProps, AppStates>{
 
           </Content>
         </Layout>
-        
+
       </div>
 
     )
