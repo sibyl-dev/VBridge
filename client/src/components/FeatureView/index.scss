@@ -61,10 +61,12 @@
             display: flex;
             justify-content: space-between;
             height: 100%;
+            border-bottom: 1px solid rgba(220, 225, 230, 0.5);
+            ;
             .feature-block-cell {
                 margin-top: 5px;
                 margin-bottom: 5px;
-                max-height: 20px;
+                // max-height: 20px;
                 // height: calc(100% - 5px);
                 overflow: hidden;
                 .feature-block-cell-text {
@@ -76,12 +78,17 @@
             }
             .feature-value {
                 background-color: #eee;
-                margin-left: 10px;
-                margin-right: 10px;
+                // margin-left: 10px;
+                // margin-right: 10px;
+                margin-top: 3px;
+                margin-bottom: 3px;
                 font-weight: bold;
+                // overflow: visible;
+                border: 1px solid rgba(220, 225, 230, 0.7);
+                transition: all 0.5s ease;
             }
             .feature-contribution {
-                margin-left: 10px;
+                // margin-left: 10px;s
                 display: flex;
                 .contribution-svg {
                     width: 100%;
@@ -229,5 +236,20 @@
     .legend-color-bar {
         width: 60%;
         max-width: calc(100% - 40px);
+    }
+}
+
+.feature-block-hist {
+    // position: relative;
+    // right: 0px;
+}
+
+.reference-value {
+    // display: flex;
+    // flex-direction: column;
+    margin-top: 15px;
+    // opacity: 80%;
+    .reference-value-value {
+        font-size: 10px;
     }
 }

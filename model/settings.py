@@ -93,7 +93,7 @@ META_INFO = {
         'types': {'HADM_ID': 'int', 'ITEMID': 'str'},
         'time_index': 'CHARTTIME',
         'item_index': 'ITEMID',
-        'value_indexes': ['VALUE'],
+        'value_indexes': ['VALUENUM'],
         'alias': 'Lab Tests',
     },
     'MICROBIOLOGYEVENTS': {

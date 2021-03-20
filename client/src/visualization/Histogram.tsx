@@ -21,7 +21,8 @@ function isArrays<T>(a: T[] | T[][]): a is T[][] {
 
 export interface IHistogramOptions extends ChartOptions {
     innerPadding?: number;
-    drawAxis?: boolean,
+    drawLeftAxis?: boolean,
+    drawBottomAxis?: boolean,
     rectStyle?: CSSPropertiesFn<SVGRectElement, d3.Bin<number, number>>;
     onRectMouseOver?: d3.ValueFn<any, d3.Bin<number, number>, void>;
     // onRectMouseMove?: d3.ValueFn<any, d3.Bin<number, number>, void>;
@@ -43,6 +44,7 @@ export const defaultOptions = {
     margin: 0,
     innerPadding: 1,
     drawAxis: false,
+    drawBottomAxis: true,
 };
 
 export function getNBinsRange(width: number, minWidth: number = 7, maxWidth: number = 9): [number, number] {
@@ -59,12 +61,14 @@ export type IHistogramProps = (IHistogramOptions | IGHistogramOptions) & {
     className?: string;
     extent?: [number, number];
     drawRange?: boolean;
+    mode?: 'side-by-side' | 'stacked';
     onHoverRange?: (range?: [number, number]) => any;
 }
 
 const defaultProps = {
     ...defaultOptions,
-    drawAxis: false,
+    drawLeftAxis: false,
+    drawBottomAxis: true,
     drawRange: false
 }
 
@@ -72,10 +76,10 @@ export interface IHistogramState {
     hoveredBin: [number, number] | null;
 }
 
-export class Histogram extends React.PureComponent<
+export default class Histogram extends React.PureComponent<
     IHistogramProps,
     IHistogramState
-    > {
+> {
     static defaultProps = { ...defaultProps };
     private svgRef: React.RefObject<SVGSVGElement> = React.createRef();
     private shouldPaint: boolean = false;
@@ -141,7 +145,7 @@ export class Histogram extends React.PureComponent<
     };
 
     public render() {
-        const { style, svgStyle, className, width, height, drawAxis, drawRange, extent } = this.props;
+        const { style, svgStyle, className, width, height, drawRange, extent } = this.props;
         const { hoveredBin } = this.state;
         return (
             <div className={(className || "") + " histogram"} style={style}>
@@ -241,7 +245,7 @@ export function drawGroupedHistogram(param: {
 }
 ) {
     const { root, data, allData, dmcData, options, referenceValue } = param;
-    const opts: Partial<IGHistogramOptions> & Pick<IGHistogramOptions, keyof typeof defaultOptions> = { ...defaultOptions, ...options };
+    const opts = { ...defaultOptions, ...options };
     const {
         width,
         height,
@@ -258,7 +262,8 @@ export function drawGroupedHistogram(param: {
         selectedRange,
         rangeSelector,
         direction,
-        drawAxis,
+        drawLeftAxis: drawAxis,
+        drawBottomAxis,
         drawBand,
         bandValueFn,
         key,
@@ -348,6 +353,22 @@ export function drawGroupedHistogram(param: {
             `translate(${margin.left}, ${margin.top})`
         )
 
+    const area = d3.area<BarLayout>()
+        .x(d => d.x)
+        .y0(d => d.y)
+        .y1(d => d.y + d.height)
+        .curve(d3.curveMonotoneX);
+
+    // const gs = current.selectAll<SVGGElement, BarLayout[]>("path.area")
+    //     .data(bins)
+    //     .join(enter => {
+    //         return enter
+    //             .append("path")
+    //             .attr("class", "area");
+    //     })
+    //     .attr("fill", (d, i) => color(i))
+    //     .attr("d", d => area(d));
+
     const gs = current.selectAll<SVGGElement, BarLayout[]>("g.groups")
         .data(bins)
         .join<SVGGElement>(enter => {
@@ -380,12 +401,13 @@ export function drawGroupedHistogram(param: {
     const yreverse = d3.scaleLinear().domain(layout.y.domain()).range([layout.y.range()[1], layout.y.range()[0]])
 
     if (drawAxis) {
-        base.call(d3.axisLeft(yreverse).ticks(2));
+        base.call(d3.axisLeft(yreverse).ticks(4));
     }
 
     xScale && getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "x-axis-base")
         .attr("transform", `translate(0, ${yRange[1]})`)
-        .call(d3.axisBottom(xScale).ticks(2));
+        .attr("display", drawBottomAxis ? 'block' : 'none')
+        .call(d3.axisBottom(xScale).ticks(4));
 
     // Render the shades for highlighting selected regions
     if (rangeSelector === 'bin-wise') {
@@ -465,17 +487,15 @@ export function drawGroupedHistogram(param: {
         updateSelectorBox(_selectedRange);
     }
 
-    if (rectStyle) {
-        Object.keys(rectStyle).forEach(key => {
-            merged.style(
-                key,
-                (rectStyle[key as keyof typeof rectStyle] || null) as null
-            );
-        });
-    }
+    // if (rectStyle) {
+    //     Object.keys(rectStyle).forEach(key => {
+    //         merged.style(
+    //             key,
+    //             (rectStyle[key as keyof typeof rectStyle] || null) as null
+    //         );
+    //     });
+    // }
 }
-
-export default Histogram;
 
 interface HistogramLayoutProps extends ChartOptions {
     data: number[] | number[][],

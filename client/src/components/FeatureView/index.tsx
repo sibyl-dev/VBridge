@@ -37,6 +37,9 @@ export interface FeatureViewStates {
     featureDisplayValues?: DataFrame,
     features?: IDataFrame<number, Feature>,
     featureMatrix?: IDataFrame<number, any>,
+    selectedMatrix?: IDataFrame<number, any>,
+    selectedMatWithDesiredOutputs?: IDataFrame<number, any>,
+    selectedMatWithoutDesiredOutputs?: IDataFrame<number, any>,
     referenceValues?: IDataFrame<string, ReferenceValue>,
 }
 
@@ -48,6 +51,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
         this.state = {};
         this.defaultCellWidth = this.defaultCellWidth.bind(this);
         this.getReferenceValues = this.getReferenceValues.bind(this);
+        this.updateReferenceValues = this.updateReferenceValues.bind(this);
     }
 
     componentDidMount() {
@@ -55,15 +59,37 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
         this.updateFeatures();
     }
 
+    // only run ones
     private async loadFeatureMatAndRefs() {
         const { featureMeta } = this.props;
         const featureMatrix = await getFeatureMatrix();
-        const featureNames = featureMeta.getSeries('name').toArray() as string[];
-        const referenceValues = new DataFrame({
-            index: featureNames,
-            values: featureNames.map(name => getReferenceValue(featureMatrix.getSeries(name).parseFloats().toArray()))
-        })
-        this.setState({ featureMatrix, referenceValues });
+        this.setState({ featureMatrix });
+    }
+
+    // run when the group ids updates
+    private updateReferenceValues() {
+        const { featureMeta, groupIds, target } = this.props;
+        const { featureMatrix } = this.state;
+        if (featureMatrix) {
+            const featureNames = featureMeta.getSeries('name').toArray() as string[];
+            const selectedVectors = groupIds && groupIds.map(id => featureMatrix.at(id));
+            if (selectedVectors?.length == 0) {
+                alert("No patient in the selection.");
+            }
+            else {
+                const selectedMatrix = selectedVectors ? new DataFrame(selectedVectors) : featureMatrix;
+                const selectedMatWithDesiredOutputs = selectedMatrix.where(row => row['complication'] === 0);
+                const selectedMatWithoutDesiredOutputs = selectedMatrix.where(row => row['complication'] !== 0);
+                if (selectedMatWithDesiredOutputs.count() == 0) alert("No patient in the selection.");
+                else {
+                    const referenceValues = new DataFrame({
+                        index: featureNames,
+                        values: featureNames.map(name => getReferenceValue(selectedMatWithDesiredOutputs.getSeries(name).toArray()))
+                    })
+                    this.setState({ selectedMatrix, selectedMatWithDesiredOutputs, selectedMatWithoutDesiredOutputs, referenceValues });
+                }
+            }
+        }
     }
 
     private getReferenceValues(name: string) {
@@ -95,17 +121,17 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                     contributionIfNormal: whatIfShapValues(row['name']!)
                 };
             });
-            // level-2: group-by item
+            // level-2: group-by item & period
             const individualFeatures = L1Features.where(row => row.whereItem.length == 0);
             const whereFeatures = L1Features.where(row => row.whereItem.length > 0);
-            const groups = whereFeatures.groupBy(row => row.whereItem[1]).toArray();
+            const groups = whereFeatures.groupBy(row => row.period+row.whereItem[1]).toArray();
             const groupedFeature: IDataFrame<number, Feature> = new DataFrame(groups.map(group => {
                 const sample = group.first();
                 const itemName = sample.whereItem![1] as string;
                 const itemLabel = itemDicts && sample.entityId && itemDicts(sample.entityId, itemName)?.LABEL;
                 return {
                     ...sample,
-                    name: _.reduce(group.getSeries('name').toArray(), (a, b) => `${a}-${b}`),
+                    name: 'g-'+_.reduce(group.getSeries('name').toArray(), (a, b) => `${a}-${b}`),
                     alias: itemLabel || itemName,
                     value: undefined,
                     primitive: undefined,
@@ -120,7 +146,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                 const sample = group.first();
                 return {
                     ...sample,
-                    name: _.reduce(group.getSeries('name').toArray(), (a, b) => `${a}-${b}`),
+                    name: 'g-'+_.reduce(group.getSeries('name').toArray(), (a, b) => `${a}-${b}`),
                     alias: sample.type,
                     value: undefined,
                     primitive: undefined,
@@ -134,15 +160,18 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
     }
 
     componentDidUpdate(prevProps: FeatureViewProps, prevState: FeatureViewStates) {
-        if (prevProps.patientMeta?.subjectId !== this.props.patientMeta?.subjectId
-            || prevProps.target !== this.props.target) {
+        const { groupIds, patientMeta, target } = this.props;
+        if (prevState.featureMatrix != this.state.featureMatrix
+            || prevProps.patientMeta?.subjectId !== patientMeta?.subjectId
+            || prevProps.target !== target || !arrayShallowCompare(prevProps.groupIds, groupIds)) {
             this.updateFeatures();
+            this.updateReferenceValues();
         }
     }
 
     public render() {
         const { predictionTargets, target, tableNames, entityCategoricalColor, abnormalityColor, ...rest } = this.props;
-        const { features, featureMatrix } = this.state;
+        const { features, featureMatrix, selectedMatrix, selectedMatWithDesiredOutputs, selectedMatWithoutDesiredOutputs } = this.state;
 
         return (
             <div className="feature-view">
@@ -161,10 +190,12 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                     </div>}
                     {abnormalityColor && <div className="abnormality-legend-container">
                         <span className="legend-anno">Normal</span>
-                        <div className="legend-color-bar" 
-                        // style={{backgroundColor: `linear-gradient(${abnormalityColor(1)}, ${abnormalityColor(1.75)}, ${abnormalityColor(2.5)})`}}/>
-                        style={{backgroundImage: `linear-gradient( to right, ${abnormalityColor(1)}, ${abnormalityColor(1.75)}, 
-                        ${abnormalityColor(2.5)})`}}/>
+                        <div className="legend-color-bar"
+                            // style={{backgroundColor: `linear-gradient(${abnormalityColor(1)}, ${abnormalityColor(1.75)}, ${abnormalityColor(2.5)})`}}/>
+                            style={{
+                                backgroundImage: `linear-gradient( to right, ${abnormalityColor(1)}, ${abnormalityColor(1.75)}, 
+                        ${abnormalityColor(2.5)})`
+                            }} />
                         <span className="legend-anno">Abnormal</span>
                     </div>}
                 </div>
@@ -173,7 +204,9 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                     {...rest}
                     features={features}
                     cellWidth={this.defaultCellWidth}
-                    featureMatrix={featureMatrix}
+                    selectedMatrix={selectedMatrix}
+                    selectedMatWithDesiredOutputs={selectedMatWithDesiredOutputs}
+                    selectedMatWithoutDesiredOutputs={selectedMatWithoutDesiredOutputs}
                     getReferenceValue={this.getReferenceValues}
                     entityCategoricalColor={entityCategoricalColor}
                     abnormalityColor={abnormalityColor}
@@ -189,7 +222,9 @@ export interface FeatureListProps {
     cellWidth: (id: number) => number,
     entityCategoricalColor?: (entityName: string | undefined) => string,
     abnormalityColor?: (abnoramlity: number) => string,
-    featureMatrix?: IDataFrame<number, any>,
+    selectedMatrix?: IDataFrame<number, any>,
+    selectedMatWithDesiredOutputs?: IDataFrame<number, any>,
+    selectedMatWithoutDesiredOutputs?: IDataFrame<number, any>,
     getReferenceValue: (name: string) => (ReferenceValue | undefined),
     focusedFeatures: string[],
     display?: 'normal' | 'dense',
@@ -294,7 +329,9 @@ export interface FeatureBlockProps {
     className?: string,
     depth: number,
     feature: Feature,
-    featureMatrix?: IDataFrame<number, any>,
+    selectedMatrix?: IDataFrame<number, any>,
+    selectedMatWithDesiredOutputs?: IDataFrame<number, any>,
+    selectedMatWithoutDesiredOutputs?: IDataFrame<number, any>,
     getReferenceValue: (name: string) => (ReferenceValue | undefined),
     x: d3.ScaleLinear<number, number>,
     cellWidth: (id: number) => number,
@@ -351,22 +388,22 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
 
     render() {
         const { feature, x, cellWidth, entityCategoricalColor, abnormalityColor, inspectFeature,
-            className, depth, featureMatrix, focusedFeatures, getReferenceValue, display } = this.props;
+            className, depth, selectedMatWithDesiredOutputs, selectedMatWithoutDesiredOutputs,
+            focusedFeatures, getReferenceValue, display } = this.props;
         const { collapsed, showDistibution } = this.state
         const { name, alias, value, contribution, children, entityId } = feature;
-        const referenceValue = feature.name && getReferenceValue(feature.name);
-        // const series = featureMatrix?.getSeries(name).parseFloats().toArray();
+        const referenceValue = feature.name ? getReferenceValue(feature.name) : undefined;
 
+        let outofRange: 'none' | 'low' | 'high' = 'none';
         let valueColor = '#fff';
-        let outofRange = undefined;
         if (referenceValue && typeof (value) === typeof (0.0) && abnormalityColor) {
             const { mean, std, ci95 } = referenceValue;
             const rate = Math.abs((value as number - mean) / std);
             valueColor = abnormalityColor(rate);
             if (value as number > ci95[1])
-                outofRange = 1
+                outofRange = 'high'
             else if (value as number < ci95[0])
-                outofRange = 0
+                outofRange = 'low'
         }
         let showState: 'normal' | 'focused' | 'unfocused' | 'none' = 'normal';
         if (focusedFeatures.length > 0) {
@@ -376,10 +413,11 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
         if (display && display === 'dense') {
             if (showState === 'unfocused') showState = 'none';
         }
-        const heigth = showDistibution ? 100 : 30;
+        const heigth = showDistibution ? 80 : 30;
+        const isLeaf = !feature.children || feature.children.count() === 0;
 
         let id: string | undefined = undefined
-        if (!feature.children || feature.children.count() === 0)
+        if (isLeaf)
             id = `${className}-${feature.name}`;
         else if (collapsed) {
             const childrenNames = feature.children?.getSeries('name').where(d => d);
@@ -406,38 +444,75 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                     }}
                     onClick={children ? this.onClickButton : this.onClickDiv}>
                     <div className={`feature-block-inner`}>
-                        <Tooltip title={alias}>
+                        <Tooltip title={name}>
                             <div className="feature-block-cell feature-name" style={{ width: cellWidth(0) - 10 * depth }}>
                                 <span className={"feature-block-cell-text"}>{beautifulPrinter(alias, 25)}</span>
                             </div>
                         </Tooltip>
-                        <Tooltip title={typeof (value) == typeof (0.0) ? beautifulPrinter(value) : value}>
-                            <div className={"feature-block-cell feature-value"}
-                                style={{ width: cellWidth(1), backgroundColor: valueColor }}>
-                                <span className={"feature-block-cell-text"}>{beautifulPrinter(value)}
-                                    {outofRange && outofRange == 0 ? <ArrowDownOutlined /> : ''}
-                                    {outofRange && outofRange == 1 ? <ArrowUpOutlined /> : ''}
-
+                        <div className={"feature-block-cell" + (isLeaf ? " feature-value" : "")}
+                            style={{ width: showDistibution ? cellWidth(1) + 20 : cellWidth(1), backgroundColor: valueColor }}>
+                            {showDistibution ? <Histogram
+                                // allData={selectedMatrix?.getSeries(name).toArray() as number[]}
+                                data={[selectedMatWithDesiredOutputs?.getSeries(name!).toArray(),
+                                selectedMatWithoutDesiredOutputs?.getSeries(name!).toArray()] as number[][]}
+                                // data={selectedMatWithDesiredOutputs?.getSeries(name).toArray() as number[]}
+                                height={70}
+                                width={cellWidth(1) + 20}
+                                drawLeftAxis={false}
+                                drawBottomAxis={true}
+                                margin={{ left: 10, bottom: 15 }}
+                                referenceValue={value as number}
+                                mode="side-by-side"
+                            /> : <Tooltip title={typeof (value) == typeof (0.0) ? beautifulPrinter(value) : value}>
+                                <span className={"feature-block-cell-text"}>
+                                    {outofRange === 'low' && <ArrowDownOutlined />}
+                                    {beautifulPrinter(value)}
+                                    {outofRange === 'high' && <ArrowUpOutlined />}
                                 </span>
-                            </div>
-                        </Tooltip>
-                        {paintContributions({
+                            </Tooltip>}
+                        </div>
+                        {SHAPContributions({
                             feature, x,
                             className: "feature-block-cell feature-contribution",
                             style: { width: cellWidth(2), opacity: Math.max(1 - 0.3 * depth, 0.5) }
                         })}
                     </div>
-                    {(typeof (value) === typeof (0.0)) && showDistibution && name &&
-                        <div className="feature-block-hist">
-                            <Histogram
-                                data={featureMatrix?.getSeries(name).parseFloats().toArray() as number[]}
-                                height={60}
-                                width={cellWidth(1) + 20}
-                                drawAxis={false}
-                                margin={{ left: 10, bottom: 15 }}
-                                referenceValue={value as number}
-                            />
-                        </div>}
+                    {/* {showDistibution && name && <div> */}
+                    {/* <div className="reference-value" style={{ width: cellWidth(0) }}>
+                            {referenceValue && <span className="reference-value-title">Reference Range:</span>}
+                            {referenceValue && <span className="reference-value-value">{`${beautifulPrinter(referenceValue.ci95[0])} 
+                            - ${beautifulPrinter(referenceValue.ci95[1])}`}</span>}
+                        </div> */}
+                    {/* {(typeof (value) === typeof (0.0)) &&
+                            <div className="feature-block-hist">
+                                <Histogram
+                                    // allData={selectedMatrix?.getSeries(name).toArray() as number[]}
+                                    data={[selectedMatWithDesiredOutputs?.getSeries(name).toArray(),
+                                    selectedMatWithoutDesiredOutputs?.getSeries(name).toArray()] as number[][]}
+                                    // data={selectedMatWithDesiredOutputs?.getSeries(name).toArray() as number[]}
+                                    height={60}
+                                    width={cellWidth(1) + 40}
+                                    drawLeftAxis={false}
+                                    drawBottomAxis={true}
+                                    margin={{ left: 10, bottom: 15 }}
+                                    referenceValue={value as number}
+                                    mode="side-by-side"
+                                /> */}
+                    {/* <Histogram
+                                    // allData={selectedMatrix?.getSeries(name).toArray() as number[]}
+                                    // data={[selectedMatWithDesiredOutputs?.getSeries(name).toArray(),
+                                    // selectedMatWithoutDesiredOutputs?.getSeries(name).toArray()] as number[][]}
+                                    data={selectedMatWithDesiredOutputs?.getSeries(name).toArray() as number[]}
+                                    height={60}
+                                    width={cellWidth(1) + 40}
+                                    drawLeftAxis={false}
+                                    drawBottomAxis={false}
+                                    margin={{ left: 10, bottom: 15 }}
+                                    referenceValue={value as number}
+                                    mode="side-by-side"
+                                /> */}
+                    {/* </div>} */}
+                    {/* </div>} */}
                 </div>
                 <span className={`feature-block-annote ${showState}`} style={{
                     backgroundColor: entityCategoricalColor && entityCategoricalColor(entityId),
@@ -465,7 +540,7 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
     }
 }
 
-const paintContributions = (params: {
+const SHAPContributions = (params: {
     feature: Feature,
     x: d3.ScaleLinear<number, number>,
     className?: string,

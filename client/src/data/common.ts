@@ -37,10 +37,16 @@ export const shallowCompare = (v: any, o: any, excludeKeys?: Set<string>, debug:
     return true;
 };
 
-export function arrayShallowCompare<T>(array1: Array<T>, array2: Array<T>) {
-    if (array1.length !== array2.length)
-        return false
+export function arrayShallowCompare<T>(array1?: Array<T>, array2?: Array<T>) {
+    if (array1 === undefined)
+        return array2 === undefined;
+    else if (array2 === undefined)
+        return false;
+    else if (array1.length !== array2.length)
+        return false;
+        
     let flag = true;
+    // the order should be the same
     array1.forEach((d, i) => {
         if (array2[i] != d)
             flag = false

@@ -224,7 +224,6 @@ def get_patient_group():
                            np.sum(fm['infectious complication']),
                            np.sum(fm['other complication']),
                            len(subject_idG) - np.sum(fm['complication'])]
-    print(info['labelCounts'])
     info['ids'] = subject_idG
 
     if setSubjectIdG:

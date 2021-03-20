@@ -70,7 +70,7 @@ interface AppStates {
 }
 
 class App extends React.Component<AppProps, AppStates>{
-  private layout = { featureViewWidth: 500, timelineViewWidth: 800, ProfileWidth: 300, timelineViewHeight: 260, headerHeight: 64 };
+  private layout = { featureViewWidth: 520, timelineViewWidth: 800, ProfileWidth: 300, timelineViewHeight: 260, headerHeight: 64 };
   private abnormalityColorScale = d3.scaleSequential(d3.interpolateRdYlGn).domain([2.5 + 0.5, 1 - 0.5]);
   private ref: React.RefObject<SVGSVGElement> = React.createRef();
   private paintId: any = undefined;
@@ -88,8 +88,8 @@ class App extends React.Component<AppProps, AppStates>{
     this.loadPatientRecords = this.loadPatientRecords.bind(this);
     this.loadPredictions = this.loadPredictions.bind(this);
     this.filterPatients = this.filterPatients.bind(this)
-    this.buildRecordTS = this.buildRecordTS.bind(this);
-    this.updateRecordTS = this.updateRecordTS.bind(this);
+    this.buildRecordByPeriod = this.buildRecordByPeriod.bind(this);
+    this.updateSignalFromTimeline = this.updateSignalFromTimeline.bind(this);
     this.showDrawer = this.showDrawer.bind(this);
 
     // Call-backs to update the Temporal View
@@ -261,23 +261,42 @@ class App extends React.Component<AppProps, AppStates>{
     });
   }
 
-  private buildRecordTS(entityName: string, startDate: Date, endDate: Date): SignalMeta[] {
+  private getRelatedFeatures(entityName: string, itemName: string, startTime: Date, endTime: Date): string[] {
+    const { featureMeta, patientMeta } = this.state;
+    let relatedFeatureNames: string[] = []
+    if (featureMeta && patientMeta) {
+      const { SurgeryBeginTime, SurgeryEndTime } = patientMeta;
+      const candidates = featureMeta.where(row => row.entityId === entityName && row.whereItem[1] === itemName);
+      if (startTime < SurgeryBeginTime && endTime.getTime() > (SurgeryBeginTime.getTime() - 1000 * 60 * 60 * 24 * 2)) {
+        relatedFeatureNames = relatedFeatureNames.concat(
+          candidates.where(row => row.period === 'pre-surgery').getSeries('name').toArray())
+      }
+      if (startTime < SurgeryEndTime && endTime > SurgeryBeginTime) {
+        relatedFeatureNames = relatedFeatureNames.concat(
+          candidates.where(row => row.period === 'in-surgery').getSeries('name').toArray())
+      }
+    }
+    return relatedFeatureNames
+  }
+
+  private buildRecordByPeriod(entityName: string, startTime: Date, endTime: Date): SignalMeta[] {
     const entity = this.state.tableRecords?.find(e => e.name === entityName);
     const { item_index, time_index, value_indexes } = entity?.metaInfo!;
     if (entity && item_index && time_index && value_indexes && value_indexes.length > 0) {
-      const selectedDf = entity.where(row => startDate < new Date(row[time_index]) && new Date(row[time_index]) < endDate)
+      const selectedDf = entity.where(row => startTime < new Date(row[time_index]) && new Date(row[time_index]) < endTime)
         .groupBy(row => (row[item_index]));
       let records: SignalMeta[] = [];
       for (const itemDf of selectedDf) {
         const itemRecords: SignalMeta[] = value_indexes.map(value_index => {
+          const itemName = itemDf.first()[item_index];
           return {
             tableName: entity.name!,
             columnName: value_index,
-            itemName: itemDf.first()[item_index],
-            startTime: startDate,
-            endTime: endDate,
+            itemName: itemName,
+            startTime: startTime,
+            endTime: endTime,
             // TODO: check this
-            relatedFeatureNames: []
+            relatedFeatureNames: this.getRelatedFeatures(entityName, itemName, startTime, endTime)
           }
         })
         records = [...records, ...itemRecords]
@@ -288,9 +307,9 @@ class App extends React.Component<AppProps, AppStates>{
       return [];
   }
 
-  private updateRecordTS(entityName: string, startDate: Date, endDate: Date) {
-    const newRecords = this.buildRecordTS(entityName, startDate, endDate);
-    this.setState({ signalMetas: newRecords });
+  private updateSignalFromTimeline(entityName: string, startDate: Date, endDate: Date) {
+    const newRecords = this.buildRecordByPeriod(entityName, startDate, endDate);
+    this.updateSignals(newRecords);
   }
 
   private updateFocusedFeatures(featureNames: string[]) {
@@ -516,7 +535,7 @@ class App extends React.Component<AppProps, AppStates>{
                 patientMeta={patientMeta}
                 featureMeta={featureMeta}
                 tableRecords={tableRecords}
-                onSelectEvents={this.updateRecordTS}
+                onSelectEvents={this.updateSignalFromTimeline}
                 entityCategoricalColor={this.entityCategoricalColor}
               />}
             </Panel>
@@ -565,8 +584,8 @@ class App extends React.Component<AppProps, AppStates>{
             </Panel>
             }*/}
             {tableNames &&
-              <Drawer maskClosable={false} title="Filter View" placement="right" closable={false} 
-              onClose={this.onClose} visible={visible} width={450} >
+              <Drawer maskClosable={false} title="Filter View" placement="right" closable={false}
+                onClose={this.onClose} visible={visible} width={450} >
                 <p>
                   <FilterView
                     selectedsubjectId={selectedsubjectId}

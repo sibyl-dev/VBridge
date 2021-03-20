@@ -268,7 +268,7 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
                     else {
                         const max = Math.ceil(filterRange[name][1])
                         const min = Math.floor(filterRange[name][0])
-                        var series = featureMatrix?.getSeries(name).parseFloats().toArray();
+                        var series = featureMatrix?.getSeries(name).toArray();
                         return (<>
                             <Divider orientation="left" />
                             <RangeChose filterName={name}

@@ -119,8 +119,8 @@ export async function getFeatureMatrix(): Promise<dataForge.IDataFrame<number, a
     const url = `${API}/feature_matrix`;
     const response = await axios.get(url);
     const checked = checkResponse(response, []);
-    const fm = dataForge.fromCSV(checked);
-    return fm;
+    const fm = dataForge.fromCSV(checked, { dynamicTyping: true }).setIndex('SUBJECT_ID');
+    return fm.setIndex('SUBJECT_ID');
 }
 
 export async function getFeatureValues(params: {
