@@ -23,7 +23,7 @@ export interface FeatureViewProps {
     tableNames?: string[],
     featureMeta: IDataFrame<number, FeatureMeta>,
     predictionTargets: string[],
-    subjectIdG: number[],
+    groupIds?: number[],
     itemDicts?: ItemDict,
     entityCategoricalColor?: (entityName: string | undefined) => string,
     abnormalityColor?: (abnoramlity: number) => string,
@@ -105,7 +105,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                 const itemLabel = itemDicts && sample.entityId && itemDicts(sample.entityId, itemName)?.LABEL;
                 return {
                     ...sample,
-                    name: undefined,
+                    name: _.reduce(group.getSeries('name').toArray(), (a, b) => `${a}-${b}`),
                     alias: itemLabel || itemName,
                     value: undefined,
                     primitive: undefined,
@@ -120,7 +120,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                 const sample = group.first();
                 return {
                     ...sample,
-                    name: undefined,
+                    name: _.reduce(group.getSeries('name').toArray(), (a, b) => `${a}-${b}`),
                     alias: sample.type,
                     value: undefined,
                     primitive: undefined,
@@ -153,7 +153,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                             <span className='legend-name'>{"Patient Info & Surgery Info"}</span>
                         </div>
                         {tableNames && tableNames.map(name =>
-                            <div className="legend-block">
+                            <div className="legend-block" key={name}>
                                 <div className='legend-rect' style={{ backgroundColor: entityCategoricalColor(name) }} />
                                 <span className='legend-name'>{name.toLocaleLowerCase()}</span>
                             </div>
@@ -378,8 +378,8 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
         }
         const heigth = showDistibution ? 100 : 30;
 
-        let id: string | undefined = undefined;
-        if (feature.name !== undefined)
+        let id: string | undefined = undefined
+        if (!feature.children || feature.children.count() === 0)
             id = `${className}-${feature.name}`;
         else if (collapsed) {
             const childrenNames = feature.children?.getSeries('name').where(d => d);

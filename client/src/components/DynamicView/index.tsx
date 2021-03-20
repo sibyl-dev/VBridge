@@ -5,7 +5,7 @@ import * as React from "react";
 import { DataFrame, IDataFrame, ISeries } from "data-forge";
 import { defaultMargin, getMargin, getScaleLinear, IMargin } from "visualization/common";
 import { CloseOutlined, ExpandAltOutlined, PushpinOutlined, ShrinkOutlined } from "@ant-design/icons";
-import { arrayShallowCompare, ReferenceValue } from "data/common";
+import { arrayShallowCompare, ReferenceValue, timeDeltaPrinter } from "data/common";
 import { getReferenceValues } from "router/api";
 import LineChart from "visualization/lineChart";
 
@@ -216,7 +216,7 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
         const { className, signal, itemDicts, width, height, color, margin, onHover, onLeave, onRemove } =
             { ...defaultTimeSeriesStyle, ...this.props };
         const { expand, referenceValue, pinned } = this.state;
-        const { tableName, itemName, data } = signal;
+        const { tableName, itemName, data, startTime, endTime } = signal;
         const itemLabel = itemDicts && itemDicts(tableName, itemName)?.LABEL;
         // console.log(data.values.toArray());
 
@@ -224,7 +224,7 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
             style={{ borderLeftColor: color || '#aaa', borderLeftWidth: 4 }}
             onMouseOver={onHover} onMouseOut={onLeave}>
             <div className={"ts-title-float"} style={{ width: width }}>
-                <span className={"ts-title-float-text"}>{`${itemLabel || itemName}`}</span>
+                <span className={"ts-title-float-text"}>{`${itemLabel || itemName} (${timeDeltaPrinter(startTime, endTime)})`}</span>
                 <Button size="small" type="primary" shape="circle" icon={<PushpinOutlined />} className={"ts-title-button"}
                     style={{ display: pinned ? 'block' : undefined }} onClick={this.onPin}
                 />
