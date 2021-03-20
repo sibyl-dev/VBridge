@@ -123,3 +123,23 @@ export function getReferenceValue(data: number[]): ReferenceValue {
         ci95: ci95
     }
 }
+
+export function timeDeltaPrinter(startTime: Date, endTime: Date) {
+    const deltaMinute = (endTime.getTime() - startTime.getTime()) / 1000 / 60;
+    if (deltaMinute < 60 * 3) {
+        const hour = Math.floor(deltaMinute / 60);
+        const minute = deltaMinute % 60;
+        return (hour > 0) ? `${hour}h${minute}m` : `${minute}m`;
+    }
+    else {
+        const deltaHour = Math.floor(deltaMinute / 60);
+        if (deltaHour < 24 * 3) {
+            const day = Math.floor(deltaHour / 24);
+            const hour = deltaHour % 24;
+            return (day > 0) ? `${day}d${hour}h` : `${hour}h`;
+        }
+        else {
+            return `${Math.floor(deltaHour / 24)}d`
+        }
+    }
+}

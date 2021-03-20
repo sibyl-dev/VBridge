@@ -90,13 +90,15 @@ class Featurization:
 
     @staticmethod
     def select_features(fm, fl=None):
-        fm = remove_highly_null_features(fm)
-        fm = remove_low_information_features(fm)
-        fm = remove_highly_correlated_features(fm)
         if fl is None:
+            fm = remove_highly_null_features(fm, pct_null_threshold=0.9)
+            fm = remove_low_information_features(fm)
+            fm = remove_highly_correlated_features(fm)
             return fm
         else:
-            fl = [f for f in fl if f.get_name() in fm.columns]
+            fm, fl = remove_highly_null_features(fm, fl, pct_null_threshold=0.9)
+            fm, fl = remove_low_information_features(fm, fl)
+            fm, fl = remove_highly_correlated_features(fm, fl)
             return fm, fl
 
     @staticmethod

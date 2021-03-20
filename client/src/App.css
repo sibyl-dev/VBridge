@@ -123,12 +123,13 @@
 
 .between-view-link {
     stroke: #fff;
-    stroke-width: 2px;
+    stroke-width: 1px;
     fill: none;
-    opacity: 0.6;
+    opacity: 0.4;
 }
 
 .between-view-dot {
     /* stroke: #fff; */
     /* stroke-width: 1px; */
+    opacity: 0.4;
 }

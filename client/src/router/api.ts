@@ -2,7 +2,7 @@ import axios, { AxiosResponse } from "axios";
 import * as dataForge from "data-forge"
 import * as _ from "lodash"
 import { FeatureMeta } from "data/feature";
-import { PatientMeta } from "data/patient";
+import { PatientGroup, PatientMeta } from "data/patient";
 import { Entity, ItemDict } from "data/table";
 import { ROOT_URL, DEV_MODE } from "./env";
 import { patientInfoMeta } from 'data/metaInfo';
@@ -68,19 +68,19 @@ export async function getPatientFilterRange(): Promise<filterType> {
 }
 export async function getPatientGroup(params: {
     filterConditions: { [key: string]: any }, subject_id: number, setSubjectIdG: boolean,
-}): Promise<{ [key: string]: any }> {
+}): Promise<PatientGroup> {
     const url = `${API}/patient_group`;
     const response = await axios.get(url, { params });
     return checkResponse(response, []);
 }
 
-export async function getPatientGroupPart(params: {
-    filterConditions: { [key: string]: any },
-}): Promise<{ [key: string]: any }> {
-    const url = `${API}/patient_group_partial`;
-    const response = await axios.get(url, { params });
-    return checkResponse(response, []);
-}
+// export async function getPatientGroupPart(params: {
+//     filterConditions: { [key: string]: any },
+// }): Promise<{ [key: string]: any }> {
+//     const url = `${API}/patient_group_partial`;
+//     const response = await axios.get(url, { params });
+//     return checkResponse(response, []);
+// }
 
 export async function getPatientMeta(params: {
     subject_id: number

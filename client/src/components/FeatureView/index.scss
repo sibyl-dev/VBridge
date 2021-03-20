@@ -94,7 +94,9 @@
                     }
                     rect.pos-feature {
                         fill: #FF0155;
+                        // fill: rgb(242, 142, 44);
                         stroke: #FF0155;
+                        // fill: rgb(242, 142, 44);
                         stroke-width: 1px;
                         opacity: 80%;
                     }
@@ -192,4 +194,40 @@
     margin-top: 10px;
     color: #777;
     float: left;
+}
+
+.category-legend-container {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+    .legend-block {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        .legend-rect {
+            width: 10px;
+            height: 10px;
+            // margin-top: 5px;
+        }
+        .legend-name {
+            font-size: 10px;
+            margin-left: 5px;
+            margin-right: 10px;
+        }
+    }
+}
+
+.abnormality-legend-container {
+    width: 100%;
+    display: flex;
+    .legend-anno {
+        font-size: 10px;
+        margin-left: 10px;
+        margin-right: 10px;
+    }
+    .legend-color-bar {
+        width: 60%;
+        max-width: calc(100% - 40px);
+    }
 }

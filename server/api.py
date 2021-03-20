@@ -1,7 +1,5 @@
 import logging
-import math
 import json
-import csv
 
 import numpy as np
 import pandas as pd
@@ -10,9 +8,7 @@ from flask import request, jsonify, Blueprint, current_app, Response
 
 from model.data import get_patient_records
 from model.modeler import Modeler
-from model.settings import interesting_variables, META_INFO, filter_variable, filter_variable1,\
-                            fm_category_name,complication_type
-from sklearn.metrics.pairwise import cosine_similarity
+from model.settings import interesting_variables, META_INFO, filter_variable, filter_variable1
 
 api = Blueprint('api', __name__)
 
@@ -78,7 +74,8 @@ def get_available_ids():
     print('available_ids', subjects_ids)
 
     df = es["SURGERY_INFO"].df
-    subjects_ids1 = df[(df['complication'] == 1) & (df['SUBJECT_ID'].isin(subjects_ids))]["SUBJECT_ID"].values[:30].tolist()
+    subjects_ids1 = df[(df['complication'] == 1) & (df['SUBJECT_ID'].isin(subjects_ids))][
+                        "SUBJECT_ID"].values[:30].tolist()
     print('available_ids', subjects_ids1)
 
     return jsonify(subjects_ids1)
@@ -104,8 +101,10 @@ def get_patient_meta():
     surgery_df = es["SURGERY_INFO"].df
     # print('hadm_df', hadm_df[hadm_df['SUBJECT_ID'] == subject_id])
     info['AdmitTime'] = str(hadm_df[hadm_df['SUBJECT_ID'] == subject_id]['ADMITTIME'].values[0])
-    info['SurgeryEndTime'] = str(surgery_df[surgery_df['SUBJECT_ID'] == subject_id]['SURGERY_END_TIME'].values[0])
-    info['SurgeryBeginTime'] = str(surgery_df[surgery_df['SUBJECT_ID'] == subject_id]['SURGERY_BEGIN_TIME'].values[0])
+    info['SurgeryEndTime'] = str(
+        surgery_df[surgery_df['SUBJECT_ID'] == subject_id]['SURGERY_END_TIME'].values[0])
+    info['SurgeryBeginTime'] = str(
+        surgery_df[surgery_df['SUBJECT_ID'] == subject_id]['SURGERY_BEGIN_TIME'].values[0])
 
     patient_df = es["PATIENTS"].df
     info['GENDER'] = patient_df[patient_df['SUBJECT_ID'] == subject_id]['GENDER'].values[0]
@@ -143,19 +142,19 @@ def get_record_filterrange():
 
     for i, filter_name in enumerate(filter_variable):
         # categorical
-        if(filter_name == 'GENDER'):
+        if filter_name == 'GENDER':
             info[filter_name] = ['F', 'M']
-        elif(filter_name == 'Age'):
+        elif filter_name == 'Age':
             info[filter_name] = ['< 1 month', '1-3 months', '3 months-1 year', '> 1 year']
             all_records = list(set(fm[filter_name]))
             info['age'] = [min(all_records), max(all_records)]
-        elif(filter_name == 'SURGERY_NAME'):
+        elif filter_name == 'SURGERY_NAME':
             all_records = []
             for surgeryname in fm[filter_name]:
                 all_records = all_records + surgeryname
             # print(filter_name, all_records)
             info[filter_name] = list(set(all_records))
-        elif(fm[filter_name].dtype == object):
+        elif fm[filter_name].dtype == object:
             all_records = list(set(fm[filter_name]))
             all_records.sort()
             info[filter_name] = all_records
@@ -166,169 +165,70 @@ def get_record_filterrange():
     return jsonify(info)
 
 
-@api.route('/patient_group_partial', methods=['GET'])
-def get_patient_group_partial():
-
-    conditions = json.loads(request.args.get('filterConditions'))
-
-    table_names = ['PATIENTS', 'SURGERY_INFO', 'ADMISSIONS']
-    number_vari = ['Age', 'Height', 'Weight', 'Surgical time (minutes)']
-
-    es = current_app.es
-    subject_idG = list(current_app.fm.index)
-
-    # info = {'subject_idG' : subject_idG}
-    # print('conditions',conditions)
-    # filter subject_idG according to the conditions
-    for i, table_name in enumerate(table_names):
-        column_names = filter_variable1[table_name]
-        hadm_df = es[table_name].df
-        tableFlag = False
-
-        for condition_name in conditions:
-            if condition_name in column_names:
-                tableFlag = True
-                hasFilter = True  
-                print('conditions',condition_name, conditions[condition_name])
-
-                if(condition_name == 'Age'):
-                    fiilter_flag = False
-                    if('< 1 month' in conditions[condition_name]):
-                        fiilter_flag = (fiilter_flag) | (hadm_df[condition_name]<=1)
-                    if('1-3 months' in conditions[condition_name]):
-                        fiilter_flag = (fiilter_flag) | (hadm_df[condition_name]>=1) & (hadm_df[condition_name]<=3) 
-                    if('3 months-1 year' in conditions[condition_name]):
-                        fiilter_flag = (fiilter_flag) | (hadm_df[condition_name]>=3) & (hadm_df[condition_name]<=12) 
-                    if('> 1 year' in conditions[condition_name]):
-                        fiilter_flag = (fiilter_flag) | (hadm_df[condition_name]>=12)
-                    hadm_df = hadm_df[fiilter_flag]
-                elif(condition_name in number_vari):
-                    hadm_df = hadm_df[(hadm_df[condition_name]>=conditions[condition_name][0]) &  (hadm_df[condition_name]<=conditions[condition_name][1])]
-                elif(condition_name == 'SURGERY_NAME' or condition_name == 'SURGERY_POSITION'):
-                    tmpDf = hadm_df[condition_name]
-                    print('SURGERY_NAME', conditions[condition_name])
-                    flag = tmpDf.apply(lambda x: np.array([t in x for t in conditions[condition_name]]).any())
-                    hadm_df = hadm_df[flag]
-                else:
-                    print('isin', condition_name, list(conditions[condition_name]))
-                    hadm_df = hadm_df[hadm_df[condition_name].isin(list(conditions[condition_name])) ]
-
-        if tableFlag:
-            if len(subject_idG) != 0:
-                hadm_df = hadm_df[hadm_df['SUBJECT_ID'].isin(subject_idG)]
-            subject_idG = hadm_df['SUBJECT_ID'].drop_duplicates().values.tolist()
-
-    fm_ = current_app.fm
-    # r = fm_.loc[8511]
-    if subject_id:
-        r = fm_.loc[subject_id]
-        # r = r.drop(complication_type)
-    fm = fm_[fm_.index.isin(subject_idG)]
-    fm = fm.fillna(0)
-
-    # contact the prediction result, calculate the prediction truth
-    info['distribution'] = [np.sum(fm['lung complication']), np.sum(fm['cardiac complication']),
-         np.sum(fm['arrhythmia complication']), np.sum(fm['infectious complication']),
-         np.sum(fm['other complication'])]
-    # info['predictionG'] = list((fm['lung complication'].astype('str')).str.cat(
-    #     [fm['cardiac complication'].astype('str'), fm['arrhythmia complication'].astype('str'),
-    #      fm['infectious complication'].astype('str'), fm['other complication'].astype('str')],
-    #     sep='-'))
-    info['subject_idG'] = list(subject_idG)
-    noComplication = len(subject_idG) - np.sum(fm['complication'])
-    info['distribution'].append(noComplication)
-    print('distribution', info['distribution'])
-    # current_app.subject_idG = list(subject_idG)
-    return jsonify(info)
-
-
 @api.route('/patient_group', methods=['GET'])
 def get_patient_group():
     conditions = json.loads(request.args.get('filterConditions'))
-    subject_id = int(request.args.get('subject_id'))
     setSubjectIdG = request.args.get('setSubjectIdG')
 
     table_names = ['PATIENTS', 'SURGERY_INFO', 'ADMISSIONS']
-    number_vari = [ 'Height', 'Weight', 'Surgical time (minutes)']
+    number_vari = ['Height', 'Weight', 'Surgical time (minutes)']
 
     es = current_app.es
-    subject_idG = list(current_app.fm.index)
+    fm = current_app.fm
+    subject_idG = fm.index.to_list()
 
-    info = {'subject_idG' : subject_idG}
-    print('conditions',conditions)
+    info = {'subject_idG': subject_idG}
+    print('conditions', conditions)
+
     # filter subject_idG according to the conditions
     for i, table_name in enumerate(table_names):
         column_names = filter_variable1[table_name]
-        hadm_df = es[table_name].df
-        tableFlag = False
-
-        for condition_name in conditions:
-            if condition_name in column_names:
-                tableFlag = True
-                print('conditions',condition_name, conditions[condition_name])
-
-                if(condition_name in number_vari):
-                    hadm_df = hadm_df[(hadm_df[condition_name]>=conditions[condition_name][0]) &  (hadm_df[condition_name]<=conditions[condition_name][1])]
-                elif(len(conditions[condition_name]) == 0 and condition_name!='SURGERY_NAME'):
-                    subject_idG = []
-                elif(condition_name == 'Age'):
-                    fiilter_flag = False
-                    if('< 1 month' in conditions[condition_name]):
-                        fiilter_flag = (fiilter_flag) | (hadm_df[condition_name]<=1)
-                    if('1-3 months' in conditions[condition_name]):
-                        fiilter_flag = (fiilter_flag) | (hadm_df[condition_name]>=1) & (hadm_df[condition_name]<=3) 
-                    if('3 months-1 year' in conditions[condition_name]):
-                        fiilter_flag = (fiilter_flag) | (hadm_df[condition_name]>=3) & (hadm_df[condition_name]<=12) 
-                    if('> 1 year' in conditions[condition_name]):
-                        fiilter_flag = (fiilter_flag) | (hadm_df[condition_name]>=12)
-                    hadm_df = hadm_df[fiilter_flag]
-                elif(condition_name == 'SURGERY_NAME'):
+        df = es[table_name].df
+        df = df[df['SUBJECT_ID'].isin(subject_idG)]
+        for item, value in conditions.items():
+            if item in column_names:
+                print('conditions', item, value)
+                if item in number_vari:
+                    df = df[(df[item] >= value[0]) & (df[item] <= value[1])]
+                elif item == 'Age':
+                    filter_flag = False
+                    if '< 1 month' in value:
+                        filter_flag = filter_flag | (df[item] <= 1)
+                    if '1-3 months' in value:
+                        filter_flag = filter_flag | (df[item] >= 1) & (df[item] <= 3)
+                    if '3 months-1 year' in value:
+                        filter_flag = filter_flag | (df[item] >= 3) & (df[item] <= 12)
+                    if '> 1 year' in value:
+                        filter_flag = filter_flag | (df[item] >= 12)
+                    df = df[filter_flag]
+                elif item == 'SURGERY_NAME':
                     # do nothing when he is []
-                    if(len(conditions[condition_name])):
-                        tmpDf = hadm_df[condition_name]
-                        flag = tmpDf.apply(lambda x: np.array([t in x for t in conditions[condition_name]]).all())
-                        hadm_df = hadm_df[flag]
-
-                elif(condition_name == 'SURGERY_POSITION'):
-                    tmpDf = hadm_df[condition_name]
-                    print('SURGERY_NAME', conditions[condition_name])
-                    flag = tmpDf.apply(lambda x: np.array([t in x for t in conditions[condition_name]]).any())
-                    hadm_df = hadm_df[flag]
+                    df = df[df.apply(lambda x: np.array([t in x[item] for t in value]).all(),
+                                     axis='columns')]
+                elif item == 'SURGERY_POSITION':
+                    df = df[df.apply(lambda x: np.array([t in x[item] for t in value]).any(),
+                                     axis='columns')]
+                elif item == 'GENDER':
+                    df = df[df[item].isin(value)]
                 else:
-                    print('isin', condition_name, list(conditions[condition_name]))
-                    hadm_df = hadm_df[hadm_df[condition_name].isin(list(conditions[condition_name]))]
-                    if(condition_name == 'GENDER'):
-                        print('condition_name GENDER', hadm_df)
+                    raise UserWarning("Condition: {} will not be considered.".format(item))
 
-        if tableFlag:
-            # if len(subject_idG) != 0:
-            hadm_df = hadm_df[hadm_df['SUBJECT_ID'].isin(subject_idG)]
-            subject_idG = hadm_df['SUBJECT_ID'].drop_duplicates().values.tolist()
-            print('ahahaha', subject_idG, len(subject_idG))
+        subject_idG = df['SUBJECT_ID'].drop_duplicates().values.tolist()
 
-    fm_ = current_app.fm
-    # r = fm_.loc[8511]
-    if subject_id:
-        r = fm_.loc[subject_id]
-        # r = r.drop(complication_type)
-    fm = fm_[fm_.index.isin(subject_idG)]
-    fm = fm.fillna(0)
+    fm = fm[fm.index.isin(subject_idG)]
 
     # contact the prediction result, calculate the prediction truth
-    info['distribution'] = [np.sum(fm['lung complication']), np.sum(fm['cardiac complication']),
-         np.sum(fm['arrhythmia complication']), np.sum(fm['infectious complication']),
-         np.sum(fm['other complication'])]
-    info['predictionG'] = list((fm['lung complication'].astype('str')).str.cat(
-        [fm['cardiac complication'].astype('str'), fm['arrhythmia complication'].astype('str'),
-         fm['infectious complication'].astype('str'), fm['other complication'].astype('str')],
-        sep='-'))
-    info['subject_idG'] = list(subject_idG)
-    noComplication = len(subject_idG) - np.sum(fm['complication'])
-    info['distribution'].append(noComplication)
-    print('distribution', info['distribution'])
+    info['labelCounts'] = [np.sum(fm['lung complication']),
+                           np.sum(fm['cardiac complication']),
+                           np.sum(fm['arrhythmia complication']),
+                           np.sum(fm['infectious complication']),
+                           np.sum(fm['other complication']),
+                           len(subject_idG) - np.sum(fm['complication'])]
+    print(info['labelCounts'])
+    info['ids'] = subject_idG
 
-    if(setSubjectIdG):
-        current_app.subject_idG = list(subject_idG)
+    if setSubjectIdG:
+        current_app.subject_idG = subject_idG
     return jsonify(info)
 
 
@@ -401,8 +301,6 @@ def get_feature_meta():
         else:
             info['alias'] = leaf_node.get_name()
 
-        # type: 'Surgery Observations' | 'Pre-surgery Observations' | 
-        # 'Pre-surgery Treatments' | 'In-surgery Information' | 'Patient Information'
         if '#' in f.get_name():
             period = f.get_name().split('#')[0]
             info['period'] = period
@@ -417,8 +315,8 @@ def get_feature_meta():
             else:
                 feature_type = 'Pre-surgery Observations'
         else:
-            if f.get_name() in ['Height', 'Weight', 'Age', 
-                'ADMISSIONS.ICD10_CODE_CN', 'ADMISSIONS.PATIENTS.GENDER']:
+            if f.get_name() in ['Height', 'Weight', 'Age',
+                                'ADMISSIONS.ICD10_CODE_CN', 'ADMISSIONS.PATIENTS.GENDER']:
                 feature_type = 'Patient Information'
             else:
                 feature_type = 'Surgery Information'
@@ -461,6 +359,7 @@ def get_shap_values():
     shap_values = current_app.model_manager.explain(id=subject_id, target=target)
     return jsonify(shap_values.loc[0].to_dict())
 
+
 @api.route('/what_if_shap_values', methods=['GET'])
 def get_what_if_shap_values():
     subject_id = int(request.args.get('subject_id'))
@@ -478,8 +377,9 @@ def get_what_if_shap_values():
     high_features = target_fv[target_fv > stat['ci95_high']].index
     high_features = [f for f in high_features if f not in targets]
     if len(high_features) > 0:
-        high_fm = pd.DataFrame(target_fv.values.repeat(len(high_features)).reshape(-1, len(high_features)), 
-                        columns=high_features, index=fm.columns)
+        high_fm = pd.DataFrame(
+            target_fv.values.repeat(len(high_features)).reshape(-1, len(high_features)),
+            columns=high_features, index=fm.columns)
         for feature in high_features:
             high_fm.loc[feature, feature] = stat.loc[feature]['ci95_high']
         results = model_manager.explain(X=high_fm.T, target=target)
@@ -490,15 +390,16 @@ def get_what_if_shap_values():
     low_features = target_fv[target_fv < stat['ci95_low']].index
     low_features = [f for f in low_features if f not in targets]
     if len(low_features) > 0:
-        low_fm = pd.DataFrame(target_fv.values.repeat(len(low_features)).reshape(-1, len(low_features)), 
-                        columns=low_features, index=fm.columns)
+        low_fm = pd.DataFrame(
+            target_fv.values.repeat(len(low_features)).reshape(-1, len(low_features)),
+            columns=low_features, index=fm.columns)
         for feature in low_features:
             low_fm.loc[feature, feature] = stat.loc[feature]['ci95_low']
         results = model_manager.explain(X=low_fm.T, target=target)
         for i, feature in enumerate(low_features):
             shap_values[feature] = results.loc[i, feature]
     return jsonify(shap_values)
-    
+
 
 @api.route('/item_dict', methods=['GET'])
 def get_item_dict():

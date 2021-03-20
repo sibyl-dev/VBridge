@@ -6,3 +6,8 @@ export type PatientMeta = {
     DOB: string,
     GENDER: string,
 }
+
+export type PatientGroup = { 
+    ids: number[],
+    labelCounts: number[], 
+}
