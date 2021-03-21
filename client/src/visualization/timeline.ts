@@ -43,6 +43,8 @@ export function drawTimeline(params: {
 
     const t = timeScale || getScaleTime(0, width, events.map(e => e.timestamp));
     const r = getScaleLinear(0, 30, events.map(d => d.count));
+    const opacity = getScaleLinear(0, 1, events.map(d => d.count));
+
 
     // getChildOrAppend(base, "rect", "base-rect")
     //     .attr("width", width)
@@ -131,10 +133,14 @@ export function drawTimeline(params: {
         .attr("x", d => t(d.timestamp))
         .attr('y', 0)
         .attr('width', d => (Math.min(t(new Date((d.timestamp.valueOf()+size*60*1000))),width)-t(d.timestamp) - 1))
-        .attr("height", d => r(d.count))
+        .attr("height", height+ margin.top)
         .style("fill", color || defaultCategoricalColor(0))
-        .attr("transform", d=> `translate(0, ${height - r(d.count)})`);
-
+        .style('opacity', d => opacity(d.count))
+        .attr('transform',  d=> `translate(0, 0)`)
+        .style('stroke', 'black')
+        .style('stroke-width', '1px')
+        // .attr("transform", d=> `translate(0, ${height - r(d.count)})`);
+        // d => r(d.count)
     console.log('bubbleBase', size,)
     selectedX && base.call(brush.move, [t(selectedX[0]), t(selectedX[1])]);
     updateHandle(selectedX);

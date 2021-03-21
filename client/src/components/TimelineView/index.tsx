@@ -50,6 +50,7 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
         this.color = this.color.bind(this);
         this.calculateNewTime = this.calculateNewTime.bind(this)
         this.calIntervals = this.calIntervals.bind(this)
+        this.formulateTime = this.formulateTime.bind(this)
     }
 
     public componentDidMount() {
@@ -147,6 +148,9 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
 
         
     }
+    public formulateTime(time: number){
+        return time<10?'0'+time:time
+    }
 
     private _extractEvents() {
         const { tableRecords } = this.props
@@ -158,7 +162,8 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
             const events: IEvent[][] = [];
             for (const entity of tableRecords) {
                 const { timeIndex, name } = entity;
-
+                const filteredDf = entity.where(row => new Date(row[timeIndex!])>= new Date(startDate!)); 
+                const filteredDf1 = filteredDf.where(row => new Date(row[timeIndex!])<= new Date(endDate!)); 
 
                 const entityWithnewSeries = entity.generateSeries({
                     Year: row => row[entity.timeIndex!].substr(0,4),
@@ -174,20 +179,20 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
                 
                 if(choseInterval < ONE_HOUR){
                     modifiedDf = entityWOoriginaltime.transformSeries({
-                         Minute: columnValue => Math.floor(columnValue/choseInterval)<10?Math.floor(columnValue/choseInterval):'0'+Math.floor(columnValue/choseInterval),
+                         Minute: columnValue => this.formulateTime(Math.floor(columnValue/choseInterval)*choseInterval),
                     });
                     groupName = 'Minute'
                 }
                 else if(choseInterval < 24*ONE_HOUR){
                     modifiedDf = entityWOoriginaltime.transformSeries({
-                         Hour: columnValue => Math.floor(columnValue/(choseInterval/ONE_HOUR))*(choseInterval/ONE_HOUR), 
+                         Hour: columnValue => this.formulateTime(Math.floor(columnValue/(choseInterval/ONE_HOUR))*(choseInterval/ONE_HOUR)), 
                          Minute: columnValue => '00'
                     });
                     groupName = 'Hour'
                 }
                 else{
                     modifiedDf = entityWOoriginaltime.transformSeries({
-                         Day: columnValue => Math.floor(columnValue/(choseInterval/ONE_HOUR/24))*(choseInterval/ONE_HOUR/24),
+                         Day: columnValue => this.formulateTime(Math.floor(columnValue/(choseInterval/ONE_HOUR/24))*(choseInterval/ONE_HOUR/24)),
                          Minute: columnValue => '00',
                          Hour: columnValue =>'00',
                     });
@@ -196,8 +201,11 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
                 // modifiedDf = entityWOoriginaltime.transformSeries({
                 //     [timeIndex!]:
                 // })
-                const groupedEntity = modifiedDf.groupBy(row => row['Year']&&row['Month']&&row['Day'] &&row['Hour']&&row['Minute']);
+                const groupedEntity = modifiedDf.groupBy(row => row['Year']+row['Month']+row['Day']+row['Hour']+row['Minute']);
 
+                // const test:IEvent = modifiedDf.toArray().map()
+                // group.first()['Year'] + '-' + group.first()['Month'] +'-' + group.first()['Day']+' '
+                                       // +group.first()['Hour'] + ':' + group.first()['Minute'] + ':00'
                 const e: IEvent[] = groupedEntity.toArray().map(group => ({
                     entityName: name!,
                     timestamp: new Date(group.first()['Year'] + '-' + group.first()['Month'] +'-' + group.first()['Day']+' '
@@ -217,7 +225,7 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
     public updateTimeScale(scale: d3.ScaleTime<number, number>, startDate: Date, endDate: Date) {
         console.log('updateTimeScale', ' events', startDate, endDate)
         this.setState({timeScale:scale, startDate, endDate})
-        // this.setState({})
+        // this.setState({startDate, endDate})
     }
 
     private color(id: number) {
@@ -233,15 +241,10 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
     public render() {
         const { patientMeta, tableRecords, onSelectEvents } = this.props;
         let { timeScale, events, choseInterval, wholeEvents, startDate, endDate, firstStartDate, firstEndDate } = this.state;
-        // const startDate = patientMeta && patientMeta.AdmitTime;
-        // const endDate = patientMeta && patientMeta.SurgeryEndTime;
         
         const width = 700;
-        const margin: IMargin = { left: 15, right: 15, top: 0, bottom: 7 }
-        // if (!timeScale) {
-        //     const extent: [Date, Date] | undefined = startDate && endDate && [startDate, endDate];
-        //     timeScale = extent && getScaleTime(0, width - margin.left - margin.right, undefined, extent);
-        // }
+        const margin: IMargin = { left: 15, right: 15, top: 0, bottom: 0 }
+
         console.log('Timeline index, events', events)
 
         return (
