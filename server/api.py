@@ -109,6 +109,7 @@ def get_patient_meta():
     patient_df = es["PATIENTS"].df
     info['GENDER'] = patient_df[patient_df['SUBJECT_ID'] == subject_id]['GENDER'].values[0]
     info['DOB'] = str(patient_df[patient_df['SUBJECT_ID'] == subject_id]['DOB'].values[0])
+    info['days'] = 0
 
     return jsonify(info)
 
@@ -131,6 +132,7 @@ def get_patientinfo_meta():
         for i, col in enumerate(column_names):
             info[col] = str(record[col].values[0])
     # print('patientinfo_meta', info)
+    # info['ageDays'] = info['']
 
     return jsonify(info)
 
@@ -145,7 +147,7 @@ def get_record_filterrange():
         if filter_name == 'GENDER':
             info[filter_name] = ['F', 'M']
         elif filter_name == 'Age':
-            info[filter_name] = ['< 1 month', '1-3 months', '3 months-1 year', '> 1 year']
+            info[filter_name] = ['< 1 month', '< 1 year', '1-3 years',  '> 3 years']
             all_records = list(set(fm[filter_name]))
             info['age'] = [min(all_records), max(all_records)]
         elif filter_name == 'SURGERY_NAME':
@@ -194,12 +196,12 @@ def get_patient_group():
                     filter_flag = False
                     if '< 1 month' in value:
                         filter_flag = filter_flag | (df[item] <= 1)
-                    if '1-3 months' in value:
-                        filter_flag = filter_flag | (df[item] >= 1) & (df[item] <= 3)
-                    if '3 months-1 year' in value:
-                        filter_flag = filter_flag | (df[item] >= 3) & (df[item] <= 12)
-                    if '> 1 year' in value:
-                        filter_flag = filter_flag | (df[item] >= 12)
+                    if '1-3 years' in value:
+                        filter_flag = filter_flag | (df[item] >= 12) & (df[item] <= 36)
+                    if '< 1 year' in value:
+                        filter_flag = filter_flag | (df[item] >= 1) & (df[item] <= 12)
+                    if '> 3 years' in value:
+                        filter_flag = filter_flag | (df[item] >= 36)
                     df = df[filter_flag]
                 elif item == 'SURGERY_NAME':
                     # do nothing when he is []

@@ -12,6 +12,7 @@ export type Event = {
 export function drawTimelineList(params: {
     events: Event[][],
     node: SVGElement,
+    size: number,
 
     width: number,
     margin?: IMargin,
@@ -23,8 +24,9 @@ export function drawTimelineList(params: {
     selectedX?: ([Date, Date] | undefined)[],
     onMouseOver?: (id: number) => void;
     onMouseLeave?: (id: number) => void;
+    calculateNewTime?: (time: Date) => Date|undefined,
 }) {
-    const { color, events, node, timeScale, onBrush, selectedX, onMouseOver, onMouseLeave, rowHeight, rowMargin } = params
+    const { color, events, node, timeScale, onBrush, selectedX, onMouseOver, onMouseLeave, rowHeight, rowMargin, size, calculateNewTime } = params
     const root = d3.select(node);
     const margin = getMargin(params.margin || {});
     const width = params.width - margin.left - margin.right;
@@ -36,7 +38,7 @@ export function drawTimelineList(params: {
     rowBases.forEach((base, i) => base.attr("transform", `translate(0, ${rowHeight * i})`));
     rowBases.forEach((d, i) => {
         const node = d.node();
-        if (node) {
+        if (node && calculateNewTime) {
             drawTimeline({
                 events: events[i],
                 node: node,
@@ -49,7 +51,9 @@ export function drawTimelineList(params: {
                     onBrush(i, startDate, endDate, update)),
                 selectedX: selectedX && selectedX[i],
                 onMouseOver: onMouseOver && (() => onMouseOver(i)),
-                onMouseLeave: onMouseLeave && (() => onMouseLeave(i))
+                size: size,
+                onMouseLeave: onMouseLeave && (() => onMouseLeave(i)),
+                calculateNewTime: calculateNewTime,
             })
         }
     })

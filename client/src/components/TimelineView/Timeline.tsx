@@ -121,6 +121,7 @@ export class Timeline extends React.Component<TimelineProps, TimelineStates>{
                 selectedX: this.selectedX,
                 onMouseOver: this.onMouseOver,
                 onMouseLeave: this.onMouseLeave,
+                size:0,
             });
         }
         this.shouldPaint = false;

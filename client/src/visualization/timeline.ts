@@ -10,7 +10,7 @@ export type Event = {
 export function drawTimeline(params: {
     events: Event[],
     node: SVGElement|SVGGElement,
-
+    size: number,
     width: number,
     height: number,
     margin?: IMargin,
@@ -20,8 +20,11 @@ export function drawTimeline(params: {
     selectedX?: [Date, Date],
     onMouseOver?: () => void;
     onMouseLeave?: () => void;
+    calculateNewTime?: (time: Date) => Date|undefined,
+
 }) {
-    const { color, events, node, timeScale, onBrush, selectedX, onMouseOver, onMouseLeave} = params
+    const { color, events, node, timeScale, onBrush, selectedX, onMouseOver, onMouseLeave, size, calculateNewTime,} = params
+    // console.log('drawTimeline', params)
     const root = d3.select(node);
     const margin = getMargin(params.margin || {});
     const height = params.height - margin.top - margin.bottom;
@@ -30,16 +33,18 @@ export function drawTimeline(params: {
     const base = getChildOrAppend<SVGGElement, SVGElement>(root, "g", "base")
         .attr("transform", `translate(${margin.left}, ${margin.top})`);
     const axisBase = getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "axis-base")
-        .attr("transform", `translate(0, ${height / 2})`);
+        .attr("transform", `translate(0, ${height})`);
     const bubbleBase = getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "bubble-base")
-        .attr("transform", `translate(0, ${height / 2})`);
+        
 
     const axis = getChildOrAppend<SVGLineElement, SVGGElement>(axisBase, "line", "axis-line")
         .attr("class", "axis-line")
         .attr("x2", width);
 
     const t = timeScale || getScaleTime(0, width, events.map(e => e.timestamp));
-    const r = getScaleLinear(5, 10, events.map(d => d.count));
+    const r = getScaleLinear(0, 30, events.map(d => d.count));
+    const opacity = getScaleLinear(0, 1, events.map(d => d.count));
+
 
     // getChildOrAppend(base, "rect", "base-rect")
     //     .attr("width", width)
@@ -64,10 +69,20 @@ export function drawTimeline(params: {
     const leftTimeAnno = getChildOrAppend(base, "text", "left-time-annotation");
     const rightTimeAnno = getChildOrAppend(base, "text", "right-time-annotation");
 
+    function calExtentRange(extent: Date[]) {
+        if(calculateNewTime){
+            extent[0] = calculateNewTime(extent[0]) as Date
+            extent[1] = calculateNewTime(extent[1]) as Date
+            let endMins =  Math.ceil(extent[1].valueOf()/1000/60) + size
+            extent[1] = new Date(endMins*60*1000)
+        }
+        return extent
+    }
     function brushed(event: { selection: [number, number] }) {
         const { selection } = event;
         if (selection) {
-            const extent = selection.map(t.invert);
+            let extent = selection.map(t.invert);
+            extent = calExtentRange(extent)
             updateHandle(extent as [Date, Date]);
             onBrush && onBrush(extent[0], extent[1], false);
         }
@@ -79,7 +94,8 @@ export function drawTimeline(params: {
     function brushend(event: { selection: [number, number] }) {
         const { selection } = event;
         if (selection) {
-            const extent = selection.map(t.invert);
+            let extent = selection.map(t.invert);
+            extent = calExtentRange(extent)
             updateHandle(extent as [Date, Date]);
             onBrush && onBrush(extent[0], extent[1], true);
         }
@@ -107,17 +123,25 @@ export function drawTimeline(params: {
 
     bubbleBase.selectAll(".bubble")
         .data(events)
-        .join<SVGCircleElement>(enter => {
+        .join<SVGRectElement>(enter => {
             return enter
-                .append("circle")
+                .append("rect")
                 .attr("class", "bubble");
 
         }, update => update,
             exit => { exit.remove() })
-        .attr("cx", d => t(d.timestamp))
-        .attr("r", d => r(d.count))
-        .style("fill", color || defaultCategoricalColor(0));
-
+        .attr("x", d => t(d.timestamp))
+        .attr('y', 0)
+        .attr('width', d => (Math.min(t(new Date(d.timestamp.valueOf()+size*60*1000)), width)-t(d.timestamp) - 1))
+        .attr("height", height+ margin.top)
+        .style("fill", color || defaultCategoricalColor(0))
+        .style('opacity', d => opacity(d.count))
+        .attr('transform',  d=> `translate(0, 0)`)
+        .style('stroke', 'black')
+        .style('stroke-width', '1px')
+        // .attr("transform", d=> `translate(0, ${height - r(d.count)})`);
+        // d => r(d.count)
+    console.log('bubbleBase', size,)
     selectedX && base.call(brush.move, [t(selectedX[0]), t(selectedX[1])]);
     updateHandle(selectedX);
 

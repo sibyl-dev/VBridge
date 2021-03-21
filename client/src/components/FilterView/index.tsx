@@ -133,10 +133,10 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
             this.setState({ cancel: false });
     }
     public judgeTheAge(age: number) {
-        if (age < 1) return '< 1 month'
-        else if (age <= 3) return '1-3 months'
-        else if (age <= 12) return '3 months-1 year'
-        else return '> 1 year'
+        if (age <= 1) return '< 1 month'
+        else if (age <= 12) return '< 1 year'
+        else if (age <= 36) return '1-3 years'
+        else return '> 3 years'
     }
     public async distributionRes() {
         const { tmpConditions } = this.state

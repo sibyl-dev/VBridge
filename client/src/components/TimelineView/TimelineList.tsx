@@ -29,6 +29,8 @@ export interface TimelineListProps {
     onSelectEvents?: (id: number, startDate: Date, endDate: Date) => void,
     color: (id: number) => string,
     margin: IMargin,
+    size: number,
+    calculateNewTime?: (time: Date) => Date|undefined,
 }
 
 export interface TimelineListStates {
@@ -78,6 +80,7 @@ export class TimelineList extends React.Component<TimelineListProps, TimelineLis
     private onSelectEvents(id: number, startDate: Date, endDate: Date, update: boolean) {
         const { onSelectEvents } = this.props;
         this.selectedX[id] = [startDate, endDate];
+        console.log('here onSelectEvents', startDate, endDate)
         onSelectEvents && update && onSelectEvents(id, startDate, endDate);
     }
 
@@ -96,16 +99,17 @@ export class TimelineList extends React.Component<TimelineListProps, TimelineLis
     }
 
     private paint() {
-        const { timeScale, color } = this.props;
+        const { timeScale, color, size } = this.props;
         const style = { ...defaultTimelineStyle, ...this.props.timelineStyle };
         const { width, height, margin } = style;
+        // console.log('TimelineList paint', style.margin, defaultTimelineStyle, this.props.timelineStyle )
         const node = this.ref.current;
         let events = this.props.events;
         if (timeScale) {
             const extent = timeScale.domain();
             events = events.map(es => es.filter(e => e.timestamp >= extent[0] && e.timestamp <= extent[1]));
         }
-        if (node) {
+        if (node && size && this.props.calculateNewTime) {
             drawTimelineList({
                 events: events,
                 node: node,
@@ -119,6 +123,8 @@ export class TimelineList extends React.Component<TimelineListProps, TimelineLis
                 selectedX: this.selectedX,
                 onMouseOver: this.onMouseOver,
                 onMouseLeave: this.onMouseLeave,
+                size: size,
+                calculateNewTime: this.props.calculateNewTime,
             });
         }
         this.shouldPaint = false;

@@ -10,6 +10,7 @@ export interface MetaViewProps {
     className?: string,
     patientIds?: number[],
     patientInfoMeta?: { [key: string]: any },
+    days?: number,
     featureMeta: IDataFrame<number, FeatureMeta>,
     updateFocusedFeatures?: (featureNames: string[]) => void,
     updatePinnedFocusedFeatures?: (featureNames: string[]) => void,
@@ -71,7 +72,7 @@ export default class MetaView extends React.PureComponent<MetaViewProps, MetaVie
     }
 
     public render() {
-        const { patientInfoMeta, featureMeta, className } = this.props;
+        const { patientInfoMeta, featureMeta, days, className } = this.props;
         const featureAlias = featureMeta.getSeries('alias').toArray();
         return (
             <div className={"meta-view"}>
@@ -89,9 +90,11 @@ export default class MetaView extends React.PureComponent<MetaViewProps, MetaVie
                             name = name + ' (cm)'
                         if(name == 'Weight')
                             name = name + ' (kg)'
-                        if(name == 'Age'){
-                            let age = parseInt(value)
-                            value = (age>12? Math.floor(age/12) + 'Y ' :'') + (age%12? (age%12) +'M' : '')
+                        if(name == 'Age' && days){
+                            let y =  Math.floor(days/360)
+                            let m =  Math.floor((days%360)/30)
+                            let d =  (days%360%30)
+                            value = (y?y+'Y ':'') + (m||y?m+'M ':'') + d+'D'
                         }
 
                         return <MetaItem

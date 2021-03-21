@@ -88,7 +88,6 @@ class App extends React.Component<AppProps, AppStates>{
     };
 
     this.selectPatientId = this.selectPatientId.bind(this);
-    this.selectComparePatientId = this.selectComparePatientId.bind(this)
     this.loadPatientRecords = this.loadPatientRecords.bind(this);
     this.loadPredictions = this.loadPredictions.bind(this);
     this.loadReferenceValues = this.loadReferenceValues.bind(this);
@@ -192,15 +191,18 @@ class App extends React.Component<AppProps, AppStates>{
     const patientMeta = await getPatientMeta({ subject_id: subjectId });
     const patientInfoMeta = await getPatientInfoMeta({ subject_id: subjectId });
     const tableRecords = await this.loadPatientRecords(subjectId);
-    if (this.state.conditions) {
-      const subjectIdG = (await getPatientGroup({ filterConditions: this.state.conditions, subject_id: subjectId, setSubjectIdG: true }))
+    if(patientMeta){
+      const subjectIdG = await getPatientGroup({ filterConditions:{'Age': new Array(this.judgeTheAge(patientMeta.days))}, subject_id: subjectId, setSubjectIdG: true })
       this.setState({ patientGroup: subjectIdG })
     }
     const selected = 'lung complication'
     this.setState({ patientMeta, tableRecords, patientInfoMeta, selectedsubjectId, target: selected });
   }
-  public async selectComparePatientId(subjectId: number) {
-
+  public judgeTheAge(days: number){
+        if (days <= 28) return '< 1 month'
+        else if (days <= 12*30) return '< 1 year'
+        else if (days <= 36*30) return '1-3 years'
+        else return '> 3 years'
   }
 
   private async filterPatients(conditions: { [key: string]: any }, changeornot: boolean) {
@@ -606,6 +608,7 @@ class App extends React.Component<AppProps, AppStates>{
                 patientInfoMeta={patientInfoMeta}
                 updateFocusedFeatures={this.updateFocusedFeatures}
                 updatePinnedFocusedFeatures={this.updatePinnedFocusedFeatures}
+                days={patientMeta && patientMeta.days}
               />
               }
             </Panel>
