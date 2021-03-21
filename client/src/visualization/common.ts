@@ -103,6 +103,46 @@ export function getScaleLinear(
 
 }
 
+export function calIntervalsCommon(
+    startDate: Date,
+    endDate: Date,
+): number{
+      let size=6
+      const ONE_HOUR = 60
+      const ONE_MIN = 1
+      const definedIntervalMins = [15*ONE_MIN, 30*ONE_MIN, ONE_HOUR, 2*ONE_HOUR, 4*ONE_HOUR, 6*ONE_HOUR, 12*ONE_HOUR, 24*ONE_HOUR]
+      let mins =  Math.round((endDate.valueOf() - startDate.valueOf())/1000/60)
+      let choseInterval = 0
+      for(let i=definedIntervalMins.length; i>=0; i--){
+          for(size = 7; size<=9; size++){
+              if(definedIntervalMins[i]*size>=mins){
+                  choseInterval = definedIntervalMins[i]
+                  break
+              }
+              if(choseInterval)
+                  break
+          }
+      }
+      if(choseInterval==0){ 
+            let days= Math.ceil(mins/60/24)
+            let minRemain = -1
+            let minSize = 0
+            for(size = 6; size<=9; size++){
+                if(days % size > minRemain && minRemain){
+                    minRemain = days%size
+                    minSize = size
+                }
+                if(days % size == 0){
+                    minRemain = days%size
+                    minSize = size
+                }
+            }
+            choseInterval = Math.floor(days/minSize) * 24*60
+        }
+        return choseInterval
+
+}
+
 export function getScaleTime(
   x0: number,
   x1: number,
@@ -122,7 +162,8 @@ export function getScaleTime(
     .scaleTime()
     .domain(_extent)
     // .nice()
-    .range([x0, x1]);
+    .range([x0, x1])
+    // .ticks(d3.timeHour.every(size!/60));
 }
 
 export function countCategories(data: ArrayLike<string | number>, categories?: string[]) {

@@ -279,6 +279,7 @@ class App extends React.Component<AppProps, AppStates>{
   }
 
   private updateRecordTS(entityName: string, startDate: Date, endDate: Date) {
+    console.log('updateRecordTS', entityName, startDate, endDate)
     const newRecords = this.buildRecordTS(entityName, startDate, endDate);
     this.setState({ signalMeta: newRecords });
   }

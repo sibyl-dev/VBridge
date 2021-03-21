@@ -1,6 +1,6 @@
 import * as d3 from "d3"
 import { IEvent } from "data/event";
-import { getChildOrAppend, getScaleLinear, getScaleTime, defaultCategoricalColor, IMargin, getMargin } from "./common";
+import { getChildOrAppend, getScaleLinear, getScaleTime, defaultCategoricalColor, IMargin, getMargin, calIntervalsCommon } from "./common";
 import { drawStackedAreaChart } from "./stackedAreaChart";
 
 export function drawTimelineAxis(params: {
@@ -50,49 +50,29 @@ export function drawTimelineAxis(params: {
 
         if (selection) {
             extent = selection.map(defaultTimeScale.invert);
+            console.log('timelineAxis selection', extent )
+
             let mins =  Math.round((extent[1].valueOf() - extent[0].valueOf())/1000/60)
-            if(15 * 9 >= mins) {
+
+            choseInterval = calIntervalsCommon(extent[0], extent[1])
+            if(choseInterval < 60) {
                 let startMins =  Math.floor(extent[0].valueOf()/1000/60)
-                extent[0] = new Date((startMins - startMins%15)*1000*60)
+                extent[0] = new Date((startMins - startMins%choseInterval)*1000*60)
                 let endMins =  Math.ceil(extent[1].valueOf()/1000/60)
-                extent[1] = new Date((endMins - endMins%15+15)*1000*60)
-                choseInterval = 15
-            }
-            else if(30 * 9 >= mins){
-                let startMins =  Math.floor(extent[0].valueOf()/1000/60)
-                extent[0] = new Date((startMins - startMins%30)*1000*60)
-                let endMins =  Math.ceil(extent[1].valueOf()/1000/60)
-                extent[1] = new Date((endMins - endMins%30+30)*1000*60)
-                choseInterval = 30
+                extent[1] = new Date((endMins - endMins%choseInterval + choseInterval)*1000*60)
             }
             else{
-                let size=6
-                const ONE_HOUR = 60
-                const ONE_MIN = 1
-                const definedIntervalMins = [15*ONE_MIN, 30*ONE_MIN, ONE_HOUR, 2*ONE_HOUR, 4*ONE_HOUR, 6*ONE_HOUR, 12*ONE_HOUR, 24*ONE_HOUR]
-
-                for(let i=definedIntervalMins.length; i>=0; i--){
-                    for(size = 7; size<=9; size++){
-                        if(definedIntervalMins[i]*size>=mins){
-                            choseInterval = definedIntervalMins[i]
-                            break
-                        }
-                        if(choseInterval)
-                            break
-                    }
-                }
-                if(choseInterval==0) choseInterval= Math.round(mins/60/8)*ONE_HOUR
                 let hrs = Math.floor(extent[0]!.valueOf()/1000/60/60)
-                extent[0] = new Date((hrs - hrs%(size!/60) - 8)*1000*60*60)!
-                hrs = Math.ceil(extent[1]!.valueOf()/1000/60/60)
-                extent[1] = new Date((hrs - hrs%(size!/60) - 8 + size!/60)*1000*60*60)!
-                // extent[0] = new Date(Math.floor(extent[0].valueOf()/1000/60/60)*1000*60*60)
-                // extent[1] = new Date(Math.ceil(extent[1].valueOf()/1000/60/60)*1000*60*60)
+                extent[0] = new Date((hrs - hrs%(choseInterval!/60) )*1000*60*60)!
+                hrs = Math.floor(extent[1]!.valueOf()/1000/60/60)
+                extent[1] = new Date((hrs - hrs%(choseInterval!/60) + choseInterval/60)*1000*60*60)!
             }
         }
         else {
             extent = defaultTimeScale.domain();
         }
+        console.log('timelineAxis selection after',  choseInterval, choseInterval/60,extent )
+
         // focusedTimeScale.domain(extent);
         focusedTimeScale = d3.scaleTime().range([0, width]).domain(extent);
         updateAxis(extent, choseInterval);
@@ -100,7 +80,13 @@ export function drawTimelineAxis(params: {
 
     let longAxis = d3.axisBottom(defaultTimeScale).ticks(d3.timeHour.every(size!/60));
     if(size!/60<1){
-        longAxis = d3.axisBottom(focusedTimeScale).ticks(d3.timeMinute.every(size!));
+        longAxis = d3.axisBottom(defaultTimeScale).ticks(d3.timeMinute.every(size!));
+    }
+    if(size!/60/24>1){
+        longAxis = d3.axisBottom(defaultTimeScale).ticks(d3.timeDay.every(size!/60/24));
+    }
+    if(size!/60/24>15){
+        longAxis = d3.axisBottom(defaultTimeScale).ticks(d3.timeMonth.every(1));
     }
     defaultAxisbase.call(longAxis);
     console.log('drawTimelineAxis size', size, size!/60)
@@ -109,6 +95,12 @@ export function drawTimelineAxis(params: {
         shortAxis = d3.axisBottom(focusedTimeScale).ticks(d3.timeHour.every(choseInterval!/60));
         if(choseInterval!/60<1){
             shortAxis = d3.axisBottom(focusedTimeScale).ticks(d3.timeMinute.every(choseInterval!));
+        }
+        if(choseInterval!/60/24>1){
+            shortAxis = d3.axisBottom(focusedTimeScale).ticks(d3.timeDay.every(choseInterval!/60/24));
+        }
+        if(choseInterval!/60/24>15){
+            shortAxis = d3.axisBottom(focusedTimeScale).ticks(d3.timeMonth.every(1));
         }
          console.log('updateAxis shortAxis size', choseInterval, choseInterval!/60)
 
@@ -119,6 +111,12 @@ export function drawTimelineAxis(params: {
     let shortAxis = d3.axisBottom(focusedTimeScale).ticks(d3.timeHour.every(size!/60));
     if(size!/60<1){
         shortAxis = d3.axisBottom(focusedTimeScale).ticks(d3.timeMinute.every(size!));
+    }
+    if(size!/60/24>1){
+        shortAxis = d3.axisBottom(focusedTimeScale).ticks(d3.timeDay.every(size!/60/24));
+    }
+    if(size!/60/24>15){
+        shortAxis = d3.axisBottom(focusedTimeScale).ticks(d3.timeMonth.every(1));
     }
     console.log('shortAxis', size, size!/60)
 

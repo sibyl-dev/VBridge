@@ -130,11 +130,12 @@ export function drawTimeline(params: {
             exit => { exit.remove() })
         .attr("x", d => t(d.timestamp))
         .attr('y', 0)
-        .attr('width', d => (t(new Date(d.timestamp.valueOf()+size*60*1000))-t(d.timestamp) - 1))
+        .attr('width', d => (Math.min(t(new Date((d.timestamp.valueOf()+size*60*1000))),width)-t(d.timestamp) - 1))
         .attr("height", d => r(d.count))
         .style("fill", color || defaultCategoricalColor(0))
         .attr("transform", d=> `translate(0, ${height - r(d.count)})`);
 
+    console.log('bubbleBase', size,)
     selectedX && base.call(brush.move, [t(selectedX[0]), t(selectedX[1])]);
     updateHandle(selectedX);
 

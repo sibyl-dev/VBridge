@@ -80,6 +80,7 @@ export class TimelineList extends React.Component<TimelineListProps, TimelineLis
     private onSelectEvents(id: number, startDate: Date, endDate: Date, update: boolean) {
         const { onSelectEvents } = this.props;
         this.selectedX[id] = [startDate, endDate];
+        console.log('here onSelectEvents', startDate, endDate)
         onSelectEvents && update && onSelectEvents(id, startDate, endDate);
     }
 

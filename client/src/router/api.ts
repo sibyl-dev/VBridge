@@ -94,7 +94,7 @@ export async function getPatientMeta(params: {
     meta.SurgeryEndTime = new Date(meta.SurgeryEndTime);
     meta.AdmitTime = new Date(meta.AdmitTime);
     meta.DOB = new Date(meta.DOB)
-    meta.days = Math.round((meta.AdmitTime.valueOf() - meta.DOB.valueOf())/1000/60/60/24)
+    meta.days = Math.round((meta.SurgeryBeginTime.valueOf() - meta.DOB.valueOf())/1000/60/60/24)
     return meta;
 }
 
