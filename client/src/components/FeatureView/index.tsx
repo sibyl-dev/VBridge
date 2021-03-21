@@ -175,7 +175,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
 
         return (
             <div className="feature-view">
-                <div className="legend-container">
+                {/* <div className="legend-container">
                     {entityCategoricalColor && <div className="category-legend-container">
                         <div className="legend-block">
                             <div className='legend-rect' style={{ backgroundColor: entityCategoricalColor(undefined) }} />
@@ -198,7 +198,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                             }} />
                         <span className="legend-anno">Abnormal</span>
                     </div>}
-                </div>
+                </div> */}
                 <Divider />
                 {features && <FeatureList
                     {...rest}

@@ -191,18 +191,18 @@ class App extends React.Component<AppProps, AppStates>{
     const patientMeta = await getPatientMeta({ subject_id: subjectId });
     const patientInfoMeta = await getPatientInfoMeta({ subject_id: subjectId });
     const tableRecords = await this.loadPatientRecords(subjectId);
-    if(patientMeta){
-      const subjectIdG = await getPatientGroup({ filterConditions:{'Age': new Array(this.judgeTheAge(patientMeta.days))}, subject_id: subjectId, setSubjectIdG: true })
+    if (patientMeta) {
+      const subjectIdG = await getPatientGroup({ filterConditions: { 'Age': new Array(this.judgeTheAge(patientMeta.days)) }, subject_id: subjectId, setSubjectIdG: true })
       this.setState({ patientGroup: subjectIdG })
     }
     const selected = 'lung complication'
     this.setState({ patientMeta, tableRecords, patientInfoMeta, selectedsubjectId, target: selected });
   }
-  public judgeTheAge(days: number){
-        if (days <= 28) return '< 1 month'
-        else if (days <= 12*30) return '< 1 year'
-        else if (days <= 36*30) return '1-3 years'
-        else return '> 3 years'
+  public judgeTheAge(days: number) {
+    if (days <= 28) return '< 1 month'
+    else if (days <= 12 * 30) return '< 1 year'
+    else if (days <= 36 * 30) return '1-3 years'
+    else return '> 3 years'
   }
 
   private async filterPatients(conditions: { [key: string]: any }, changeornot: boolean) {
@@ -565,7 +565,8 @@ class App extends React.Component<AppProps, AppStates>{
             </Panel>
             <Panel initialWidth={layout.timelineViewWidth} initialHeight={layout.timelineViewHeight}
               x={layout.featureViewWidth + 5} y={0} title="Timeline View">
-              {featureMeta && <TimelineView
+              {featureMeta && tableNames && <TimelineView
+                tableNames={tableNames}
                 patientMeta={patientMeta}
                 featureMeta={featureMeta}
                 tableRecords={tableRecords}

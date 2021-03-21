@@ -228,7 +228,7 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
             { ...defaultTimeSeriesStyle, ...this.props };
         const { expand, pinned } = this.state;
         const { tableName, itemName, data, startTime, endTime } = signal;
-        const itemLabel = itemDicts && itemDicts(tableName, itemName)?.LABEL;
+        const itemLabel = itemDicts && itemDicts(tableName, itemName)?.LABEL_CN;
         // console.log(data.values.toArray());
 
         return <div className={"ts-card"} id={`${className}-${signal.itemName}`}

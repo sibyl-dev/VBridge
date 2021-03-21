@@ -35,18 +35,18 @@
     font-weight: bold;
     display: flex;
     justify-content: center;
-    align-items: flex-end;
+    align-items: center;
     /*padding-top:21px;*/
     line-height: 14px;
 }
 
-.timeline-content
- {
+.timeline-content {
     width: calc(100% - 80px);
     /* float: left; */
     position: absolute;
     left: 80px;
 }
+
 .timeline-axis-content {
     height: 80px;
     width: calc(100% - 80px);

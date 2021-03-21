@@ -43,7 +43,7 @@ export function drawTimeline(params: {
 
     const t = timeScale || getScaleTime(0, width, events.map(e => e.timestamp));
     const r = getScaleLinear(0, 30, events.map(d => d.count));
-    const opacity = getScaleLinear(0, 1, events.map(d => d.count));
+    const opacity = getScaleLinear(0, 0.8, events.map(d => d.count));
 
 
     // getChildOrAppend(base, "rect", "base-rect")
@@ -127,18 +127,16 @@ export function drawTimeline(params: {
             return enter
                 .append("rect")
                 .attr("class", "bubble");
-
         }, update => update,
             exit => { exit.remove() })
         .attr("x", d => t(d.timestamp))
         .attr('y', 0)
         .attr('width', d => (Math.min(t(new Date(d.timestamp.valueOf()+size*60*1000)), width)-t(d.timestamp) - 1))
-        .attr("height", height+ margin.top)
-        .style("fill", color || defaultCategoricalColor(0))
+        .attr("height", height)
+        .style("fill", defaultCategoricalColor(0))
         .style('opacity', d => opacity(d.count))
-        .attr('transform',  d=> `translate(0, 0)`)
-        .style('stroke', 'black')
-        .style('stroke-width', '1px')
+        // .style('stroke', 'black')
+        // .style('stroke-width', '1px')
         // .attr("transform", d=> `translate(0, ${height - r(d.count)})`);
         // d => r(d.count)
     console.log('bubbleBase', size,)
