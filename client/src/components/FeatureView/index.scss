@@ -53,7 +53,6 @@
         width: calc(100% - 35px);
         transition: all 0.5s ease;
         border: 1px solid rgba(220, 225, 230, 0.7);
-        border-right-width: 4px;
         // border-radius: 5px;
         margin-top: 2px;
         display: flex;
@@ -61,11 +60,13 @@
         .feature-block-inner {
             display: flex;
             justify-content: space-between;
+            height: 100%;
             .feature-block-cell {
-                height: 20px;
-                overflow: hidden;
-                // float: right;
                 margin-top: 5px;
+                margin-bottom: 5px;
+                max-height: 20px;
+                // height: calc(100% - 5px);
+                overflow: hidden;
                 .feature-block-cell-text {
                     font-size: 10px;
                     display: flex;
@@ -81,24 +82,67 @@
             }
             .feature-contribution {
                 margin-left: 10px;
+                display: flex;
+                .contribution-svg {
+                    width: 100%;
+                    height: 100%;
+                    rect.neg-feature {
+                        fill: #3C88E1;
+                        stroke: #3C88E1;
+                        stroke-width: 1px;
+                        opacity: 80%;
+                    }
+                    rect.pos-feature {
+                        fill: #FF0155;
+                        // fill: rgb(242, 142, 44);
+                        stroke: #FF0155;
+                        // fill: rgb(242, 142, 44);
+                        stroke-width: 1px;
+                        opacity: 80%;
+                    }
+                    rect.a-sub-b {
+                        // fill: #fff;
+                        mask: url(#mask-stripe)
+                    }
+                    rect.b-sub-a {
+                        fill: #fff;
+                    }
+                }
             }
         }
         .feature-block-hist {
             margin-top: 10px;
         }
-        .feature-block:hover {
-            border: 1px solid #777;
-        }
+    }
+    .feature-block:hover {
+        border: 1px solid #777;
     }
     .feature-top-block {
         border: 1px solid rgba(24, 144, 255, 0.5);
     }
-    .unfocused {
-        opacity: 40%;
-    }
-    .unfocused:hover {
-        opacity: 100%;
-    }
+    // .dense {
+    //     // height: 6px;
+    //     margin-top: 1px;
+    //     border: 1px solid #fff;
+    //     .feature-block-cell {
+    //         margin-top: 0px !important;
+    //         margin-bottom: 0px !important;
+    //         height: 100%;
+    //         margin-top: 0px;
+    //         margin-bottom: 0px;
+    //         .neg-feature,
+    //         .pos-feature {
+    //             // height: calc(100%-2px);
+    //             height: 100%;
+    //             margin-top: 0px !important;
+    //             margin-bottom: 0px !important;
+    //         }
+    //     }
+    // }
+}
+
+.feature-block {
+    border-right-width: 4px;
 }
 
 .feature-row {
@@ -129,32 +173,20 @@
     }
 }
 
-.feature-block-dot {
+.feature-block-annote {
     position: absolute;
-    right: 6px;
-    height: 30px;
-    width: 6px;
-    top: 17px;
+    right: 30px;
+    width: 0px;
+    top: 2px;
     background-color: #bbb;
-    opacity: 80%;
+    // opacity: 80%;
     display: inline-block;
-    transform: translate(-50%, -50%);
+    transition: all 0.3s;
 }
 
-.neg-feature,
-.pos-feature {
-    height: 15px;
-    margin-top: 3px;
-}
-
-.neg-feature {
-    background-color: #3C88E1;
-    opacity: 80%;
-}
-
-.pos-feature {
-    background-color: #FF0155;
-    opacity: 80%;
+.feature-block-annote.focused {
+    right: 22px;
+    width: 8px;
 }
 
 .right-button {
@@ -162,4 +194,40 @@
     margin-top: 10px;
     color: #777;
     float: left;
+}
+
+.category-legend-container {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+    .legend-block {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        .legend-rect {
+            width: 10px;
+            height: 10px;
+            // margin-top: 5px;
+        }
+        .legend-name {
+            font-size: 10px;
+            margin-left: 5px;
+            margin-right: 10px;
+        }
+    }
+}
+
+.abnormality-legend-container {
+    width: 100%;
+    display: flex;
+    .legend-anno {
+        font-size: 10px;
+        margin-left: 10px;
+        margin-right: 10px;
+    }
+    .legend-color-bar {
+        width: 60%;
+        max-width: calc(100% - 40px);
+    }
 }

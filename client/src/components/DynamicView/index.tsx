@@ -5,7 +5,7 @@ import * as React from "react";
 import { DataFrame, IDataFrame, ISeries } from "data-forge";
 import { defaultMargin, getMargin, getScaleLinear, IMargin } from "visualization/common";
 import { CloseOutlined, ExpandAltOutlined, PushpinOutlined, ShrinkOutlined } from "@ant-design/icons";
-import { arrayShallowCompare, ReferenceValue } from "data/common";
+import { arrayShallowCompare, ReferenceValue, timeDeltaPrinter } from "data/common";
 import { getReferenceValues } from "router/api";
 import LineChart from "visualization/lineChart";
 
@@ -27,6 +27,7 @@ export interface Signal extends SignalMeta {
 }
 
 export interface DynamicViewProps {
+    className: string,
     patientMeta: PatientMeta,
     featureMeta: IDataFrame<number, FeatureMeta>,
     itemDicts?: ItemDict,
@@ -40,7 +41,7 @@ export interface DynamicViewProps {
 }
 
 export interface DynamicViewStates {
-    signals: Signal[]
+    signalGroups: IDataFrame<number, Signal>[]
 }
 
 export default class DynamicView extends React.PureComponent<DynamicViewProps, DynamicViewStates> {
@@ -48,12 +49,12 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
     constructor(props: DynamicViewProps) {
         super(props);
         this.state = {
-            signals: props.signalMetas.map(s => this.buildSignal(s))
+            signalGroups: []
         };
 
         this.onPin = this.onPin.bind(this);
     }
-    componentDidMount(){
+    componentDidMount() {
         this.initSignals();
     }
 
@@ -67,7 +68,8 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
         const signals = this.props.signalMetas
             .map(s => this.buildSignal(s))
             .filter(s => s.data && s.data.values.count());
-        this.setState({ signals });
+        const signalGroups = new DataFrame(signals).groupBy(row => row.tableName).toArray();
+        this.setState({ signalGroups });
     }
 
     private buildSignal(record: SignalMeta): Signal {
@@ -94,27 +96,33 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
     }
 
     public render() {
-        const { patientMeta, itemDicts, color, updateFocusedFeatures, removeSignal } = this.props;
-        const { signals } = this.state;
+        const { patientMeta, itemDicts, color, updateFocusedFeatures, removeSignal, className } = this.props;
+        const { signalGroups } = this.state;
         return (
             <div>
-                <div>
-                    {/* <Search placeholder="input search text" style={{ marginLeft: 10, marginRight: 10, width: "90%" }} enterButton /> */}
+                {/* <div>
+                    <Search placeholder="input search text" style={{ marginLeft: 10, marginRight: 10, width: "90%" }} enterButton />
                 </div>
-                <Divider />
+                <Divider /> */}
                 <div>
-                    {signals.map((signal, i) =>
-                        <DynamicCard
-                            signal={signal}
-                            itemDicts={itemDicts}
-                            align={false}
-                            margin={{ bottom: 20, left: 25, top: 15, right: 25 }}
-                            color={color && color(signal.tableName)}
-                            onHover={updateFocusedFeatures && (() => updateFocusedFeatures(signal.relatedFeatureNames))}
-                            onLeave={updateFocusedFeatures && (() => updateFocusedFeatures([]))}
-                            onRemove={removeSignal && (() => removeSignal(signal))}
-                            onPin={() => this.onPin(signal)}
-                        />)}
+                    {signalGroups.map(group => <div key={group.first().tableName}>
+                        <Divider>{group.first().tableName}</Divider>
+                        {group.toArray().map((signal, i) =>
+                            <DynamicCard
+                                className={className}
+                                signal={signal}
+                                key={signal.itemName}
+                                itemDicts={itemDicts}
+                                align={false}
+                                margin={{ bottom: 20, left: 25, top: 15, right: 25 }}
+                                color={color && color(signal.tableName)}
+                                // onHover={updateFocusedFeatures && (() => updateFocusedFeatures(signal.relatedFeatureNames))}
+                                // onLeave={updateFocusedFeatures && (() => updateFocusedFeatures([]))}
+                                onRemove={removeSignal && (() => removeSignal(signal))}
+                                onPin={() => this.onPin(signal)}
+                            />)}
+                    </div>
+                    )}
                 </div>
             </div>
         )
@@ -137,6 +145,7 @@ const defaultTimeSeriesStyle: TimeSeriesStyle = {
 
 export interface DynamicCardProps extends Partial<TimeSeriesStyle> {
     signal: Signal,
+    className: string,
     align?: boolean,
     // timeSeriesStyle: Partial<TimeSeriesStyle>,
     itemDicts?: ItemDict,
@@ -204,17 +213,18 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
     }
 
     public render() {
-        const { signal, itemDicts, width, height, color, margin, onHover, onLeave, onRemove } =
+        const { className, signal, itemDicts, width, height, color, margin, onHover, onLeave, onRemove } =
             { ...defaultTimeSeriesStyle, ...this.props };
         const { expand, referenceValue, pinned } = this.state;
-        const { tableName, itemName, data } = signal;
+        const { tableName, itemName, data, startTime, endTime } = signal;
         const itemLabel = itemDicts && itemDicts(tableName, itemName)?.LABEL;
         // console.log(data.values.toArray());
 
-        return <div className={"ts-card"} style={{ borderLeftColor: color || '#aaa', borderLeftWidth: 4 }}
+        return <div className={"ts-card"} id={`${className}-${signal.itemName}`}
+            style={{ borderLeftColor: color || '#aaa', borderLeftWidth: 4 }}
             onMouseOver={onHover} onMouseOut={onLeave}>
             <div className={"ts-title-float"} style={{ width: width }}>
-                <span className={"ts-title-float-text"}>{`${itemLabel || itemName}`}</span>
+                <span className={"ts-title-float-text"}>{`${itemLabel || itemName} (${timeDeltaPrinter(startTime, endTime)})`}</span>
                 <Button size="small" type="primary" shape="circle" icon={<PushpinOutlined />} className={"ts-title-button"}
                     style={{ display: pinned ? 'block' : undefined }} onClick={this.onPin}
                 />
@@ -229,11 +239,12 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
                 referenceValue={referenceValue}
                 height={expand ? height : 30}
                 width={width}
-                margin={expand ? margin : { ...margin, top: 20, bottom: 10 }}
+                margin={expand ? margin : { ...margin, top: 12, bottom: 2 }}
                 color={color}
-                yScale={expand ? undefined : getScaleLinear(0, 0, undefined, [-1, 1])}
+                // yScale={expand ? undefined : getScaleLinear(0, 0, undefined, [-1, 1])}
                 drawXAxis={expand}
                 drawYAxis={expand}
+                drawDots={expand}
                 drawReferences={expand && referenceValue != undefined}
             />}
         </div>

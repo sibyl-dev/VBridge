@@ -41,14 +41,19 @@ class ModelManager:
             scores[target_name] = model.transform(X)[0, 1]
         return scores
 
-    def explain(self, id, target='complication'):
-        if id in self.X_train.index:
-            X = self.X_train.loc[id]
-        elif id in self.X_test.index:
-            X = self.X_test.loc[id]
+    def explain(self, id=None, X=None,target='complication'):
+        if id is not None:
+            if id in self.X_train.index:
+                X = self.X_train.loc[id]
+            elif id in self.X_test.index:
+                X = self.X_test.loc[id]
+            else:
+                raise ValueError("Invalid id.")
+            X = X.to_frame().T
+        elif X is not None:
+            X = X
         else:
-            raise ValueError("Invalid id.")
-        X = X.to_frame().T
+            raise ValueError("id and X should not be both None.")
         return self.model[target].SHAP(X)
 
     def save(self, path=None):

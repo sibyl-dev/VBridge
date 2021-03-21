@@ -12,7 +12,7 @@ export interface IPanelProps {
   height?: number;
   x?: number;
   y?: number;
-  title?: string;
+  title?: string|React.ReactNode;
   resizable?: boolean;
   draggable?: boolean;
   id?: string;

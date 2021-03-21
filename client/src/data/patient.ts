@@ -7,3 +7,8 @@ export type PatientMeta = {
     GENDER: string,
     days: number,
 }
+
+export type PatientGroup = { 
+    ids: number[],
+    labelCounts: number[], 
+}

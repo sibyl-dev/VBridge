@@ -27,7 +27,8 @@ export interface LineChartParams extends LineChartOptions {
 }
 
 export function drawLineChart(params: LineChartParams) {
-    const { data, svg, referenceValue, xScale, yScale, drawXAxis, drawYAxis, drawReferences } = params;
+    const { data, svg, referenceValue, xScale, yScale, drawXAxis, drawYAxis,
+        drawDots, drawReferences } = params;
     const dates = data.dates.toArray();
     const values = data.values.toArray();
     const root = d3.select(svg);
@@ -66,21 +67,21 @@ export function drawLineChart(params: LineChartParams) {
         .datum(points)
         .attr("class", "line")
         .attr("d", line);
-
-    getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "point-base")
-        .selectAll(".point")
-        .data(points)
-        .join(
-            enter => enter
-                .append("circle")
-                .attr("class", "point"),
-            update => update,
-            exit => { exit.remove() }
-        )
-        .attr("cx", d => d[0])
-        .attr("cy", d => d[1])
-        .attr("r", 3)
-        .style("fill", (d, i) => (outofCI && outofCI(values[i])) ? 'red' : '#aaa');
+        getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "point-base")
+            .selectAll(".point")
+            .data(points)
+            .join(
+                enter => enter
+                    .append("circle")
+                    .attr("class", "point"),
+                update => update,
+                exit => { exit.remove() }
+            )
+            .attr("display", drawDots?"block": "none")
+            .attr("cx", d => d[0])
+            .attr("cy", d => d[1])
+            .attr("r", 3)
+            // .style("fill", (d, i) => (outofCI && outofCI(values[i])) ? 'red' : '#aaa');
 
     if (referenceValue) {
         getChildOrAppend<SVGLineElement, SVGGElement>(base, "line", "reference-line")
@@ -90,11 +91,11 @@ export function drawLineChart(params: LineChartParams) {
             .attr("y2", y(referenceValue.mean))
             .attr("display", drawReferences ? 'block' : 'none');
         if (referenceValue.ci95)
-        getChildOrAppend<SVGRectElement, SVGGElement>(base, "rect", "reference-area")
-            .attr("width", width)
-            .attr("height", y(referenceValue.ci95[0]) - y(referenceValue.ci95[1]))
-            .attr("transform", `translate(0, ${y(referenceValue.ci95[1])})`)
-            .attr("display", drawReferences ? 'block' : 'none');
+            getChildOrAppend<SVGRectElement, SVGGElement>(base, "rect", "reference-area")
+                .attr("width", width)
+                .attr("height", y(referenceValue.ci95[0]) - y(referenceValue.ci95[1]))
+                .attr("transform", `translate(0, ${y(referenceValue.ci95[1])})`)
+                .attr("display", drawReferences ? 'block' : 'none');
     }
 }
 

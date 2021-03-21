@@ -1,11 +1,14 @@
 .line {
-    stroke: #aaa;
+    stroke: #3C88E1;
     fill: none;
+    opacity: 50%;
 }
 
 .point {
-    fill: #aaa;
-    opacity: 70%;
+    fill: #3C88E1;
+    stroke-width: 1px;
+    stroke: #fff;
+    /* opacity: 70%; */
 }
 
 .reference-line {
