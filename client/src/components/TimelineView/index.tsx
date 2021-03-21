@@ -162,8 +162,8 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
             const events: IEvent[][] = [];
             for (const entity of tableRecords) {
                 const { timeIndex, name } = entity;
-                const filteredDf = entity.where(row => new Date(row[timeIndex!])>= new Date(startDate!)); 
-                const filteredDf1 = filteredDf.where(row => new Date(row[timeIndex!])<= new Date(endDate!)); 
+                // const filteredDf = entity.where(row => new Date(row[timeIndex!])>= new Date(startDate!)); 
+                // const filteredDf1 = filteredDf.where(row => new Date(row[timeIndex!])<= new Date(endDate!)); 
 
                 const entityWithnewSeries = entity.generateSeries({
                     Year: row => row[entity.timeIndex!].substr(0,4),
@@ -172,26 +172,26 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
                     Hour: row => row[entity.timeIndex!].substr(11,2),
                     Minute: row => row[entity.timeIndex!].substr(14,2),
                 })
-                let entityWOoriginaltime = entityWithnewSeries
+                // let entityWOoriginaltime = entityWithnewSeries
                 // .dropSeries(entity.timeIndex!)
                 let modifiedDf = undefined
                 let groupName:string = ''
                 
                 if(choseInterval < ONE_HOUR){
-                    modifiedDf = entityWOoriginaltime.transformSeries({
+                    modifiedDf = entityWithnewSeries.transformSeries({
                          Minute: columnValue => this.formulateTime(Math.floor(columnValue/choseInterval)*choseInterval),
                     });
                     groupName = 'Minute'
                 }
                 else if(choseInterval < 24*ONE_HOUR){
-                    modifiedDf = entityWOoriginaltime.transformSeries({
+                    modifiedDf = entityWithnewSeries.transformSeries({
                          Hour: columnValue => this.formulateTime(Math.floor(columnValue/(choseInterval/ONE_HOUR))*(choseInterval/ONE_HOUR)), 
                          Minute: columnValue => '00'
                     });
                     groupName = 'Hour'
                 }
                 else{
-                    modifiedDf = entityWOoriginaltime.transformSeries({
+                    modifiedDf = entityWithnewSeries.transformSeries({
                          Day: columnValue => this.formulateTime(Math.floor(columnValue/(choseInterval/ONE_HOUR/24))*(choseInterval/ONE_HOUR/24)),
                          Minute: columnValue => '00',
                          Hour: columnValue =>'00',
