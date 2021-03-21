@@ -178,7 +178,7 @@ def get_patient_group():
     subject_idG = fm.index.to_list()
 
     info = {'subject_idG': subject_idG}
-    print('conditions', conditions)
+    # print('conditions', conditions)
 
     # filter subject_idG according to the conditions
     for i, table_name in enumerate(table_names):
@@ -255,8 +255,9 @@ def get_record_meta():
 
 @api.route('/table_names', methods=['GET'])
 def get_table_names():
-    table_names = ['LABEVENTS', 'SURGERY_VITAL_SIGNS', 'CHARTEVENTS', 'PRESCRIPTIONS',
-                   'MICROBIOLOGYEVENTS', 'INPUTEVENTS', 'OUTPUTEVENTS']
+    # table_names = ['LABEVENTS', 'SURGERY_VITAL_SIGNS', 'CHARTEVENTS', 'PRESCRIPTIONS',
+    #                'MICROBIOLOGYEVENTS', 'INPUTEVENTS', 'OUTPUTEVENTS']
+    table_names = ['LABEVENTS', 'SURGERY_VITAL_SIGNS', 'CHARTEVENTS', 'PRESCRIPTIONS']
     return jsonify(table_names)
 
 
@@ -365,11 +366,15 @@ def get_what_if_shap_values():
     target = request.args.get('target')
     shap_values = {}
     fm = current_app.fm
+    if current_app.subject_idG:
+        fm = fm.loc[current_app.subject_idG]
     model_manager = current_app.model_manager
     targets = Modeler.prediction_targets()
     stat = fm.agg(['mean', 'count', 'std']).T
     stat['ci95_low'] = stat['mean'] - stat['std'] * 1.96
     stat['ci95_high'] = stat['mean'] + stat['std'] * 1.96
+    # stat['ci95_low'] = stat['mean'] - stat['std']
+    # stat['ci95_high'] = stat['mean'] + stat['std']
     target_fv = fm.loc[subject_id]
 
     # What-if analysis on out-of-distribution high values
@@ -418,12 +423,12 @@ def get_item_dict():
 def get_reference_value():
     table_name = request.args.get('table_name')
     column_name = request.args.get('column_name')
+    group_ids = request.args.get('group_ids')
     table_info = META_INFO[table_name]
     references = {}
     df = current_app.es[table_name].df
-    print('current_app subject_idG', len(current_app.subject_idG))
     filter_df = df[df['SUBJECT_ID'].isin(current_app.subject_idG)]
-    print('filter_df', len(filter_df))
+    print(len(filter_df))
     for group in filter_df.groupby(table_info.get('item_index')):
         item_name = group[0]
         mean, count, std = group[1][column_name].agg(['mean', 'count', 'std'])
@@ -433,6 +438,8 @@ def get_reference_value():
             'count': 0 if np.isnan(count) else count,
             'ci95': [0 if np.isnan(mean - 1.960 * std) else (mean - 1.960 * std),
                      0 if np.isnan(mean + 1.960 * std) else (mean + 1.960 * std)]
+            # 'ci95': [0 if np.isnan(mean - std) else (mean - std),
+            #          0 if np.isnan(mean + std) else (mean + std)]
         }
-    print('final reference_value', references)
+    # print('final reference_value', references)
     return jsonify(references)

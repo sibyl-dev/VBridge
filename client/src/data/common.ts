@@ -113,6 +113,8 @@ export type ReferenceValue = {
     ci95: [number, number],
 }
 
+export type ReferenceValueDict = (itemName: string) => (ReferenceValue | undefined);
+
 export function getReferenceValue(data: number[]): ReferenceValue {
     const mean = _.mean(data);
     const std = Math.sqrt(data.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b)) / Math.sqrt(data.length);

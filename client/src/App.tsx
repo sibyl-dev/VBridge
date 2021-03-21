@@ -15,7 +15,7 @@ import FilterView from "./components/FilterView"
 
 import {
   getFeatureMate, getPatientIds, getPatientMeta, getPatientInfoMeta, getPatientRecords,
-  getPredictionTargets, getTableNames, getPatientFilterRange, getPatientGroup, getItemDict, getPrediction
+  getPredictionTargets, getTableNames, getPatientFilterRange, getPatientGroup, getItemDict, getPrediction, getReferenceValues
 } from "./router/api"
 import { PatientGroup, PatientMeta } from 'data/patient';
 import { Entity, ItemDict } from 'data/table';
@@ -26,7 +26,7 @@ import Panel from 'components/Panel';
 import { Feature, FeatureMeta } from 'data/feature';
 import { DataFrame, IDataFrame } from 'data-forge';
 import _, { isUndefined } from 'lodash';
-import { distinct, isDefined } from 'data/common';
+import { distinct, isDefined, ReferenceValue, ReferenceValueDict } from 'data/common';
 
 import { defaultCategoricalColor, getChildOrAppend, getOffsetById, getScaleLinear } from 'visualization/common';
 
@@ -48,6 +48,7 @@ interface AppStates {
   //patient information
   tableRecords?: Entity<number, any>[],
   patientMeta?: PatientMeta,
+  patientInfoMeta?: { [key: string]: any },
   predictions?: (target: string) => number,
 
   //for view communication
@@ -61,11 +62,14 @@ interface AppStates {
   dynamicViewLink: boolean,
   dynamicViewAlign: boolean,
 
-  patientInfoMeta?: { [key: string]: any },
+  // for patient group & reference values
   filterRange?: filterType,
   patientGroup?: PatientGroup,
   selectedsubjectId?: number,
   conditions?: { [key: string]: any },
+  referenceValues?: (tableName: string) => ReferenceValueDict | undefined,
+
+  // others
   visible?: boolean,
 }
 
@@ -87,6 +91,7 @@ class App extends React.Component<AppProps, AppStates>{
     this.selectComparePatientId = this.selectComparePatientId.bind(this)
     this.loadPatientRecords = this.loadPatientRecords.bind(this);
     this.loadPredictions = this.loadPredictions.bind(this);
+    this.loadReferenceValues = this.loadReferenceValues.bind(this);
     this.filterPatients = this.filterPatients.bind(this)
     this.buildRecordByPeriod = this.buildRecordByPeriod.bind(this);
     this.updateSignalFromTimeline = this.updateSignalFromTimeline.bind(this);
@@ -119,7 +124,7 @@ class App extends React.Component<AppProps, AppStates>{
   }
 
   componentDidUpdate(prevProps: AppProps, prevState: AppStates) {
-    const { patientMeta, dynamicViewLink } = this.state;
+    const { patientMeta, dynamicViewLink, tableNames, patientGroup } = this.state;
     if (prevState.patientMeta?.subjectId !== patientMeta?.subjectId) {
       this.loadPredictions();
     }
@@ -132,6 +137,9 @@ class App extends React.Component<AppProps, AppStates>{
         this.removeLink();
       }
     }
+    if (prevState.tableNames !== tableNames || prevState.patientGroup != patientGroup) {
+      this.loadReferenceValues()
+    }
   }
 
   public async init() {
@@ -143,8 +151,8 @@ class App extends React.Component<AppProps, AppStates>{
     const featureMeta = new DataFrame(await getFeatureMate());
     const predictionTargets = await getPredictionTargets();
 
-    const subjectIdG = await getPatientGroup({ filterConditions: { 'aha': '' }, subject_id: 0, setSubjectIdG: true });
-    this.setState({ subjectIds, tableNames, filterRange, featureMeta, predictionTargets, itemDicts, patientGroup: subjectIdG });
+    const patientGroup = await getPatientGroup({ filterConditions: { 'aha': '' }, subject_id: 0, setSubjectIdG: true });
+    this.setState({ subjectIds, tableNames, filterRange, featureMeta, predictionTargets, itemDicts, patientGroup });
   }
 
   private async loadPredictions() {
@@ -152,6 +160,30 @@ class App extends React.Component<AppProps, AppStates>{
     if (patientMeta) {
       const predictions = await getPrediction({ subject_id: patientMeta?.subjectId });
       this.setState({ predictions });
+    }
+  }
+
+  private async loadReferenceValues() {
+    const { tableNames, patientGroup } = this.state;
+    if (tableNames) {
+      const references: { name: string, referenceValues: ReferenceValueDict }[] = [];
+      for (const name of tableNames) {
+        let targetColumn = undefined;
+        if (name === 'CHARTEVENTS') {
+          targetColumn = 'VALUE';
+        }
+        if (name === 'SURGERY_VITAL_SIGNS') {
+          targetColumn = 'VALUE';
+        }
+        if (name === 'LABEVENTS') {
+          targetColumn = 'VALUENUM';
+        }
+        if (targetColumn) {
+          const referenceValues = await getReferenceValues({ table_name: name, column_name: targetColumn });
+          references.push({ name, referenceValues });
+        }
+      }
+      this.setState({ referenceValues: (tableName: string) => references.find(e => e.name === tableName)?.referenceValues })
     }
   }
 
@@ -456,7 +488,7 @@ class App extends React.Component<AppProps, AppStates>{
 
     const { subjectIds, patientMeta, tableNames, tableRecords, featureMeta, predictionTargets,
       focusedFeatures, pinnedfocusedFeatures, target: selected, selectedsubjectId, predictions,
-      itemDicts, signalMetas, patientInfoMeta, filterRange, visible, patientGroup } = this.state;
+      itemDicts, signalMetas, patientInfoMeta, filterRange, visible, patientGroup, referenceValues } = this.state;
     const layout = this.layout;
 
     return (
@@ -551,6 +583,7 @@ class App extends React.Component<AppProps, AppStates>{
               }>
               {patientMeta && featureMeta && tableRecords && <DynamicView
                 className={"temporal-view-element"}
+                align={this.state.dynamicViewAlign}
                 patientMeta={patientMeta}
                 featureMeta={featureMeta}
                 tableRecords={tableRecords}
@@ -561,6 +594,7 @@ class App extends React.Component<AppProps, AppStates>{
                 updatePinnedFocusedFeatures={this.updatePinnedFocusedFeatures}
                 pinSignal={this.pinSignal}
                 removeSignal={this.removeSignal}
+                referenceValues={referenceValues}
               />}
             </Panel>
             <Panel initialWidth={layout.ProfileWidth} initialHeight={window.innerHeight - layout.headerHeight}

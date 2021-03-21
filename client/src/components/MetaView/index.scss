@@ -13,11 +13,11 @@
     display: flex;
     justify-content: center;
     align-items: center;
- //    color: #3d3d3d;
+    //    color: #3d3d3d;
     text-align: center;
-    font-size:10px;
-    border-radius:6px;
-    line-height:16px;
+    font-size: 10px;
+    // border-radius:6px;
+    line-height: 16px;
     padding: 3px 0px;
 }
 
@@ -27,10 +27,12 @@
         display: flex;
         justify-content: center;
         align-items: center;
+        border-top: 1px solid #fff;
+        border-bottom: 1px solid #fff;
         margin: 3px 10px;
         .ant-col {
-            margin-top: 3px;
-            margin-bottom: 3px;
+            margin-top: 1px;
+            margin-bottom: 1px;
             .pin {
                 display: none;
             }
@@ -56,7 +58,6 @@
 .Admission {
     background: rgba(202, 202, 202, 0.5);
     border: rgb(150, 150, 150) solid 1px;
-
     /*background: #bdc3c7;*/
     /*background: rgba(251,180,174, 0.3);*/
     // border-radius: 5px;
@@ -65,7 +66,6 @@
 .Surgery {
     background: rgba(150, 150, 150, 0.5);
     border: rgb(130, 130, 130) solid 1px;
-
     /*background: rgba(204,235,197, 0.3); */
     /*background: #5e6875;*/
     // border-radius: 5px;

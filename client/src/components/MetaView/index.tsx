@@ -83,8 +83,8 @@ export default class MetaView extends React.PureComponent<MetaViewProps, MetaVie
                             // console.log('TIME', name);
                             value = value.substr(11, 8);
                         }
-                        if(name.indexOf('(minutes)'))
-                            name = name.replace(/minutes/g, 'mins')
+                        // if(name.indexOf('(minutes)'))
+                        //     name = name.replace(/minutes/g, 'mins')
                         if(name == 'Height')
                             name = name + ' (cm)'
                         if(name == 'Weight')

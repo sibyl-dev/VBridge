@@ -124,14 +124,14 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
             // level-2: group-by item & period
             const individualFeatures = L1Features.where(row => row.whereItem.length == 0);
             const whereFeatures = L1Features.where(row => row.whereItem.length > 0);
-            const groups = whereFeatures.groupBy(row => row.period+row.whereItem[1]).toArray();
+            const groups = whereFeatures.groupBy(row => row.period + row.whereItem[1]).toArray();
             const groupedFeature: IDataFrame<number, Feature> = new DataFrame(groups.map(group => {
                 const sample = group.first();
                 const itemName = sample.whereItem![1] as string;
-                const itemLabel = itemDicts && sample.entityId && itemDicts(sample.entityId, itemName)?.LABEL;
+                const itemLabel = itemDicts && sample.entityId && itemDicts(sample.entityId, itemName)?.LABEL_CN;
                 return {
                     ...sample,
-                    name: 'g-'+_.reduce(group.getSeries('name').toArray(), (a, b) => `${a}-${b}`),
+                    name: 'g-' + _.reduce(group.getSeries('name').toArray(), (a, b) => `${a}-${b}`),
                     alias: itemLabel || itemName,
                     value: undefined,
                     primitive: undefined,
@@ -140,13 +140,13 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                     children: group
                 };
             }));
-            // level-3: group-by period
             const L2Features = individualFeatures.concat(groupedFeature);
+            // level-3: group-by period
             const features = new DataFrame(L2Features.groupBy(row => row.type).toArray().map(group => {
                 const sample = group.first();
                 return {
                     ...sample,
-                    name: 'g-'+_.reduce(group.getSeries('name').toArray(), (a, b) => `${a}-${b}`),
+                    name: 'g-' + _.reduce(group.getSeries('name').toArray(), (a, b) => `${a}-${b}`),
                     alias: sample.type,
                     value: undefined,
                     primitive: undefined,
@@ -444,7 +444,7 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                     }}
                     onClick={children ? this.onClickButton : this.onClickDiv}>
                     <div className={`feature-block-inner`}>
-                        <Tooltip title={name}>
+                        <Tooltip title={alias}>
                             <div className="feature-block-cell feature-name" style={{ width: cellWidth(0) - 10 * depth }}>
                                 <span className={"feature-block-cell-text"}>{beautifulPrinter(alias, 25)}</span>
                             </div>
@@ -471,11 +471,9 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                                 </span>
                             </Tooltip>}
                         </div>
-                        {SHAPContributions({
-                            feature, x,
-                            className: "feature-block-cell feature-contribution",
-                            style: { width: cellWidth(2), opacity: Math.max(1 - 0.3 * depth, 0.5) }
-                        })}
+                        <div className={"feature-block-cell feature-contribution"} style={{ width: cellWidth(2) }}>
+                            {SHAPContributions({ feature, x, height: 16, rectStyle: { opacity: !collapsed ? 0.3 : undefined } })}
+                        </div>
                     </div>
                     {/* {showDistibution && name && <div> */}
                     {/* <div className="reference-value" style={{ width: cellWidth(0) }}>
@@ -543,10 +541,10 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
 const SHAPContributions = (params: {
     feature: Feature,
     x: d3.ScaleLinear<number, number>,
-    className?: string,
-    style?: React.CSSProperties
+    height: number,
+    rectStyle?: React.CSSProperties
 }) => {
-    const { feature, x, className, style } = params;
+    const { feature, x, height, rectStyle } = params;
     const cont = feature.contribution;
     const whatifcont = feature.contributionIfNormal;
     const posSegValue = _.range(0, 3).fill(0);
@@ -568,32 +566,30 @@ const SHAPContributions = (params: {
         // negative differences: b - a
         negSegValue[2] = (whatifcont < 0) ? Math.max(0, (-whatifcont) - Math.max(0, (-cont))) : 0;
     }
-    return <div className={className} style={style}>
-        <svg className={"contribution-svg"}>
-            {negSegValue[0] > 0 && <rect className="neg-feature a-and-b"
-                width={x(negSegValue[0]) - x(0)} height={16} transform={`translate(${x(-negSegValue[0])}, 0)`} />}
-            {negSegValue[1] > 0 && <rect className="neg-feature a-sub-b"
-                width={x(negSegValue[1]) - x(0)} height={16} transform={`translate(${x(-negSegValue[1] - negSegValue[0])}, 0)`} />}
-            {negSegValue[2] > 0 && <rect className="neg-feature b-sub-a"
-                width={x(negSegValue[2]) - x(0)} height={16} transform={`translate(${x(-negSegValue[2] - negSegValue[0])}, 0)`} />}
+    return <svg className={"contribution-svg"}>
+        {negSegValue[0] > 0 && <rect className="neg-feature a-and-b" style={rectStyle}
+            width={x(negSegValue[0]) - x(0)} height={height} transform={`translate(${x(-negSegValue[0])}, 0)`} />}
+        {negSegValue[1] > 0 && <rect className="neg-feature a-sub-b" style={rectStyle}
+            width={x(negSegValue[1]) - x(0)} height={height} transform={`translate(${x(-negSegValue[1] - negSegValue[0])}, 0)`} />}
+        {negSegValue[2] > 0 && <rect className="neg-feature b-sub-a" style={rectStyle}
+            width={x(negSegValue[2]) - x(0)} height={height} transform={`translate(${x(-negSegValue[2] - negSegValue[0])}, 0)`} />}
 
-            {posSegValue[0] > 0 && <rect className="pos-feature a-and-b"
-                width={x(posSegValue[0]) - x(0)} height={16} transform={`translate(${x(0)}, 0)`} />}
-            {posSegValue[1] > 0 && <rect className="pos-feature a-sub-b"
-                width={x(posSegValue[1]) - x(0)} height={16} transform={`translate(${x(posSegValue[0])}, 0)`} />}
-            {posSegValue[2] > 0 && <rect className="pos-feature b-sub-a"
-                width={x(posSegValue[2]) - x(0)} height={16} transform={`translate(${x(posSegValue[0])}, 0)`} />}
-            <defs>
-                <pattern id="pattern-stripe"
-                    width="4" height="4"
-                    patternUnits="userSpaceOnUse"
-                    patternTransform="rotate(45)">
-                    <rect width="2" height="4" transform="translate(0,0)" fill="white"></rect>
-                </pattern>
-                <mask id="mask-stripe">
-                    <rect x="0" y="0" width="100%" height="100%" fill="url(#pattern-stripe)" />
-                </mask>
-            </defs>
-        </svg>
-    </div>
+        {posSegValue[0] > 0 && <rect className="pos-feature a-and-b" style={rectStyle}
+            width={x(posSegValue[0]) - x(0)} height={height} transform={`translate(${x(0)}, 0)`} />}
+        {posSegValue[1] > 0 && <rect className="pos-feature a-sub-b" style={rectStyle}
+            width={x(posSegValue[1]) - x(0)} height={height} transform={`translate(${x(posSegValue[0])}, 0)`} />}
+        {posSegValue[2] > 0 && <rect className="pos-feature b-sub-a" style={rectStyle}
+            width={x(posSegValue[2]) - x(0)} height={height} transform={`translate(${x(posSegValue[0])}, 0)`} />}
+        <defs>
+            <pattern id="pattern-stripe"
+                width="4" height="4"
+                patternUnits="userSpaceOnUse"
+                patternTransform="rotate(45)">
+                <rect width="2" height="4" transform="translate(0,0)" fill="white"></rect>
+            </pattern>
+            <mask id="mask-stripe">
+                <rect x="0" y="0" width="100%" height="100%" fill="url(#pattern-stripe)" />
+            </mask>
+        </defs>
+    </svg>
 }

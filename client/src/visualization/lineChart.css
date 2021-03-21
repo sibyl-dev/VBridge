@@ -5,9 +5,9 @@
 }
 
 .point {
-    fill: #3C88E1;
-    stroke-width: 1px;
-    stroke: #fff;
+    fill: #3c89e1a8;
+    /* stroke-width: 1px;
+    stroke: #fff; */
     /* opacity: 70%; */
 }
 
@@ -18,5 +18,21 @@
 
 .reference-area {
     fill: #3C88E1;
-    opacity: 10%;
+    opacity: 8%;
+}
+
+.line-seg {
+    stroke: #6695ca;
+    /* stroke: #aaa; */
+    stroke-width: 2px;
+    opacity: 60%;
+}
+
+.highlight.line-seg {
+    /* stroke: #e13caa; */
+    stroke: #e13c60;
+}
+
+.highlight.point {
+    fill: #e13c60a1;
 }

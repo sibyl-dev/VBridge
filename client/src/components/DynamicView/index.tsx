@@ -2,10 +2,11 @@ import { Button, Card, Divider, Select } from "antd";
 import { PatientMeta } from "data/patient";
 import { Entity, ItemDict } from "data/table";
 import * as React from "react";
+import * as _ from "lodash"
 import { DataFrame, IDataFrame, ISeries } from "data-forge";
-import { defaultMargin, getMargin, getScaleLinear, IMargin } from "visualization/common";
+import { defaultMargin, getMargin, getScaleLinear, getScaleTime, IMargin } from "visualization/common";
 import { CloseOutlined, ExpandAltOutlined, PushpinOutlined, ShrinkOutlined } from "@ant-design/icons";
-import { arrayShallowCompare, ReferenceValue, timeDeltaPrinter } from "data/common";
+import { arrayShallowCompare, ReferenceValue, ReferenceValueDict, timeDeltaPrinter } from "data/common";
 import { getReferenceValues } from "router/api";
 import LineChart from "visualization/lineChart";
 
@@ -33,15 +34,19 @@ export interface DynamicViewProps {
     itemDicts?: ItemDict,
     tableRecords: Entity<number, any>[],
     signalMetas: SignalMeta[],
+    align?: boolean,
     color?: (entityName: string) => string,
     updateFocusedFeatures?: (featureNames: string[]) => void,
     updatePinnedFocusedFeatures?: (featureNames: string[]) => void,
     pinSignal: (signalMeta: SignalMeta) => void;
     removeSignal: (signalMeta: SignalMeta) => void;
+    referenceValues?: (tableName: string) => ReferenceValueDict | undefined;
 }
 
 export interface DynamicViewStates {
-    signalGroups: IDataFrame<number, Signal>[]
+    signalGroups: IDataFrame<number, Signal>[],
+    globalStartTime?: Date,
+    globalEndTime?: Date,
 }
 
 export default class DynamicView extends React.PureComponent<DynamicViewProps, DynamicViewStates> {
@@ -69,7 +74,9 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
             .map(s => this.buildSignal(s))
             .filter(s => s.data && s.data.values.count());
         const signalGroups = new DataFrame(signals).groupBy(row => row.tableName).toArray();
-        this.setState({ signalGroups });
+        const globalStartTime = _.min(signals.map(s => _.min(s.data?.dates.toArray())));
+        const globalEndTime = _.max(signals.map(s => _.max(s.data?.dates.toArray())));
+        this.setState({ signalGroups, globalStartTime, globalEndTime });
     }
 
     private buildSignal(record: SignalMeta): Signal {
@@ -96,14 +103,13 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
     }
 
     public render() {
-        const { patientMeta, itemDicts, color, updateFocusedFeatures, removeSignal, className } = this.props;
-        const { signalGroups } = this.state;
+        const { patientMeta, itemDicts, color, updateFocusedFeatures, removeSignal, className, referenceValues, align } = this.props;
+        const { signalGroups, globalStartTime, globalEndTime } = this.state;
+        const width = 720;
+        const xScale = (align && globalStartTime && globalEndTime) ?
+            getScaleTime(0, width, undefined, [globalStartTime, globalEndTime]) : undefined;
         return (
             <div>
-                {/* <div>
-                    <Search placeholder="input search text" style={{ marginLeft: 10, marginRight: 10, width: "90%" }} enterButton />
-                </div>
-                <Divider /> */}
                 <div>
                     {signalGroups.map(group => <div key={group.first().tableName}>
                         <Divider>{group.first().tableName}</Divider>
@@ -111,9 +117,12 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
                             <DynamicCard
                                 className={className}
                                 signal={signal}
+                                referenceValues={referenceValues && referenceValues(signal.tableName)}
                                 key={signal.itemName}
                                 itemDicts={itemDicts}
                                 align={false}
+                                xScale={xScale}
+                                width={width}
                                 margin={{ bottom: 20, left: 25, top: 15, right: 25 }}
                                 color={color && color(signal.tableName)}
                                 // onHover={updateFocusedFeatures && (() => updateFocusedFeatures(signal.relatedFeatureNames))}
@@ -148,6 +157,7 @@ export interface DynamicCardProps extends Partial<TimeSeriesStyle> {
     className: string,
     align?: boolean,
     // timeSeriesStyle: Partial<TimeSeriesStyle>,
+    xScale?: d3.ScaleTime<number, number>,
     itemDicts?: ItemDict,
     updateFocusedFeatures?: (featureNames: string[]) => void,
     updatePinnedFocusedFeatures?: (featureName: string) => void,
@@ -156,6 +166,7 @@ export interface DynamicCardProps extends Partial<TimeSeriesStyle> {
     onPin?: () => void;
     onRemove?: () => void;
     // subjectIdG?: number[],
+    referenceValues?: ReferenceValueDict;
 }
 
 export interface DynamicCardStates {
@@ -213,9 +224,9 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
     }
 
     public render() {
-        const { className, signal, itemDicts, width, height, color, margin, onHover, onLeave, onRemove } =
+        const { className, signal, itemDicts, width, height, color, margin, xScale, referenceValues, onHover, onLeave, onRemove } =
             { ...defaultTimeSeriesStyle, ...this.props };
-        const { expand, referenceValue, pinned } = this.state;
+        const { expand, pinned } = this.state;
         const { tableName, itemName, data, startTime, endTime } = signal;
         const itemLabel = itemDicts && itemDicts(tableName, itemName)?.LABEL;
         // console.log(data.values.toArray());
@@ -236,16 +247,17 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
             </div>
             {data && <LineChart
                 data={data}
-                referenceValue={referenceValue}
+                referenceValue={referenceValues && referenceValues(itemName)}
                 height={expand ? height : 30}
                 width={width}
+                xScale={xScale}
                 margin={expand ? margin : { ...margin, top: 12, bottom: 2 }}
                 color={color}
                 // yScale={expand ? undefined : getScaleLinear(0, 0, undefined, [-1, 1])}
                 drawXAxis={expand}
                 drawYAxis={expand}
                 drawDots={expand}
-                drawReferences={expand && referenceValue != undefined}
+                drawReferences={expand && referenceValues != undefined}
             />}
         </div>
     }

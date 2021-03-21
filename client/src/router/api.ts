@@ -7,7 +7,7 @@ import { Entity, ItemDict } from "data/table";
 import { ROOT_URL, DEV_MODE } from "./env";
 import { patientInfoMeta } from 'data/metaInfo';
 import { filterType } from 'data/filterType';
-import { ReferenceValue } from "data/common";
+import { ReferenceValue, ReferenceValueDict } from "data/common";
 
 
 const API = `${ROOT_URL}/api`;
@@ -170,7 +170,8 @@ export async function getItemDict(): Promise<ItemDict> {
 export async function getReferenceValues(params: {
     table_name: string,
     column_name: string,
-}): Promise<(itemName: string) => (ReferenceValue | undefined)> {
+    group_ids?: number[]
+}): Promise<ReferenceValueDict> {
     const url = `${API}/reference_value`
     const response = await axios.get(url, { params });
     const checked = checkResponse(response, []);

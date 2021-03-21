@@ -1,5 +1,6 @@
 import * as d3 from "d3"
 import * as React from "react"
+import * as _ from 'lodash'
 import "./lineChart.css"
 
 import { getChildOrAppend, getScaleLinear, getScaleTime, defaultCategoricalColor, IMargin, getMargin } from "./common";
@@ -47,7 +48,9 @@ export function drawLineChart(params: LineChartParams) {
         maxValue = Math.max(maxValue, referenceValue.ci95[1]);
         minValue = Math.min(minValue, referenceValue.ci95[0]);
     }
-    const y = yScale || getScaleLinear(0, height, undefined, [maxValue, minValue]);
+    // padding
+    const y = yScale || getScaleLinear(0, height, undefined, 
+        [maxValue+(maxValue-minValue)*0.1, Math.max(minValue-(maxValue-minValue)*0.1, 0)]);
 
     getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "x-axis-base")
         .attr("transform", `translate(0, ${height})`)
@@ -60,28 +63,45 @@ export function drawLineChart(params: LineChartParams) {
     const line = d3.line().curve(d3.curveMonotoneX);
     const points: [number, number][] = dates.map((date, i) => [t(date), y(values[i])] as [number, number])
         .filter(d => (d[0] === d[0]) && (d[1] === d[1]));
+    const pointPairs: [[number, number], [number, number]][] | undefined =
+        points.length > 1 ? _.range(0, points.length - 1).map(i => [points[i], points[i+1]]) : undefined
 
     const outofCI = referenceValue && referenceValue.ci95 && ((value: number) => value < referenceValue.ci95[0] || value > referenceValue.ci95[1]);
 
-    getChildOrAppend(base, 'path', 'line')
-        .datum(points)
-        .attr("class", "line")
-        .attr("d", line);
-        getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "point-base")
-            .selectAll(".point")
-            .data(points)
-            .join(
-                enter => enter
-                    .append("circle")
-                    .attr("class", "point"),
-                update => update,
-                exit => { exit.remove() }
-            )
-            .attr("display", drawDots?"block": "none")
-            .attr("cx", d => d[0])
-            .attr("cy", d => d[1])
-            .attr("r", 3)
-            // .style("fill", (d, i) => (outofCI && outofCI(values[i])) ? 'red' : '#aaa');
+    // getChildOrAppend(base, 'path', 'line')
+    //     .datum(points)
+    //     .attr("class", "line")
+    //     .attr("d", line);
+    pointPairs && getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "line-base")
+        .selectAll(".line-seg")
+        .data(pointPairs)
+        .join(
+            enter => enter.append("line")
+                .attr("class", 'line-seg'),
+            update => update,
+            exit => exit.remove()
+        )
+        .attr("x1", d => d[0][0])
+        .attr("y1", d => d[0][1])
+        .attr("x2", d => d[1][0])
+        .attr("y2", d => d[1][1])
+        .classed("highlight", (d, i) => outofCI ? (outofCI(values[i]) && outofCI(values[i+1])) : false);
+
+    getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "point-base")
+        .selectAll(".point")
+        .data(points)
+        .join(
+            enter => enter
+                .append("circle")
+                .attr("class", "point"),
+            update => update,
+            exit => { exit.remove() }
+        )
+        .attr("display", (d, i) => drawDots || (outofCI && outofCI(values[i])) ? "block" : "none")
+        .attr("cx", d => d[0])
+        .attr("cy", d => d[1])
+        .attr("r", 3)
+        .classed("highlight", (d, i) => outofCI ? outofCI(values[i]) : false);
 
     if (referenceValue) {
         getChildOrAppend<SVGLineElement, SVGGElement>(base, "line", "reference-line")
@@ -93,7 +113,7 @@ export function drawLineChart(params: LineChartParams) {
         if (referenceValue.ci95)
             getChildOrAppend<SVGRectElement, SVGGElement>(base, "rect", "reference-area")
                 .attr("width", width)
-                .attr("height", y(referenceValue.ci95[0]) - y(referenceValue.ci95[1]))
+                .attr("height", y(Math.max(0, referenceValue.ci95[0])) - y(referenceValue.ci95[1]))
                 .attr("transform", `translate(0, ${y(referenceValue.ci95[1])})`)
                 .attr("display", drawReferences ? 'block' : 'none');
     }
