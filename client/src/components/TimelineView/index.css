@@ -35,21 +35,23 @@
     font-weight: bold;
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-end;
     /*padding-top:21px;*/
     line-height: 14px;
 }
 
-.timeline-content,
-.timeline-axis-content {
+.timeline-content
+ {
     width: calc(100% - 80px);
     /* float: left; */
     position: absolute;
     left: 80px;
 }
-
 .timeline-axis-content {
     height: 80px;
+    width: 100%;
+    margin-left: 80px;
+    overflow: visible;
 }
 
 .timeline-svg {

@@ -98,7 +98,7 @@ export function getScaleLinear(
   return d3
     .scaleLinear()
     .domain(_extent)
-    .nice()
+    // .nice()
     .range([x0, x1]);
 
 }
@@ -121,7 +121,7 @@ export function getScaleTime(
   return d3
     .scaleTime()
     .domain(_extent)
-    .nice()
+    // .nice()
     .range([x0, x1]);
 }
 
