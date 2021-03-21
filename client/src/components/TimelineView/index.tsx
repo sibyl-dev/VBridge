@@ -92,21 +92,22 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
             return new Date(finalHrs*1000*60*60)!
         }
     }
-    // public updateStartEnd(startDate: Date, endDate: Date){
-    //     let {choseInterval} = this.state
-    //      if(choseInterval && choseInterval<60){
-    //             startDate = this.calculateNewTime(startDate)!
-    //             endDate = this.calculateNewTime(endDate)!
-    //     }
-    //     else{ 
-    //         let hrs = Math.floor(startDate!.valueOf()/1000/60/60)
-    //         startDate = new Date((hrs - hrs%(choseInterval!/ONE_HOUR) - 8)*1000*60*60)!
-    //         hrs = Math.floor(endDate!.valueOf()/1000/60/60)
-    //         endDate = new Date((hrs - hrs%(choseInterval!/ONE_HOUR) - 8 + choseInterval!/ONE_HOUR)*1000*60*60)!
-    //     }
-    //     // this.updateTimeScale(d3.scaleTime().range([0, 700]).domain([startDate!, endDate!]), startDate!, endDate!)
-    //     // this.setState({startDate, endDate}, ()=>{this._extractEvents();})
-    // }
+    public formulateStartandEnd(startDate: Date, endDate:Date){
+            let choseInterval = calIntervalsCommon(startDate, endDate)
+        // change the start and end to a more fit hours
+            if(choseInterval && choseInterval<60 &&startDate && endDate){
+                startDate = this.calculateNewTime(startDate!)!
+                endDate = this.calculateNewTime(endDate!)!
+            }
+            else if(startDate && endDate){ 
+                // need to minus 8 hours since GMT8:00
+                let hrs = Math.floor(startDate!.valueOf()/1000/60/60)
+                startDate = new Date((hrs - (hrs+8)%(choseInterval!/ONE_HOUR))*1000*60*60)!
+                hrs = Math.floor(endDate!.valueOf()/1000/60/60)
+                endDate = new Date((hrs - (hrs+8)%(choseInterval!/ONE_HOUR)+ choseInterval!/ONE_HOUR)*1000*60*60)!
+            }
+            return [startDate, endDate]
+    }
     public calIntervals(){
         let startDate:Date = new Date(this.state.startDate!)
         let endDate:Date = new Date(this.state.endDate!)
@@ -115,19 +116,21 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
             // mins =  Math.round((endDate.valueOf() - startDate.valueOf())/1000/60)
             let choseInterval = calIntervalsCommon(startDate, endDate)
             
-            // change the start and end to a more fit hours
-            if(choseInterval && choseInterval<60){
-                startDate = this.calculateNewTime(startDate)!
-                endDate = this.calculateNewTime(endDate)!
-            }
-            else{ 
-                // need to minus 8 hours since GMT8:00
-                let hrs = Math.floor(startDate!.valueOf()/1000/60/60)
-                startDate = new Date((hrs - (hrs+8)%(choseInterval!/ONE_HOUR))*1000*60*60)!
-                hrs = Math.floor(endDate!.valueOf()/1000/60/60)
-                endDate = new Date((hrs - (hrs+8)%(choseInterval!/ONE_HOUR)+ choseInterval!/ONE_HOUR)*1000*60*60)!
-            }
-
+            // // change the start and end to a more fit hours
+            // if(choseInterval && choseInterval<60){
+            //     startDate = this.calculateNewTime(startDate)!
+            //     endDate = this.calculateNewTime(endDate)!
+            // }
+            // else{ 
+            //     // need to minus 8 hours since GMT8:00
+            //     let hrs = Math.floor(startDate!.valueOf()/1000/60/60)
+            //     startDate = new Date((hrs - (hrs+8)%(choseInterval!/ONE_HOUR))*1000*60*60)!
+            //     hrs = Math.floor(endDate!.valueOf()/1000/60/60)
+            //     endDate = new Date((hrs - (hrs+8)%(choseInterval!/ONE_HOUR)+ choseInterval!/ONE_HOUR)*1000*60*60)!
+            // }
+            let extent =  this.formulateStartandEnd(startDate, endDate)
+            startDate = extent[0]
+            endDate = extent[1]
             console.log('before setting', startDate, endDate, choseInterval!/60)
 
             const width = 700;
@@ -276,6 +279,7 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
                         height: 60,
                         margin: { ...margin, bottom: 20, top: 0 }
                     }}
+                    formulateStartandEnd={this.formulateStartandEnd}
                     updateTimeScale={this.updateTimeScale}
                     events={wholeEvents}
                     color={defaultCategoricalColor}

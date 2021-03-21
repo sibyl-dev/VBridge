@@ -3,6 +3,7 @@ import { IEvent } from "data/event";
 import { getChildOrAppend, getScaleLinear, getScaleTime, defaultCategoricalColor, IMargin, getMargin, calIntervalsCommon } from "./common";
 import { drawStackedAreaChart } from "./stackedAreaChart";
 
+
 export function drawTimelineAxis(params: {
     svg: SVGElement,
     defaultTimeScale: d3.ScaleTime<number, number>,
@@ -12,12 +13,14 @@ export function drawTimelineAxis(params: {
     margin?: IMargin,
     color?: (id: number) => string,
     updateTimeScale?: (scale: d3.ScaleTime<number, number>, startDate:Date, endDate:Date) => void,
+    formulateStartandEnd?:( startDate: Date, endDate: Date) => Date[],
+
 
     drawAreaChart?: boolean,
     events?: IEvent[][],
     size?: number,
 }) {
-    const { svg, defaultTimeScale, updateTimeScale, drawAreaChart, events, color,size } = params
+    const { svg, defaultTimeScale, updateTimeScale, drawAreaChart, events, color,size, formulateStartandEnd } = params
     const root = d3.select(svg);
     const margin = getMargin(params.margin || {});
     const height = params.height - margin.top - margin.bottom;
@@ -48,25 +51,31 @@ export function drawTimelineAxis(params: {
         let extent = []
         let choseInterval = 0
 
-        if (selection) {
+        if (selection && formulateStartandEnd) {
             extent = selection.map(defaultTimeScale.invert);
             console.log('timelineAxis selection', extent )
 
             let mins =  Math.round((extent[1].valueOf() - extent[0].valueOf())/1000/60)
-
+            
+          
             choseInterval = calIntervalsCommon(extent[0], extent[1])
-            if(choseInterval < 60) {
-                let startMins =  Math.floor(extent[0].valueOf()/1000/60)
-                extent[0] = new Date((startMins - startMins%choseInterval)*1000*60)
-                let endMins =  Math.ceil(extent[1].valueOf()/1000/60)
-                extent[1] = new Date((endMins - endMins%choseInterval + choseInterval)*1000*60)
+             if(choseInterval && choseInterval<60){
+                let mins = Math.floor(extent[0].valueOf()/1000/60)
+                extent[0] =  new Date((mins - mins%choseInterval)*1000*60)!
+                mins = Math.floor(extent[1].valueOf()/1000/60)
+                extent[1] =  new Date((mins - mins%choseInterval)*1000*60)!
             }
-            else{
+            else{ 
+                // need to minus 8 hours since GMT8:00
                 let hrs = Math.floor(extent[0]!.valueOf()/1000/60/60)
-                extent[0] = new Date((hrs - hrs%(choseInterval!/60) )*1000*60*60)!
+                extent[0] = new Date((hrs - (hrs+8)%(choseInterval!/60))*1000*60*60)!
                 hrs = Math.floor(extent[1]!.valueOf()/1000/60/60)
-                extent[1] = new Date((hrs - hrs%(choseInterval!/60) + choseInterval/60)*1000*60*60)!
+                extent[1] = new Date((hrs - (hrs+8)%(choseInterval!/60)+ choseInterval!/60)*1000*60*60)!
             }
+
+
+
+            
         }
         else {
             extent = defaultTimeScale.domain();

@@ -132,7 +132,7 @@ export function drawTimeline(params: {
             exit => { exit.remove() })
         .attr("x", d => t(d.timestamp))
         .attr('y', 0)
-        .attr('width', d => (Math.min(t(new Date((d.timestamp.valueOf()+size*60*1000))),width)-t(d.timestamp) - 1))
+        .attr('width', d => (Math.min(t(new Date(d.timestamp.valueOf()+size*60*1000)), width)-t(d.timestamp) - 1))
         .attr("height", height+ margin.top)
         .style("fill", color || defaultCategoricalColor(0))
         .style('opacity', d => opacity(d.count))

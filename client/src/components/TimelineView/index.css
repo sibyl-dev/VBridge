@@ -49,9 +49,9 @@
 }
 .timeline-axis-content {
     height: 80px;
-    width: 100%;
+    width: calc(100% - 80px);
     margin-left: 80px;
-    overflow: visible;
+    /*overflow: visible;*/
 }
 
 .timeline-svg {
