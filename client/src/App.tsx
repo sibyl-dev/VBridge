@@ -84,7 +84,6 @@ class App extends React.Component<AppProps, AppStates>{
     };
 
     this.selectPatientId = this.selectPatientId.bind(this);
-    this.selectComparePatientId = this.selectComparePatientId.bind(this)
     this.loadPatientRecords = this.loadPatientRecords.bind(this);
     this.loadPredictions = this.loadPredictions.bind(this);
     this.filterPatients = this.filterPatients.bind(this)
@@ -158,26 +157,20 @@ class App extends React.Component<AppProps, AppStates>{
   public async selectPatientId(subjectId: number) {
     const selectedsubjectId = subjectId
     const patientMeta = await getPatientMeta({ subject_id: subjectId });
-    console.log('selectPatientId', patientMeta)
-    console.log(patientMeta.AdmitTime)
-    console.log(patientMeta.DOB)
-    console.log(patientMeta.days)
-    // if(patientMeta){
-    //   let dob:Date = new Date(patientMeta.DOB)
-    //   let AdmitTime:Date = patientMeta.AdmitTime(AdmitTime.valueOf() - dob.valueOf())/1000/60/60/24
-    //   let days:number =  
-    // }
     const patientInfoMeta = await getPatientInfoMeta({ subject_id: subjectId });
     const tableRecords = await this.loadPatientRecords(subjectId);
-    if (this.state.conditions) {
-      const subjectIdG = (await getPatientGroup({ filterConditions: this.state.conditions, subject_id: subjectId, setSubjectIdG: true }))
+    if(patientMeta){
+      const subjectIdG = await getPatientGroup({ filterConditions:{'Age': new Array(this.judgeTheAge(patientMeta.days))}, subject_id: subjectId, setSubjectIdG: true })
       this.setState({ patientGroup: subjectIdG })
     }
     const selected = 'lung complication'
     this.setState({ patientMeta, tableRecords, patientInfoMeta, selectedsubjectId, target: selected });
   }
-  public async selectComparePatientId(subjectId: number) {
-
+  public judgeTheAge(days: number){
+        if (days <= 28) return '< 1 month'
+        else if (days <= 12*30) return '< 1 year'
+        else if (days <= 36*30) return '1-3 years'
+        else return '> 3 years'
   }
 
   private async filterPatients(conditions: { [key: string]: any }, changeornot: boolean) {

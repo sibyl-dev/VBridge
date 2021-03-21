@@ -72,9 +72,6 @@ export function drawTimelineAxis(params: {
                 hrs = Math.floor(extent[1]!.valueOf()/1000/60/60)
                 extent[1] = new Date((hrs - (hrs+8)%(choseInterval!/60)+ choseInterval!/60)*1000*60*60)!
             }
-
-
-
             
         }
         else {
