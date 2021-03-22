@@ -68,15 +68,45 @@ def handle_invalid_usage(error):
 def get_available_ids():
     es = current_app.es
     fm = current_app.fm
+    df = es["SURGERY_INFO"].df
+
     subjects_ids = fm.index
     # subjects_ids = fm[fm['complication'] == 1].index
     # subjects_ids = filter_group.index
     print('available_ids', subjects_ids)
 
-    df = es["SURGERY_INFO"].df
-    subjects_ids1 = df[(df['complication'] == 1) & (df['SUBJECT_ID'].isin(subjects_ids))][
-                        "SUBJECT_ID"].values[:30].tolist()
+
+
+    tmp_fm = fm[(fm['complication'] == 1) & (fm.index.isin(current_app.subject_idG))]
+    healthy = fm[fm['complication'] == 0]
+    stat = healthy.agg(['mean', 'count', 'std']).T
+    stat['ci95_low'] = stat['mean'] - stat['std'] * 1.96
+    stat['ci95_high'] = stat['mean'] + stat['std'] * 1.96
+    # tmp_fm['abnormalityCount'] = 
+    inters = np.array(['MEAN', 'STD', "TREND"])
+    columns = tmp_fm.columns
+
+    tmp_fm['abnormalityCount'] = [0 for index in range(len(tmp_fm))]
+    for col in columns:
+        if((('MEAN' in col) or ('STD' in col) or ("TREND" in col)) and ('in-surgery' in col) ):
+            referenceValue = stat.loc[col]
+            # print('referenceValue', referenceValue)
+            # print(tmp_fm.columns)
+            # print('tmp_fm[col]', tmp_fm[col])
+            x = (tmp_fm.apply(lambda x: 1 if x[col]>referenceValue.ci95_high or x[col]<referenceValue.ci95_low else 0,axis='columns'))
+            # print(x)
+            # print('tmp_fm[col]', tmp_fm)
+            tmp_fm['abnormalityCount'] = tmp_fm['abnormalityCount']  + x
+
+    
+
+    tmp_fm = tmp_fm.sort_values(by=['abnormalityCount'], ascending = False)
+
+    print('tmp_fm[abnormalityCount]', tmp_fm['abnormalityCount'].values[:30])
+    print('here abnormalityCount', tmp_fm.index.values[:30])   
+    subjects_ids1 = tmp_fm.index.values[:30].tolist()  
     print('available_ids', subjects_ids1)
+    # info['subject_idG'] = su
 
     return jsonify(subjects_ids1)
 
