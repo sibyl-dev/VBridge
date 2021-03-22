@@ -8,7 +8,7 @@ import { IEvent } from "data/event";
 import { TimelineAxis } from "./TimelineAxis";
 // import { Timeline } from "./Timeline";
 
-import "./index.css"
+import "./index.scss"
 import { TimelineList } from "./TimelineList";
 import { FeatureMeta } from "data/feature";
 import { IDataFrame } from "data-forge";
@@ -255,7 +255,7 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
             <div style={{ height: "100%", width: "100%" }}>
                 {entityCategoricalColor && <div className="category-legend-container">
                     <div className="legend-block">
-                        <div className='legend-rect' style={{ backgroundColor: entityCategoricalColor(undefined) }} />
+                        <div className='legend-rect' style={{ backgroundColor: entityCategoricalColor('Admission') }} />
                         <span className='legend-name'>{"Patient Info & Surgery Info"}</span>
                     </div>
                     {tableNames && tableNames.map(name =>

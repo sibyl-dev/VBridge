@@ -69,14 +69,10 @@ def get_available_ids():
     es = current_app.es
     fm = current_app.fm
     subjects_ids = fm.index
-    # subjects_ids = fm[fm['complication'] == 1].index
-    # subjects_ids = filter_group.index
-    print('available_ids', subjects_ids)
 
     df = es["SURGERY_INFO"].df
-    subjects_ids1 = df[(df['complication'] == 1) & (df['SUBJECT_ID'].isin(subjects_ids))][
+    subjects_ids1 = df[(df['cardiac complication'] == 1) & (df['SUBJECT_ID'].isin(subjects_ids))][
                         "SUBJECT_ID"].values[:30].tolist()
-    print('available_ids', subjects_ids1)
 
     return jsonify(subjects_ids1)
 
@@ -370,6 +366,7 @@ def get_what_if_shap_values():
     fm = current_app.fm
     if current_app.subject_idG:
         fm = fm.loc[current_app.subject_idG]
+        fm = fm[fm['complication'] == 0]
     model_manager = current_app.model_manager
     targets = Modeler.prediction_targets()
     stat = fm.agg(['mean', 'count', 'std']).T
@@ -377,7 +374,7 @@ def get_what_if_shap_values():
     stat['ci95_high'] = stat['mean'] + stat['std'] * 1.96
     # stat['ci95_low'] = stat['mean'] - stat['std']
     # stat['ci95_high'] = stat['mean'] + stat['std']
-    target_fv = fm.loc[subject_id]
+    target_fv = current_app.fm.loc[subject_id]
 
     # What-if analysis on out-of-distribution high values
     high_features = target_fv[target_fv > stat['ci95_high']].index

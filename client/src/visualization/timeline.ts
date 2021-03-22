@@ -43,7 +43,7 @@ export function drawTimeline(params: {
 
     const t = timeScale || getScaleTime(0, width, events.map(e => e.timestamp));
     const r = getScaleLinear(0, 30, events.map(d => d.count));
-    const opacity = getScaleLinear(0, 0.8, events.map(d => d.count));
+    const opacity = getScaleLinear(0, 0.8, undefined, [0, d3.max(events.map(d => d.count))!]);
 
 
     // getChildOrAppend(base, "rect", "base-rect")

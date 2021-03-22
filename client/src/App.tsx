@@ -74,7 +74,7 @@ interface AppStates {
 }
 
 class App extends React.Component<AppProps, AppStates>{
-  private layout = { featureViewWidth: 520, timelineViewWidth: 800, ProfileWidth: 300, timelineViewHeight: 260, headerHeight: 64 };
+  private layout = { featureViewWidth: 520, ProfileWidth: 300, timelineViewHeight: 260, headerHeight: 64 };
   private abnormalityColorScale = d3.scaleSequential(d3.interpolateRdYlGn).domain([2.5 + 0.5, 1 - 0.5]);
   private ref: React.RefObject<SVGSVGElement> = React.createRef();
   private paintId: any = undefined;
@@ -376,13 +376,21 @@ class App extends React.Component<AppProps, AppStates>{
 
   private entityCategoricalColor(entityName?: string) {
     const { tableNames } = this.state;
-    let i = 0;
-    if (tableNames && entityName) {
-      i = (tableNames?.indexOf(entityName) + 1);
+    if (entityName && ['Demographic', 'Admission', 'Surgery'].includes(entityName))
+      return defaultCategoricalColor(3);
+    else if (tableNames && entityName) {
+      let i = (tableNames?.indexOf(entityName) + 4);
+      // if (i == 3) {
+      //   i = 2;
+      // }
+      return defaultCategoricalColor(i);
     }
-    if (i === 1) i = 3;
-    else if (i === 3) i = 1;
-    return defaultCategoricalColor(i);
+    else {
+      return "#aaa"
+    }
+    // if (i === 1) i = 3;
+    // else if (i === 3) i = 1;
+
   }
 
   private abnormalityColor(abnormality: number) {
@@ -526,6 +534,7 @@ class App extends React.Component<AppProps, AppStates>{
                   <Tooltip title={name} placement="top" key={name}>
                     <div className={'prediction-icon' + (selected && name === selected ? " selected" : "") +
                       ((predictions && predictions(name) > 0.5000) ? " active" : " inactive")}
+                      style={{ backgroundColor: (predictions && predictions(name) > 0.5000) ? defaultCategoricalColor(1) : defaultCategoricalColor(0) }}
                       onClick={() => this.setState({ target: name })}>
                       <span>{name.toUpperCase()[0]} </span>
                     </div>
@@ -544,14 +553,17 @@ class App extends React.Component<AppProps, AppStates>{
               initialHeight={window.innerHeight - layout.headerHeight} x={0} y={0}
               title={<div className="view-title">
                 <span className="view-title-text">Feature View</span>
-                <Switch onChange={e => this.setState({ featureViewDense: e })} style={{ float: 'right' }}
-                  checkedChildren="focus" />
+                <div className="widget">
+                  <span className="widget-text">focus</span>
+                  <Switch onChange={e => this.setState({ featureViewDense: e })} style={{ float: 'right' }}
+                    checkedChildren="on" unCheckedChildren="off" />
+                </div>
               </div>}>
-              {featureMeta && predictionTargets && tableNames && selected && <FeatureView
+              {featureMeta && tableNames && selected && predictions && <FeatureView
                 className={"feature-view-element"}
                 patientMeta={patientMeta}
                 featureMeta={featureMeta}
-                predictionTargets={predictionTargets}
+                prediction={predictions(selected)}
                 tableNames={tableNames}
                 groupIds={patientGroup && patientGroup.ids}
                 itemDicts={itemDicts}
@@ -563,8 +575,14 @@ class App extends React.Component<AppProps, AppStates>{
                 target={selected}
               />}
             </Panel>
-            <Panel initialWidth={layout.timelineViewWidth} initialHeight={layout.timelineViewHeight}
-              x={layout.featureViewWidth + 5} y={0} title="Timeline View">
+            {/* <Panel initialWidth={layout.timelineViewWidth} initialHeight={layout.timelineViewHeight}
+             */}
+            <Panel initialWidth={window.innerWidth - layout.featureViewWidth - layout.ProfileWidth - 10}
+              initialHeight={layout.timelineViewHeight}
+              x={layout.featureViewWidth + 5} y={0}
+              title={<div className="view-title">
+                <span className="view-title-text">Timeline View</span>
+              </div>}>
               {featureMeta && tableNames && <TimelineView
                 tableNames={tableNames}
                 patientMeta={patientMeta}
@@ -575,13 +593,18 @@ class App extends React.Component<AppProps, AppStates>{
               />}
             </Panel>
 
-            <Panel initialWidth={layout.timelineViewWidth}
+            <Panel initialWidth={window.innerWidth - layout.featureViewWidth - layout.ProfileWidth - 10}
               initialHeight={window.innerHeight - layout.headerHeight - layout.timelineViewHeight - 5}
-              x={layout.featureViewWidth + 5} y={265} title={
+              x={layout.featureViewWidth + 5} y={265} 
+              title={
                 <div className="view-title">
                   <span className="view-title-text">Temporal View</span>
-                  <Switch onChange={e => this.setState({ dynamicViewLink: e })} />
-                  <Switch onChange={e => this.setState({ dynamicViewAlign: e })} checkedChildren="align" />
+                  <div className="widget">
+                    <span className="widget-text">link</span>
+                    <Switch onChange={e => this.setState({ dynamicViewLink: e })} checkedChildren="on" unCheckedChildren="off" />
+                    <span className="widget-text">align</span>
+                    <Switch onChange={e => this.setState({ dynamicViewAlign: e })} checkedChildren="on" unCheckedChildren="off" />
+                  </div>
                 </div>
               }>
               {patientMeta && featureMeta && tableRecords && <DynamicView
@@ -601,7 +624,10 @@ class App extends React.Component<AppProps, AppStates>{
               />}
             </Panel>
             <Panel initialWidth={layout.ProfileWidth} initialHeight={window.innerHeight - layout.headerHeight}
-              x={layout.featureViewWidth + layout.timelineViewWidth + 10} y={0} title="Patient View">
+              x={window.innerWidth - layout.ProfileWidth} y={0} 
+              title={<div className="view-title">
+                <span className="view-title-text">Profile</span>
+              </div>}>
               {tableNames && featureMeta && <MetaView
                 className={"meta-view-element"}
                 patientIds={subjectIds}
@@ -609,6 +635,7 @@ class App extends React.Component<AppProps, AppStates>{
                 patientInfoMeta={patientInfoMeta}
                 updateFocusedFeatures={this.updateFocusedFeatures}
                 updatePinnedFocusedFeatures={this.updatePinnedFocusedFeatures}
+                entityCategoricalColor={this.entityCategoricalColor}
                 days={patientMeta && patientMeta.days}
               />
               }

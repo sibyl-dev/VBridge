@@ -56,6 +56,7 @@ export type IHistogramProps = (IHistogramOptions | IGHistogramOptions) & {
     allData?: number[] | number[][];
     dmcData?: number[] | number[][];
     referenceValue?: number,
+    whatIfValue?: number,
     style?: React.CSSProperties;
     svgStyle?: React.CSSProperties;
     className?: string;
@@ -100,11 +101,12 @@ export default class Histogram extends React.PureComponent<
     public paint(svg: SVGSVGElement | null = this.svgRef.current) {
         if (svg) {
             console.debug("paint histogram");
-            const { data, allData, dmcData, className, style, svgStyle, height, drawRange, referenceValue, ...rest } = this.props;
+            const { data, allData, dmcData, className, style, svgStyle, height, drawRange, referenceValue, whatIfValue, ...rest } = this.props;
             const xScale = rest.xScale || this.getXScale();
             const chartHeight = drawRange ? (height - 24) : (height - 4);
             drawGroupedHistogram({
-                root: svg, data, allData, dmcData, referenceValue, options: {
+                root: svg, data, allData, dmcData, referenceValue, whatIfValue,
+                options: {
                     height: chartHeight,
                     ...rest,
                     xScale,
@@ -241,10 +243,11 @@ export function drawGroupedHistogram(param: {
     allData?: number[] | number[][],
     dmcData?: number[] | number[][],
     referenceValue?: number,
+    whatIfValue?: number,
     options?: Partial<IGHistogramOptions>
 }
 ) {
-    const { root, data, allData, dmcData, options, referenceValue } = param;
+    const { root, data, allData, dmcData, options, referenceValue, whatIfValue } = param;
     const opts = { ...defaultOptions, ...options };
     const {
         width,
@@ -397,6 +400,23 @@ export function drawGroupedHistogram(param: {
         .attr("x2", xScale(referenceValue))
         .attr("y1", 0)
         .attr("y2", yRange[1])
+        // .append("title")
+        // .text(referenceValue.toFixed(2));
+
+    xScale && getChildOrAppend<SVGLineElement, SVGGElement>(base, "line", "reference-line-whatif")
+        .attr("x1", xScale(whatIfValue || 0))
+        .attr("x2", xScale(whatIfValue || 0))
+        .attr("y1", 0)
+        .attr("y2", yRange[1])
+        .style("display", (whatIfValue !== undefined) ? 'block' : 'none')
+        // .append("title")
+        // .text((whatIfValue || 0).toFixed(2));
+
+    // referenceValue && xScale && getChildOrAppend<SVGTextElement, SVGGElement>(base, "text", "reference-text")
+    //     .attr("transform", `translate(${xScale(referenceValue)}, 0)`)
+    //     .attr("dy", 8)
+    //     .attr("dx", 2)
+    //     .text(referenceValue.toFixed(2));
 
     const yreverse = d3.scaleLinear().domain(layout.y.domain()).range([layout.y.range()[1], layout.y.range()[0]])
 

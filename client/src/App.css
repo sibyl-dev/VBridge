@@ -24,7 +24,23 @@
 }
 
 .view-title-text {
-    float: left;
+    position: absolute;
+    left: 10px;
+    top: 0px;
+}
+
+.widget {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    right: 10px;
+    top: 0px;
+}
+
+.widget-text {
+    margin-left: 10px;
+    margin-right: 5px;
 }
 
 .header-name {
@@ -68,7 +84,7 @@
 }
 
 .prediction-icon.selected {
-    border: #ff4e78 2px solid;
+    border: rgb(126, 228, 105) 2px solid;
     /* color: #ff4e78; */
 }
 

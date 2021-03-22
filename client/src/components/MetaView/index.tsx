@@ -14,6 +14,7 @@ export interface MetaViewProps {
     featureMeta: IDataFrame<number, FeatureMeta>,
     updateFocusedFeatures?: (featureNames: string[]) => void,
     updatePinnedFocusedFeatures?: (featureNames: string[]) => void,
+    entityCategoricalColor?: (entityName: string | undefined) => string,
 }
 
 export interface MetaViewStates { }
@@ -72,7 +73,7 @@ export default class MetaView extends React.PureComponent<MetaViewProps, MetaVie
     }
 
     public render() {
-        const { patientInfoMeta, featureMeta, days, className } = this.props;
+        const { patientInfoMeta, featureMeta, days, className, entityCategoricalColor } = this.props;
         const featureAlias = featureMeta.getSeries('alias').toArray();
         return (
             <div className={"meta-view"}>
@@ -86,15 +87,15 @@ export default class MetaView extends React.PureComponent<MetaViewProps, MetaVie
                         }
                         // if(name.indexOf('(minutes)'))
                         //     name = name.replace(/minutes/g, 'mins')
-                        if(name == 'Height')
+                        if (name == 'Height')
                             name = name + ' (cm)'
-                        if(name == 'Weight')
+                        if (name == 'Weight')
                             name = name + ' (kg)'
-                        if(name == 'Age' && days){
-                            let y =  Math.floor(days/360)
-                            let m =  Math.floor((days%360)/30)
-                            let d =  (days%360%30)
-                            value = (y?y+'Y ':'') + (m||y?m+'M ':'') + d+'D'
+                        if (name == 'Age' && days) {
+                            let y = Math.floor(days / 360)
+                            let m = Math.floor((days % 360) / 30)
+                            let d = (days % 360 % 30)
+                            value = (y ? y + 'Y ' : '') + (m || y ? m + 'M ' : '') + d + 'D'
                         }
 
                         return <MetaItem
@@ -108,6 +109,7 @@ export default class MetaView extends React.PureComponent<MetaViewProps, MetaVie
                             onHover={() => this.onHover(name)}
                             onLeave={this.onLeave}
                             onPin={() => this.onPin(name)}
+                            entityCategoricalColor={entityCategoricalColor}
                         />
                     })}
                 </div>
@@ -127,6 +129,7 @@ export interface MetaItemProps {
     onLeave: () => void,
     onPin?: () => void,
     layout: number[],
+    entityCategoricalColor?: (entityName: string | undefined) => string,
 }
 
 export interface MetaItemStates {
@@ -148,11 +151,14 @@ export class MetaItem extends React.PureComponent<MetaItemProps, MetaItemStates>
     }
 
     public render() {
-        const { category, name, value, featureAlias, layout, onHover, onLeave, className } = this.props;
+        const { category, name, value, featureAlias, layout, onHover, onLeave, className, entityCategoricalColor } = this.props;
         const { pinned } = this.state;
 
         return <Row className={'meta-item'} id={`${className}-${name}`}
-            style={{ borderLeftWidth: featureAlias.includes(name) ? 4 : 0, borderLeftColor: defaultCategoricalColor(0) }}
+            style={{
+                borderLeftWidth: featureAlias.includes(name) ? 4 : 0,
+                borderLeftColor: entityCategoricalColor ? entityCategoricalColor(category) : defaultCategoricalColor(0)
+            }}
             onMouseOver={onHover} onMouseOut={onLeave}>
             <Col span={layout[0]} />
             <Col span={layout[1]}>
