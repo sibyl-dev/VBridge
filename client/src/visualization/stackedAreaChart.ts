@@ -32,7 +32,7 @@ export function drawStackedAreaChart(params: {
     const base = getChildOrAppend<SVGGElement, SVGElement>(root, "g", "base")
         .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
-    const nbins = params.nbins || 10;
+    const nbins = params.nbins || 100;
     const startTime = timeScale.domain()[0].getTime();
     const endTime = timeScale.domain()[1].getTime();
     const timeDelta = (endTime - startTime) / nbins;
@@ -49,8 +49,11 @@ export function drawStackedAreaChart(params: {
                 bins[i][binId].accuCount = prevBin.count + prevBin.accuCount;
             })
         }
+        console.log('here, drawStackedAreaChart', bins, events)
         events[i].forEach(event => {
+            console.log('event.timestamp', event)
             const binId = Math.max(0, Math.min(Math.floor((event.timestamp.getTime() - startTime) / timeDelta), nbins-1));
+            console.log('binId', binId, i)
             bins[i][binId].count = bins[i][binId].count + event.count
         })
     }

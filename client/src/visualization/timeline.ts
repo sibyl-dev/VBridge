@@ -121,6 +121,7 @@ export function drawTimeline(params: {
         }
     }
 
+    console.log('bubbleBase', )
     bubbleBase.selectAll(".bubble")
         .data(events)
         .join<SVGRectElement>(enter => {

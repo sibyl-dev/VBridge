@@ -15,7 +15,7 @@ export interface TimelineStyle {
 
 export const defaultTimelineStyle: TimelineStyle = {
     width: 600,
-    height: 45,
+    height: 40,
     color: "#aaa",
     margin: defaultMargin,
 }
@@ -107,7 +107,7 @@ export class TimelineList extends React.Component<TimelineListProps, TimelineLis
         let events = this.props.events;
         if (timeScale) {
             const extent = timeScale.domain();
-            events = events.map(es => es.filter(e => e.timestamp >= extent[0] && e.timestamp <= extent[1]));
+            events = events.map(es => es.filter(e => e.timestamp >= extent[0] && e.timestamp < extent[1]));
         }
         if (node && size && this.props.calculateNewTime) {
             drawTimelineList({
