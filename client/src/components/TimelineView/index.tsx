@@ -63,7 +63,7 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
         let endDate = patientMeta && patientMeta.SurgeryEndTime;
         if (startDate && endDate) {
             console.log('init', startDate, endDate)
-            this.setState({ startDate: new Date(startDate), endDate: new Date(endDate), timeScale: undefined, wholeEvents: undefined }, () => { this.calIntervals(); })
+            this.setState({ startDate: new Date(startDate), endDate: new Date(endDate), timeScale: undefined, wholeEvents: undefined, events:undefined }, () => { this.calIntervals(); })
         }
     }
 
@@ -152,7 +152,10 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
 
 
     }
-    public formulateTime(time: number) {
+    public formulateTime(time: number, type:string) {
+        if(type == 'Day')
+            return time < 10 ? '0' + time : (time>31?30:time)
+
         return time < 10 ? '0' + time : time
     }
 
@@ -183,20 +186,29 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
 
                 if (choseInterval < ONE_HOUR) {
                     modifiedDf = entityWithnewSeries.transformSeries({
-                        Minute: columnValue => this.formulateTime(Math.floor(columnValue / choseInterval) * choseInterval),
+                        Minute: columnValue => this.formulateTime(Math.floor(columnValue / choseInterval) * choseInterval, 'Minute'),
                     });
                     groupName = 'Minute'
                 }
                 else if (choseInterval < 24 * ONE_HOUR) {
                     modifiedDf = entityWithnewSeries.transformSeries({
-                        Hour: columnValue => this.formulateTime(Math.floor(columnValue / (choseInterval / ONE_HOUR)) * (choseInterval / ONE_HOUR)),
+                        Hour: columnValue => this.formulateTime(Math.floor(columnValue / (choseInterval / ONE_HOUR)) * (choseInterval / ONE_HOUR), 'Hour'),
                         Minute: columnValue => '00'
                     });
                     groupName = 'Hour'
                 }
-                else {
+                else if(choseInterval<=15*24*ONE_HOUR){
                     modifiedDf = entityWithnewSeries.transformSeries({
-                        Day: columnValue => this.formulateTime(Math.floor(columnValue / (choseInterval / ONE_HOUR / 24)) * (choseInterval / ONE_HOUR / 24)),
+                        Day: columnValue => this.formulateTime(Math.ceil(columnValue / (choseInterval / ONE_HOUR / 24)) * (choseInterval / ONE_HOUR / 24), 'Day'),
+                        Minute: columnValue => '00',
+                        Hour: columnValue => '00',
+                    });
+                    groupName = 'Day'
+                }
+                else{
+                    modifiedDf = entityWithnewSeries.transformSeries({
+                        Month: columnValue => this.formulateTime(Math.ceil(columnValue / (choseInterval / ONE_HOUR / 24/30)) * (choseInterval/ONE_HOUR/24/30), 'Month'),
+                        Day: columnValue => '01',
                         Minute: columnValue => '00',
                         Hour: columnValue => '00',
                     });
@@ -212,6 +224,9 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
                 // +group.first()['Hour'] + ':' + group.first()['Minute'] + ':00'
                 const e: IEvent[] = groupedEntity.toArray().map(group => ({
                     entityName: name!,
+                    Year: group.first()['Year'] + '-' + group.first()['Month'] + '-' + group.first()['Day'] + ' '
+                        + group.first()['Hour'] + ':' + group.first()['Minute'] + ':00',
+                    choseInterval: choseInterval,
                     timestamp: new Date(group.first()['Year'] + '-' + group.first()['Month'] + '-' + group.first()['Day'] + ' '
                         + group.first()['Hour'] + ':' + group.first()['Minute'] + ':00'),
                     count: group.count()
@@ -253,7 +268,7 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
 
         return (
             <div style={{ height: "100%", width: "100%" }}>
-                {entityCategoricalColor && <div className="category-legend-container">
+                {entityCategoricalColor && <div className="category-legend-container" style={{height:'17px'}}>
                     <div className="legend-block">
                         <div className='legend-rect' style={{ backgroundColor: entityCategoricalColor(undefined) }} />
                         <span className='legend-name'>{"Patient Info & Surgery Info"}</span>

@@ -76,8 +76,9 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
             if (selectedVectors?.length == 0) {
                 alert("No patient in the selection.");
             }
-            else {
-                const selectedMatrix = selectedVectors ? new DataFrame(selectedVectors) : featureMatrix;
+            else if(selectedVectors&&selectedVectors[0]){
+                console.log('selectedVectors', selectedVectors, selectedVectors&&selectedVectors[0]?'true':'false')
+                const selectedMatrix = selectedVectors && selectedVectors[0] ? new DataFrame(selectedVectors) : featureMatrix;
                 const selectedMatWithDesiredOutputs = selectedMatrix.where(row => row['complication'] === 0);
                 const selectedMatWithoutDesiredOutputs = selectedMatrix.where(row => row['complication'] !== 0);
                 if (selectedMatWithDesiredOutputs.count() == 0) alert("No patient in the selection.");

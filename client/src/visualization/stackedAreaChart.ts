@@ -49,8 +49,11 @@ export function drawStackedAreaChart(params: {
                 bins[i][binId].accuCount = prevBin.count + prevBin.accuCount;
             })
         }
+        console.log('here, drawStackedAreaChart', bins, events)
         events[i].forEach(event => {
+            console.log('event.timestamp', event)
             const binId = Math.max(0, Math.min(Math.floor((event.timestamp.getTime() - startTime) / timeDelta), nbins-1));
+            console.log('binId', binId, i)
             bins[i][binId].count = bins[i][binId].count + event.count
         })
     }
