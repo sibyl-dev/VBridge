@@ -110,7 +110,12 @@ export function calIntervalsCommon(
       let size=9
       const ONE_HOUR = 60
       const ONE_MIN = 1
-      const definedIntervalMins = [15*ONE_MIN, 30*ONE_MIN, ONE_HOUR, 2*ONE_HOUR, 4*ONE_HOUR, 6*ONE_HOUR, 12*ONE_HOUR, 24*ONE_HOUR]
+      const ONE_DAY = 60*24
+      const ONE_MONTH = 60*24*30
+      const definedIntervalMins = [15*ONE_MIN, 30*ONE_MIN, ONE_HOUR, 2*ONE_HOUR, 4*ONE_HOUR, 6*ONE_HOUR, 12*ONE_HOUR,
+                                   1*ONE_DAY, 2*ONE_DAY, 3*ONE_DAY, 5*ONE_DAY, 6*ONE_DAY, 10*ONE_DAY, 15*ONE_DAY,
+                                   1*ONE_MONTH, 2*ONE_MONTH, 3*ONE_MONTH]
+
       let mins =  Math.round((endDate.valueOf() - startDate.valueOf())/1000/60)
       let choseInterval = 0
       for(let i=0; i<definedIntervalMins.length; i++){
@@ -125,25 +130,25 @@ export function calIntervalsCommon(
           if(choseInterval)
                   break
       }
-      if(choseInterval==0){ 
-            let days= Math.ceil(mins/60/24)
-            let minRemain = -1
-            let minSize = 0
-            for(size = 9; size<=12; size++){
-                if(days % size > minRemain && minRemain){
-                    minRemain = days%size
-                    minSize = size
-                }
-                if(days % size == 0){
-                    minRemain = days%size
-                    minSize = size
-                }
-            }
-            choseInterval = Math.floor(days/minSize) * 24*60
-            if(choseInterval/60/24 > 15){
-              choseInterval = Math.ceil(days/30/9)*30*24*60
-            }
-        }
+      // if(choseInterval==0){ 
+      //       let days= Math.ceil(mins/60/24)
+      //       let minRemain = -1
+      //       let minSize = 0
+      //       for(size = 9; size<=12; size++){
+      //           if(days % size > minRemain && minRemain){
+      //               minRemain = days%size
+      //               minSize = size
+      //           }
+      //           if(days % size == 0){
+      //               minRemain = days%size
+      //               minSize = size
+      //           }
+      //       }
+      //       choseInterval = Math.floor(days/minSize) * 24*60
+      //       if(choseInterval/60/24 > 15){
+      //         choseInterval = Math.ceil(days/30/9)*30*24*60
+      //       }
+      //   }
         return choseInterval
 
 }
