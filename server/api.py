@@ -370,6 +370,13 @@ def get_what_if_shap_values():
     fm = current_app.fm
     if current_app.subject_idG:
         fm = fm.loc[current_app.subject_idG]
+
+    target_fv = fm.loc[subject_id]
+
+    print('before', len(fm))
+    fm = fm[fm['complication'] == 0]
+    print('after', len(fm))
+
     model_manager = current_app.model_manager
     targets = Modeler.prediction_targets()
     stat = fm.agg(['mean', 'count', 'std']).T
@@ -377,9 +384,10 @@ def get_what_if_shap_values():
     stat['ci95_high'] = stat['mean'] + stat['std'] * 1.96
     # stat['ci95_low'] = stat['mean'] - stat['std']
     # stat['ci95_high'] = stat['mean'] + stat['std']
-    target_fv = fm.loc[subject_id]
+    print('shap_values', stat.loc['in-surgery#MEAN(SURGERY_VITAL_SIGNS.VALUE WHERE ITEMID = SV17)'])
 
     # What-if analysis on out-of-distribution high values
+
     high_features = target_fv[target_fv > stat['ci95_high']].index
     high_features = [f for f in high_features if f not in targets]
     if len(high_features) > 0:
@@ -404,6 +412,7 @@ def get_what_if_shap_values():
         results = model_manager.explain(X=low_fm.T, target=target)
         for i, feature in enumerate(low_features):
             shap_values[feature] = results.loc[i, feature]
+
     return jsonify(shap_values)
 
 

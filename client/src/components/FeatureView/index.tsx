@@ -395,16 +395,20 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
         const { name, alias, value, contribution, children, entityId } = feature;
         const referenceValue = feature.name ? getReferenceValue(feature.name) : undefined;
 
+        // console.log('referenceValue', feature.name, referenceValue, value,)
         let outofRange: 'none' | 'low' | 'high' = 'none';
         let valueColor = '#fff';
-        if (referenceValue && typeof (value) === typeof (0.0) && abnormalityColor) {
+        if (referenceValue && typeof (value) === typeof (0.0)) {
             const { mean, std, ci95 } = referenceValue;
             const rate = Math.abs((value as number - mean) / std);
-            valueColor = abnormalityColor(rate);
+            // valueColor = abnormalityColor!(rate);
             if (value as number > ci95[1])
                 outofRange = 'high'
-            else if (value as number < ci95[0])
+            if (value as number < ci95[0])
                 outofRange = 'low'
+            // i{
+                // console.log('abnoramlity', feature.name, referenceValue , value, typeof(value), value as number < ci95[0]?'true':'false')
+            // }
         }
         let showState: 'normal' | 'focused' | 'unfocused' | 'none' = 'normal';
         if (focusedFeatures.length > 0) {
