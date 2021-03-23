@@ -11,6 +11,14 @@
     /* opacity: 70%; */
 }
 
+/*.ts-card:nth-child(even){
+    background-color: #f9f9f9
+}
+.ts-card{
+    background-color: #f9f9f9
+
+}*/
+
 .reference-line {
     stroke-width: 1px;
     stroke: #3C88E1;
@@ -24,7 +32,7 @@
 .line-seg {
     stroke: #6695ca;
     /* stroke: #aaa; */
-    stroke-width: 1px;
+    stroke-width: 2px;
     opacity: 60%;
 }
 

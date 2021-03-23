@@ -611,12 +611,12 @@ class App extends React.Component<AppProps, AppStates>{
                 <div className="view-title">
                   <span className="view-title-text">Temporal View</span>
                   <Switch onChange={e => this.setState({ dynamicViewLink: e })} />
-                  <Switch onChange={e => this.setState({ dynamicViewAlign: e })} checkedChildren="align" />
+                  {/*<Switch onChange={e => this.setState({ dynamicViewAlign: e })} checkedChildren="align" />*/}
                 </div>
               }>
               {patientMeta && featureMeta && tableRecords && <DynamicView
                 className={"temporal-view-element"}
-                align={this.state.dynamicViewAlign}
+                align={true}
                 patientMeta={patientMeta}
                 featureMeta={featureMeta}
                 tableRecords={tableRecords}

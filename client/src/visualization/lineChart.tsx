@@ -50,6 +50,8 @@ export function drawLineChart(params: LineChartParams) {
     let maxValue = d3.max(values);
     let minValue = d3.min(values);
     // let y = d3.scaleLinear().domain(_extent).range([x0, x1])
+    // let y = yScale || getScaleLinear(0, height-3, undefined, 
+    //     [maxValue, Math.max(minValue, 0)]);
     let y = yScale || getScaleLinear((height-4)/2, (height-4)/2, undefined, 
         [maxValue, Math.max(minValue, 0)]);
     if (referenceValue && referenceValue.ci95 && params.expand) {
@@ -169,7 +171,7 @@ export default class LineChart extends React.PureComponent<LineChartProps> {
     render() {
         const { height, width } = this.props;
         return <div>
-            <svg ref={this.ref} className={"ts-svg"} style={{ width: '100%', height: height }} />
+            <svg ref={this.ref} className={"ts-svg"} style={{ width: width, height: height }} />
         </div>
     }
 }

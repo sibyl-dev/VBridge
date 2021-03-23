@@ -120,7 +120,7 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
                                 referenceValues={referenceValues && referenceValues(signal.tableName)}
                                 key={signal.itemName}
                                 itemDicts={itemDicts}
-                                align={false}
+                                align={true}
                                 xScale={xScale}
                                 width={width}
                                 margin={{ bottom: 20, left: 25, top: 15, right: 25 }}
@@ -253,7 +253,7 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
                 height={expand ? height : 30}
                 width={width}
                 xScale={xScale}
-                margin={expand ? margin : { ...margin, top: 10, bottom: 0}}
+                margin={expand ? margin : { ...margin, top: 0, bottom: 0}}
                 color={color}
                 expand={expand}
                 // yScale={expand ? undefined : getScaleLinear(0, 0, undefined, [-1, 1])}
