@@ -49,15 +49,19 @@ export function drawLineChart(params: LineChartParams) {
 
     let maxValue = d3.max(values);
     let minValue = d3.min(values);
+    // let y = d3.scaleLinear().domain(_extent).range([x0, x1])
+    let y = yScale || getScaleLinear((height-4)/2, (height-4)/2, undefined, 
+        [maxValue, Math.max(minValue, 0)]);
     if (referenceValue && referenceValue.ci95 && params.expand) {
         maxValue = Math.max(maxValue, referenceValue.ci95[1]);
         minValue = Math.min(minValue, referenceValue.ci95[0]);
+        y = yScale || getScaleLinear(3, height-4, undefined, 
+        [maxValue, Math.max(minValue, 0)]);
     }
     // padding
     // const y = yScale || getScaleLinear(0, height, undefined, 
     //     [maxValue+(maxValue-minValue)*0.1, Math.max(minValue-(maxValue-minValue)*0.1, 0)]);
-    const y = yScale || getScaleLinear(3, height-4, undefined, 
-        [maxValue, Math.max(minValue, 0)]);
+    
 
     getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "x-axis-base")
         .attr("transform", `translate(0, ${height})`)
@@ -92,7 +96,10 @@ export function drawLineChart(params: LineChartParams) {
         .attr("y1", d => d[0][1])
         .attr("x2", d => d[1][0])
         .attr("y2", d => d[1][1])
-        .classed("highlight", (d, i) => outofCI ? (outofCI(values[i]) && outofCI(values[i+1])) : false);
+        // .attr('stroke-width', (d, i) => outofCI && (outofCI(values[i]) && outofCI(values[i+1])) ?  '1px' : '0px')
+        .classed("highlight", (d, i) => outofCI ? (outofCI(values[i]) && outofCI(values[i+1])) : false)
+        .classed("dashed", (d, i) => outofCI&&!params.expand ? !(outofCI(values[i]) && outofCI(values[i+1])): false)
+
 
     getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "point-base")
         .selectAll(".point")
