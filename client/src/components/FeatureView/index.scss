@@ -90,6 +90,7 @@
             .feature-contribution {
                 // margin-left: 10px;s
                 display: flex;
+                flex-direction: column;
                 .contribution-svg {
                     width: 100%;
                     height: 100%;
@@ -113,6 +114,22 @@
                     }
                     rect.b-sub-a {
                         fill: #fff;
+                    }
+                }
+                .what-if-content {
+                    font-size: 10px;
+                }
+                .what-if-label {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    .label-circle {
+                        width: 20px;
+                        height: 20px;
+                        border-radius: 10px;
+                        margin-right: 5px;
+                        margin-left: 5px;
+                        background-color: #aaa;
                     }
                 }
             }
@@ -165,6 +182,12 @@
         top: 18px;
         display: none;
     }
+    .feature-button-what-if {
+        position: absolute;
+        right: 0px;
+        top: 48px;
+        display: none;
+    }
 }
 
 .feature-row:hover {
@@ -174,6 +197,11 @@
         display: block;
     }
     .feature-button-table {
+        position: absolute;
+        right: 0px;
+        display: block;
+    }
+    .feature-button-what-if {
         position: absolute;
         right: 0px;
         display: block;
@@ -203,28 +231,6 @@
     float: left;
 }
 
-.category-legend-container {
-    width: 100%;
-    display: flex;
-    flex-wrap: wrap;
-    margin-bottom: 10px;
-    .legend-block {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        .legend-rect {
-            width: 10px;
-            height: 10px;
-            // margin-top: 5px;
-        }
-        .legend-name {
-            font-size: 10px;
-            margin-left: 5px;
-            margin-right: 10px;
-        }
-    }
-}
-
 .abnormality-legend-container {
     width: 100%;
     display: flex;
@@ -252,4 +258,10 @@
     .reference-value-value {
         font-size: 10px;
     }
+}
+
+.feature-view-search {
+    margin-left: 20px;
+    margin-right: 30px;
+    margin-top: 10px;
 }

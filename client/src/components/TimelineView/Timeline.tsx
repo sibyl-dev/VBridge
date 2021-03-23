@@ -108,46 +108,24 @@ export class Timeline extends React.Component<TimelineProps, TimelineStates>{
             const extent = timeScale.domain();
             events = events.filter(e => e.timestamp >= extent[0] && e.timestamp <= extent[1]);
         }
-        if (node) {
-            drawTimeline({
-                events: events,
-                node: node,
-                width: width,
-                height: height,
-                margin: margin,
-                color: color,
-                timeScale: timeScale,
-                onBrush: this.onSelectEvents,
-                selectedX: this.selectedX,
-                onMouseOver: this.onMouseOver,
-                onMouseLeave: this.onMouseLeave,
-                size:0,
-            });
-        }
+        // if (node) {
+        //     drawTimeline({
+        //         events: events,
+        //         node: node,
+        //         width: width,
+        //         height: height,
+        //         margin: margin,
+        //         color: color,
+        //         timeScale: timeScale,
+        //         onBrush: this.onSelectEvents,
+        //         selectedX: this.selectedX,
+        //         onMouseOver: this.onMouseOver,
+        //         onMouseLeave: this.onMouseLeave,
+        //         size:0,
+        //     });
+        // }
         this.shouldPaint = false;
     }
-
-    // private paint() {
-    //     const { events, timeScale } = this.props;
-    //     const style = { ...defaultTimelineStyle, ...this.props.timelineStyle };
-    //     const { width, height, color } = style;
-    //     const margin = getMargin(style.margin);
-
-    //     const node = this.ref.current;
-    //     if (node) {
-    //         drawTimeline2({
-    //             events: events,
-    //             svg: node,
-    //             width: width,
-    //             height: height,
-    //             margin: margin,
-    //             color: color,
-    //             timeScale: timeScale,
-    //             trackHeight: 10,
-    //             trackMarginBottom: 2
-    //         })
-    //     }
-    // }
 
     public render() {
         const { className, title, timeScale } = this.props;

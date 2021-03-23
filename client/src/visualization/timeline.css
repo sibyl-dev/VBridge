@@ -1,10 +1,16 @@
 .axis-line {
-    stroke: #aaa;
+    stroke: #eee;
     stroke-width: 1px;
+}
+
+.meta-event-axis {
+    stroke: #eee;
+    stroke-width: 2px;
 }
 
 .bubble {
     opacity: 50%;
+    stroke-width: 1px;
 }
 
 .left-time-annotation,
@@ -23,4 +29,9 @@
     stroke: #aaa;
     stroke-width: 1px;
     transition: all 0.5s ease;
+}
+
+.timeline-cell {
+    stroke-width: 1px;
+    stroke: #eee;
 }

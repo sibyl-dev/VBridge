@@ -6,30 +6,34 @@ import { Button, Divider, Tooltip, Input } from "antd"
 import { getFeatureMatrix, getFeatureValues, getSHAPValues, getWhatIfSHAPValues } from "router/api";
 import { DataFrame, IDataFrame } from "data-forge";
 import * as _ from "lodash"
-import { getScaleLinear, beautifulPrinter } from "visualization/common";
+import { getScaleLinear, beautifulPrinter, defaultCategoricalColor } from "visualization/common";
 import {
     ArrowDownOutlined, ArrowUpOutlined, CaretRightOutlined, LineChartOutlined,
+    QuestionCircleFilled,
+    QuestionOutlined,
     SortAscendingOutlined, TableOutlined
 } from "@ant-design/icons"
 import { ItemDict } from "data/table";
 import Histogram from "visualization/Histogram";
-import { arrayShallowCompare, getReferenceValue, ReferenceValue } from "data/common";
+import { arrayShallowCompare, getReferenceValue, isDefined, ReferenceValue } from "data/common";
 
 import "./index.scss"
+import Search from "antd/lib/input/Search";
 
 export interface FeatureViewProps {
     className?: string,
     patientMeta?: PatientMeta,
     tableNames?: string[],
     featureMeta: IDataFrame<number, FeatureMeta>,
-    predictionTargets: string[],
+    prediction: number,
     groupIds?: number[],
     itemDicts?: ItemDict,
     entityCategoricalColor?: (entityName: string | undefined) => string,
     abnormalityColor?: (abnoramlity: number) => string,
     focusedFeatures: string[],
     display?: 'normal' | 'dense',
-    inspectFeature?: (feature: Feature) => void,
+    inspectFeatureInSignal?: (feature: Feature) => void,
+    inspectFeatureInTable?: (feature: Feature) => void,
     target: string,
 }
 
@@ -107,7 +111,6 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
 
     private async updateFeatures() {
         let { patientMeta, featureMeta, itemDicts, target } = this.props
-        console.log('updateFeatures', target)
         const subject_id = patientMeta?.subjectId;
         if (subject_id !== undefined) {
             const featureValues = await getFeatureValues({ subject_id });
@@ -130,9 +133,11 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                 const sample = group.first();
                 const itemName = sample.whereItem![1] as string;
                 const itemLabel = itemDicts && sample.entityId && itemDicts(sample.entityId, itemName)?.LABEL_CN;
+                const entityId = _.uniq(group.getSeries('entityId').toArray().filter(isDefined)).length > 1 ? undefined : sample.entityId;
                 return {
                     ...sample,
                     name: 'g-' + _.reduce(group.getSeries('name').toArray(), (a, b) => `${a}-${b}`),
+                    entityId: entityId,
                     alias: itemLabel || itemName,
                     value: undefined,
                     primitive: undefined,
@@ -145,8 +150,10 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
             // level-3: group-by period
             const features = new DataFrame(L2Features.groupBy(row => row.type).toArray().map(group => {
                 const sample = group.first();
+                const entityId = _.uniq(group.getSeries('entityId').toArray().filter(isDefined)).length > 1 ? undefined : sample.entityId;
                 return {
                     ...sample,
+                    entityId: entityId,
                     name: 'g-' + _.reduce(group.getSeries('name').toArray(), (a, b) => `${a}-${b}`),
                     alias: sample.type,
                     value: undefined,
@@ -171,7 +178,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
     }
 
     public render() {
-        const { predictionTargets, target, tableNames, entityCategoricalColor, abnormalityColor, ...rest } = this.props;
+        const { target, tableNames, entityCategoricalColor, abnormalityColor, ...rest } = this.props;
         const { features, featureMatrix, selectedMatrix, selectedMatWithDesiredOutputs, selectedMatWithoutDesiredOutputs } = this.state;
 
         return (
@@ -200,12 +207,15 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                         <span className="legend-anno">Abnormal</span>
                     </div>}
                 </div> */}
+                <div className="feature-view-search">
+                    <Search enterButton/>
+                </div>
                 <Divider />
                 {features && <FeatureList
                     {...rest}
                     features={features}
                     cellWidth={this.defaultCellWidth}
-                    selectedMatrix={selectedMatrix}
+                    // selectedMatrix={selectedMatrix}
                     selectedMatWithDesiredOutputs={selectedMatWithDesiredOutputs}
                     selectedMatWithoutDesiredOutputs={selectedMatWithoutDesiredOutputs}
                     getReferenceValue={this.getReferenceValues}
@@ -220,6 +230,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
 export interface FeatureListProps {
     className?: string,
     features: IDataFrame<number, Feature>,
+    prediction: number,
     cellWidth: (id: number) => number,
     entityCategoricalColor?: (entityName: string | undefined) => string,
     abnormalityColor?: (abnoramlity: number) => string,
@@ -230,7 +241,8 @@ export interface FeatureListProps {
     focusedFeatures: string[],
     display?: 'normal' | 'dense',
 
-    inspectFeature?: (feature: Feature) => void,
+    inspectFeatureInSignal?: (feature: Feature) => void,
+    inspectFeatureInTable?: (feature: Feature) => void,
 }
 
 export interface FeatureListStates {
@@ -307,6 +319,7 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
                         <span>Contribution</span>
                         {order === 'dscending' ? <ArrowDownOutlined onClick={this.onClick.bind(this, 'ascending')} />
                             : <ArrowUpOutlined onClick={this.onClick.bind(this, 'dscending')} />}
+                        {/* <Filter /> */}
                     </div>
                 </div>
                 <div className="feature-content">
@@ -330,6 +343,7 @@ export interface FeatureBlockProps {
     className?: string,
     depth: number,
     feature: Feature,
+    prediction: number,
     selectedMatrix?: IDataFrame<number, any>,
     selectedMatWithDesiredOutputs?: IDataFrame<number, any>,
     selectedMatWithoutDesiredOutputs?: IDataFrame<number, any>,
@@ -341,11 +355,13 @@ export interface FeatureBlockProps {
     focusedFeatures: string[],
     display?: 'normal' | 'dense',
 
-    inspectFeature?: (feature: Feature) => void,
+    inspectFeatureInSignal?: (feature: Feature) => void,
+    inspectFeatureInTable?: (feature: Feature) => void,
 }
 export interface FeatureBlockStates {
     collapsed: boolean,
-    showDistibution: boolean
+    showDistibution: boolean,
+    showWhatIf: boolean,
 }
 
 export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBlockStates> {
@@ -353,7 +369,8 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
         super(props);
         this.state = {
             collapsed: true,
-            showDistibution: false
+            showDistibution: false,
+            showWhatIf: false
         }
 
         this.onClickButton = this.onClickButton.bind(this);
@@ -388,27 +405,31 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
     }
 
     render() {
-        const { feature, x, cellWidth, entityCategoricalColor, abnormalityColor, inspectFeature,
+        const { feature, x, cellWidth, entityCategoricalColor, abnormalityColor, inspectFeatureInSignal, inspectFeatureInTable,
             className, depth, selectedMatWithDesiredOutputs, selectedMatWithoutDesiredOutputs,
-            focusedFeatures, getReferenceValue, display } = this.props;
-        const { collapsed, showDistibution } = this.state
+            focusedFeatures, getReferenceValue, display, prediction } = this.props;
+        const { collapsed, showDistibution, showWhatIf } = this.state
         const { name, alias, value, contribution, children, entityId } = feature;
         const referenceValue = feature.name ? getReferenceValue(feature.name) : undefined;
 
         // console.log('referenceValue', feature.name, referenceValue, value,)
         let outofRange: 'none' | 'low' | 'high' = 'none';
+        let whatIfValue = undefined;
         let valueColor = '#fff';
         if (referenceValue && typeof (value) === typeof (0.0)) {
             const { mean, std, ci95 } = referenceValue;
             const rate = Math.abs((value as number - mean) / std);
-            // valueColor = abnormalityColor!(rate);
-            if (value as number > ci95[1])
+            if (value as number > ci95[1]) {
                 outofRange = 'high'
-            if (value as number < ci95[0])
+                whatIfValue = ci95[1]
+            }
+            else if (value as number < ci95[0]) {
                 outofRange = 'low'
-            // i{
-                // console.log('abnoramlity', feature.name, referenceValue , value, typeof(value), value as number < ci95[0]?'true':'false')
-            // }
+                whatIfValue = ci95[0]
+            }
+            if (abnormalityColor) {
+                valueColor = abnormalityColor(rate);
+            }
         }
         let showState: 'normal' | 'focused' | 'unfocused' | 'none' = 'normal';
         if (focusedFeatures.length > 0) {
@@ -455,18 +476,19 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                             </div>
                         </Tooltip>
                         <div className={"feature-block-cell" + (isLeaf ? " feature-value" : "")}
-                            style={{ width: showDistibution ? cellWidth(1) + 20 : cellWidth(1), backgroundColor: valueColor }}>
+                            style={{ width: showDistibution ? cellWidth(1) + 40 : cellWidth(1), backgroundColor: valueColor }}>
                             {showDistibution ? <Histogram
                                 // allData={selectedMatrix?.getSeries(name).toArray() as number[]}
                                 data={[selectedMatWithDesiredOutputs?.getSeries(name!).toArray(),
                                 selectedMatWithoutDesiredOutputs?.getSeries(name!).toArray()] as number[][]}
                                 // data={selectedMatWithDesiredOutputs?.getSeries(name).toArray() as number[]}
                                 height={70}
-                                width={cellWidth(1) + 20}
+                                width={cellWidth(1) + 40}
                                 drawLeftAxis={false}
                                 drawBottomAxis={true}
                                 margin={{ left: 10, bottom: 15 }}
                                 referenceValue={value as number}
+                                whatIfValue={showWhatIf ? whatIfValue : undefined}
                                 mode="side-by-side"
                             /> : <Tooltip title={typeof (value) == typeof (0.0) ? beautifulPrinter(value) : value}>
                                 <span className={"feature-block-cell-text"}>
@@ -476,59 +498,38 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                                 </span>
                             </Tooltip>}
                         </div>
-                        <div className={"feature-block-cell feature-contribution"} style={{ width: cellWidth(2) }}>
-                            {SHAPContributions({ feature, x, height: 16, rectStyle: { opacity: !collapsed ? 0.3 : undefined } })}
+                        <div className={"feature-block-cell feature-contribution"} style={{ width: cellWidth(2) }}
+                        // onClick={() => this.setState({ showWhatIf: !showWhatIf })}
+                        >
+                            <div>
+                                {SHAPContributions({ feature, x, showWhatIf, height: 16, rectStyle: { opacity: !collapsed ? 0.3 : undefined } })}
+                            </div>
+                            {showWhatIf && <div className={"what-if-content"}>
+                                <span> {beautifulPrinter(value)} to {beautifulPrinter(whatIfValue)}</span>
+                            </div>}
+                            {/* <div className={"what-if-label"}>
+                                <div className={"label-circle"} style={{backgroundColor: defaultCategoricalColor(Math.round(prediction))}}/>
+                                <div className={"label-circle"} />
+                            </div> */}
                         </div>
                     </div>
-                    {/* {showDistibution && name && <div> */}
-                    {/* <div className="reference-value" style={{ width: cellWidth(0) }}>
-                            {referenceValue && <span className="reference-value-title">Reference Range:</span>}
-                            {referenceValue && <span className="reference-value-value">{`${beautifulPrinter(referenceValue.ci95[0])} 
-                            - ${beautifulPrinter(referenceValue.ci95[1])}`}</span>}
-                        </div> */}
-                    {/* {(typeof (value) === typeof (0.0)) &&
-                            <div className="feature-block-hist">
-                                <Histogram
-                                    // allData={selectedMatrix?.getSeries(name).toArray() as number[]}
-                                    data={[selectedMatWithDesiredOutputs?.getSeries(name).toArray(),
-                                    selectedMatWithoutDesiredOutputs?.getSeries(name).toArray()] as number[][]}
-                                    // data={selectedMatWithDesiredOutputs?.getSeries(name).toArray() as number[]}
-                                    height={60}
-                                    width={cellWidth(1) + 40}
-                                    drawLeftAxis={false}
-                                    drawBottomAxis={true}
-                                    margin={{ left: 10, bottom: 15 }}
-                                    referenceValue={value as number}
-                                    mode="side-by-side"
-                                /> */}
-                    {/* <Histogram
-                                    // allData={selectedMatrix?.getSeries(name).toArray() as number[]}
-                                    // data={[selectedMatWithDesiredOutputs?.getSeries(name).toArray(),
-                                    // selectedMatWithoutDesiredOutputs?.getSeries(name).toArray()] as number[][]}
-                                    data={selectedMatWithDesiredOutputs?.getSeries(name).toArray() as number[]}
-                                    height={60}
-                                    width={cellWidth(1) + 40}
-                                    drawLeftAxis={false}
-                                    drawBottomAxis={false}
-                                    margin={{ left: 10, bottom: 15 }}
-                                    referenceValue={value as number}
-                                    mode="side-by-side"
-                                /> */}
-                    {/* </div>} */}
-                    {/* </div>} */}
                 </div>
                 <span className={`feature-block-annote ${showState}`} style={{
                     backgroundColor: entityCategoricalColor && entityCategoricalColor(entityId),
                     height: heigth
                 }} />
                 <Button size="small" type="primary" shape="circle"
-                    icon={<LineChartOutlined />} onClick={() => inspectFeature && inspectFeature(feature)}
+                    icon={<LineChartOutlined />} onClick={() => inspectFeatureInSignal && inspectFeatureInSignal(feature)}
                     className={"feature-button-linechart"}
                 />
                 <Button size="small" type="primary" shape="circle"
-                    icon={<TableOutlined />} onClick={() => inspectFeature && inspectFeature(feature)}
+                    icon={<TableOutlined />} onClick={() => inspectFeatureInTable && inspectFeatureInTable(feature)}
                     className={"feature-button-table"}
                 />
+                {showDistibution && isLeaf && outofRange !== 'none' && <Button size="small" type="primary" shape="circle"
+                    icon={<QuestionOutlined />} onClick={() => this.setState({ showWhatIf: !showWhatIf })}
+                    className={"feature-button-what-if"}
+                />}
 
             </div>
 
@@ -546,17 +547,18 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
 const SHAPContributions = (params: {
     feature: Feature,
     x: d3.ScaleLinear<number, number>,
+    showWhatIf: boolean,
     height: number,
     rectStyle?: React.CSSProperties
 }) => {
-    const { feature, x, height, rectStyle } = params;
+    const { feature, x, height, rectStyle, showWhatIf } = params;
     const cont = feature.contribution;
     const whatifcont = feature.contributionIfNormal;
     const posSegValue = _.range(0, 3).fill(0);
     const negSegValue = _.range(0, 3).fill(0);
     if (cont > 0) posSegValue[0] = cont;
     else negSegValue[0] = -cont;
-    if (whatifcont !== undefined) {
+    if (whatifcont !== undefined && showWhatIf) {
         // positive common segments: a & b
         posSegValue[0] = (cont >= 0 && whatifcont >= 0) ? Math.min(cont, whatifcont) : 0;
         // positive differences: a - b
@@ -571,7 +573,7 @@ const SHAPContributions = (params: {
         // negative differences: b - a
         negSegValue[2] = (whatifcont < 0) ? Math.max(0, (-whatifcont) - Math.max(0, (-cont))) : 0;
     }
-    return <svg className={"contribution-svg"}>
+    return <svg className={"contribution-svg"} height={height}>
         {negSegValue[0] > 0 && <rect className="neg-feature a-and-b" style={rectStyle}
             width={x(negSegValue[0]) - x(0)} height={height} transform={`translate(${x(-negSegValue[0])}, 0)`} />}
         {negSegValue[1] > 0 && <rect className="neg-feature a-sub-b" style={rectStyle}

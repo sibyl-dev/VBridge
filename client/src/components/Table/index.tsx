@@ -6,21 +6,24 @@ import './index.css'
 import { Entity, getColumnWidth } from "data/table";
 
 export interface PureTableProps {
-    dataFrame: dataForge.DataFrame<number, any>,
+    dataFrame: dataForge.IDataFrame<number, any>,
+    // dataFrame: any[][],
     className?: string,
     drawIndex?: boolean,
     rowWidth?: number | (number | ((params: Index) => number)),
     rowHeight?: number,
 }
 
-export interface PureTableStates {}
+export interface PureTableStates {
+    columnNames: string[];
+}
 
 export default class PureTable extends React.Component<PureTableProps, PureTableStates>{
-    private _cache: CellMeasurerCache
+    private _cache: CellMeasurerCache;
     constructor(props: PureTableProps) {
         super(props);
 
-        this.state = {}
+        this.state = { columnNames: props.dataFrame.getColumnNames() }
 
         this._cache = new CellMeasurerCache({
             defaultWidth: 120,
@@ -31,6 +34,11 @@ export default class PureTable extends React.Component<PureTableProps, PureTable
         this._cellRenderer = this._cellRenderer.bind(this);
         this._headerRenderer = this._headerRenderer.bind(this);
         this._contentRenderer = this._contentRenderer.bind(this);
+    }
+
+    componentDidUpdate(prevProps: PureTableProps) {
+        if (prevProps.dataFrame != this.props.dataFrame)
+            this.setState({ columnNames: this.props.dataFrame.getColumnNames() });
     }
 
     private _cellRenderer(cellProps: GridCellProps) {
@@ -63,15 +71,16 @@ export default class PureTable extends React.Component<PureTableProps, PureTable
             style={style}
             ref={registerChild as ((instance: HTMLDivElement | null) => void)}
         >
-            {dataFrame.getColumns().at(columnIndex)?.name}
+            {this.state.columnNames[columnIndex]}
         </div>
     }
 
     private _contentRenderer(cellProps: GridCellProps,
         registerChild?: (instance: HTMLDivElement | null) => void) {
         const { key, style } = cellProps;
-        const { dataFrame: dataFrame, drawIndex } = this.props;
+        const { dataFrame, drawIndex } = this.props;
         const columnIndex = cellProps.columnIndex + (drawIndex ? 0 : 1);
+        const columnName = this.state.columnNames[columnIndex]
         const rowIndex = cellProps.rowIndex - 1;
         return <div
             className={`cell cell-content row-${rowIndex} col-${columnIndex}`}
@@ -79,7 +88,7 @@ export default class PureTable extends React.Component<PureTableProps, PureTable
             style={style}
             ref={registerChild as ((instance: HTMLDivElement | null) => void)}
         >
-            {dataFrame.getColumns().at(columnIndex)?.series.at(rowIndex)}
+            {dataFrame.at(rowIndex)[columnName]}
         </div>
     }
 
@@ -95,7 +104,7 @@ export default class PureTable extends React.Component<PureTableProps, PureTable
                             height={height}
                             width={width}
                             rowHeight={rowHeight || this._cache.rowHeight}
-                            rowCount={entity.count()+1}
+                            rowCount={entity.count() + 1}
                             columnCount={columnCount}
                             columnWidth={columnWidth || this._cache.columnWidth}
                             cellRenderer={this._cellRenderer}

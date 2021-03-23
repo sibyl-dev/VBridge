@@ -27,31 +27,31 @@ export interface IPanelState {
 }
 
 export default class Panel extends React.Component<IPanelProps, IPanelState> {
-  static getDerivedStateFromProps(
-    nextProps: IPanelProps,
-    prevState: IPanelState
-  ) {
-    const newState: Partial<IPanelState> = {};
-    let flag = false;
-    if (nextProps.x && nextProps.x !== prevState.x) {
-      newState.x = nextProps.x;
-      flag = true;
-    }
-    if (nextProps.width && nextProps.width !== prevState.width) {
-      newState.width = nextProps.width;
-      flag = true;
-    }
-    if (nextProps.y && nextProps.y !== prevState.y) {
-      newState.y = nextProps.y;
-      flag = true;
-    }
-    if (nextProps.height && nextProps.height !== prevState.height) {
-      newState.height = nextProps.height;
-      flag = true;
-    }
-    if (flag) return newState;
-    return null;
-  }
+  // static getDerivedStateFromProps(
+  //   nextProps: IPanelProps,
+  //   prevState: IPanelState
+  // ) {
+  //   const newState: Partial<IPanelState> = {};
+  //   let flag = false;
+  //   if (nextProps.x && nextProps.x !== prevState.x) {
+  //     newState.x = nextProps.x;
+  //     flag = true;
+  //   }
+  //   if (nextProps.width && nextProps.width !== prevState.width) {
+  //     newState.width = nextProps.width;
+  //     flag = true;
+  //   }
+  //   if (nextProps.y && nextProps.y !== prevState.y) {
+  //     newState.y = nextProps.y;
+  //     flag = true;
+  //   }
+  //   if (nextProps.height && nextProps.height !== prevState.height) {
+  //     newState.height = nextProps.height;
+  //     flag = true;
+  //   }
+  //   if (flag) return newState;
+  //   return null;
+  // }
 
   static defaultProps = {
     initialWidth: 800,

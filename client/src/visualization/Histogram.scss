@@ -52,6 +52,15 @@
             stroke-width: 2px;
             stroke: red;
         }
+        line.reference-line-whatif {
+            stroke-width: 2px;
+            stroke: rgb(131, 218, 230);
+        }
+        text.reference-text {
+            font-size: 10px;
+            stroke: black;
+            display: none;
+        }
         path.area {
             opacity: 0.5;
         }

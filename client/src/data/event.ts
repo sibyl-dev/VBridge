@@ -2,9 +2,22 @@ import * as d3 from "d3";
 import { DataFrame } from "data-forge";
 import { Entity } from "./table";
 
+export type MetaEvent = {
+    name: string,
+    timestamp: Date,
+}
+
 export type IEvent = {
     entityName: string,
     timestamp: Date,
+    count: number
+}
+
+export interface IEventBin {
+    entityName: string,
+    binId: number,
+    binStartTime: Date,
+    binEndTime: Date,
     count: number
 }
 

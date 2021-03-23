@@ -35,6 +35,7 @@ export interface DynamicViewProps {
     tableRecords: Entity<number, any>[],
     signalMetas: SignalMeta[],
     align?: boolean,
+    width: number,
     color?: (entityName: string) => string,
     updateFocusedFeatures?: (featureNames: string[]) => void,
     updatePinnedFocusedFeatures?: (featureNames: string[]) => void,
@@ -103,11 +104,11 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
     }
 
     public render() {
-        const { patientMeta, itemDicts, color, updateFocusedFeatures, removeSignal, className, referenceValues, align } = this.props;
+        const { patientMeta, itemDicts, color, updateFocusedFeatures, removeSignal, className, referenceValues, align, width } = this.props;
         const { signalGroups, globalStartTime, globalEndTime } = this.state;
-        const width = 720;
+        const margin = { bottom: 20, left: 25, top: 15, right: 25 };
         const xScale = (align && globalStartTime && globalEndTime) ?
-            getScaleTime(0, width, undefined, [globalStartTime, globalEndTime]) : undefined;
+            getScaleTime(0, width-margin.left-margin.right, undefined, [globalStartTime, globalEndTime]) : undefined;
         return (
             <div>
                 <div>
@@ -123,7 +124,7 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
                                 align={true}
                                 xScale={xScale}
                                 width={width}
-                                margin={{ bottom: 20, left: 25, top: 15, right: 25 }}
+                                margin={margin}
                                 color={color && color(signal.tableName)}
                                 // onHover={updateFocusedFeatures && (() => updateFocusedFeatures(signal.relatedFeatureNames))}
                                 // onLeave={updateFocusedFeatures && (() => updateFocusedFeatures([]))}
@@ -237,7 +238,9 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
             style={{ borderLeftColor: color || '#aaa', borderLeftWidth: 4 }}
             onMouseOver={onHover} onMouseOut={onLeave}>
             <div className={"ts-title-float"} style={{ width: width }}>
-                <span className={"ts-title-float-text"}>{`${itemLabel || itemName} (${timeDeltaPrinter(startTime, endTime)})`}</span>
+                {/* <span className={"ts-title-float-text"}>{`${itemLabel || itemName} (${timeDeltaPrinter(startTime, endTime)})`}</span> */}
+            <span className={"ts-title-float-text"}>{`${itemLabel || itemName}`}</span>
+
                 <Button size="small" type="primary" shape="circle" icon={<PushpinOutlined />} className={"ts-title-button"}
                     style={{ display: pinned ? 'block' : undefined }} onClick={this.onPin}
                 />

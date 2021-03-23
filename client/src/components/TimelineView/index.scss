@@ -1,6 +1,6 @@
 .timeline-view-content {
     /*height: calc(100% - 83px);*/
-    height: 120px;
+    height: calc(100% - 15px);
     overflow: scroll;
 }
 
@@ -39,10 +39,13 @@
     align-items: center;
     /*padding-top:21px;*/
     line-height: 14px;
+    border-left-width: 4px;
+    border: 0px #eee solid;
+    border-top-width: 1px;
 }
 
 .timeline-content {
-    width: calc(100% - 80px);
+    width: calc(100% - 90px);
     /* float: left; */
     position: absolute;
     left: 80px;
@@ -72,4 +75,29 @@ rect.selection {
 .detail-button {
     height: 20px;
     font-size: 10px;
+}
+
+.category-legend-container {
+    width: 100%;
+    display: flex;
+    // flex-wrap: wrap;
+    // justify-content: space-around;
+    margin-bottom: 10px;
+    margin-right: 20px;
+    margin-left: 20px;
+    .legend-block {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        .legend-rect {
+            width: 10px;
+            height: 10px;
+            // margin-top: 5px;
+        }
+        .legend-name {
+            font-size: 10px;
+            margin-left: 5px;
+            margin-right: 10px;
+        }
+    }
 }

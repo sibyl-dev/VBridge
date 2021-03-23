@@ -5,59 +5,88 @@ import { Select, Table } from "antd"
 import Panel from "../Panel"
 import PureTable from "../Table"
 import { getPatientRecords } from "../../router/api"
-import { Entity } from "data/table";
+import { Entity, ItemDict } from "data/table";
 import { PatientMeta } from "data/patient";
 import { groupEvents } from "data/event";
 import { FeatureMeta } from "data/feature";
 
-const { Option } = Select
+import './index.css'
+
+export interface TableMeta {
+    tableName: string,
+    startTime: Date,
+    endTime: Date,
+    itemList: string[],
+}
 
 export interface TableViewProps {
     patientMeta?: PatientMeta,
     featureMeta: dataForge.IDataFrame<number, FeatureMeta>,
-    tableNames: string[]
+    tableNames: string[],
+    tableRecords: Entity<number, any>[]
+    tableMeta: TableMeta,
+    itemDicts?: ItemDict,
 }
 
 export interface TableViewStates {
-    tableRecords?: Entity<number, any>
+    tableRecord?: dataForge.IDataFrame<number, any>;
+    // tableRecord?: any[][],
 }
 
 export default class TableView extends React.Component<TableViewProps, TableViewStates> {
 
     constructor(props: TableViewProps) {
         super(props);
-        this.state = {}
-        this.loadPatientRecords = this.loadPatientRecords.bind(this);
+        this.state = {};
+
+        this.updateData = this.updateData.bind(this);
+    }
+
+    componentDidMount() {
+        this.updateData();
     }
 
     componentDidUpdate(prevProps: TableViewProps) {
-        if (prevProps.patientMeta?.subjectId !== this.props.patientMeta?.subjectId) {
-            this.setState({tableRecords: undefined});
+        const { tableMeta } = this.props;
+        if (prevProps.tableMeta !== tableMeta) {
+            this.updateData();
         }
     }
 
-    private async loadPatientRecords(tableName: string) {
-        const { patientMeta } = this.props;
-        if (patientMeta === undefined) return;
-        const records = await getPatientRecords({ table_name: tableName, subject_id: patientMeta.subjectId });
-        this.setState({ tableRecords: records });
+    private updateData() {
+        const { tableMeta, tableRecords, itemDicts } = this.props;
+        const { tableName, startTime, endTime, itemList } = tableMeta;
+        const table = tableRecords?.find(e => e.name === tableName);
+
+        if (table) {
+            const { time_index, item_index } = table.metaInfo!;
+            let tableRecord = table.where(d => new Date(d[time_index!]) <= endTime
+                && new Date(d[time_index!]) >= startTime
+                && itemList.includes(d[item_index!])).resetIndex();
+            console.log(tableMeta, tableRecord.toArray());
+            if (itemDicts) {
+                tableRecord = tableRecord.select(row => {
+                    const newRow = { ...row };
+                    newRow[item_index!] = itemDicts(tableName, row[item_index!])?.LABEL
+                    return newRow
+                })
+                console.log(tableRecord.toArray());
+            }
+            // this.setState({ tableRecord: tableRecord.toArray() })
+            this.setState({ tableRecord})
+        }
     }
 
     public render() {
         const { tableNames } = this.props;
-        const { tableRecords } = this.state;
+        const { tableRecord } = this.state;
 
-        return (
-            <div style={{height: "100%", width: "100%"}}>
-                <Select style={{ width: 240 }} onChange={this.loadPatientRecords}>
-                    {tableNames.map((name, i) => (<Option value={name} key={i}>{name}</Option>))}
-                </Select>
-                {tableRecords && <PureTable
-                    dataFrame={tableRecords}
+        return <div style={{ height: "100%", width: "100%" }}>
+            {tableRecord && <PureTable
+                    dataFrame={tableRecord}
+                    // dataFrame={this.props.tableRecords[0]}
                     drawIndex={false}
                 />}
-
-            </div>
-        )
+        </div>
     }
 }
