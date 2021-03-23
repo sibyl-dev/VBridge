@@ -7,7 +7,7 @@ import './App.css';
 
 import FeatureView from "./components/FeatureView"
 import MetaView from "./components/MetaView"
-import TableView from "./components/TableView"
+import TableView, { TableMeta } from "./components/TableView"
 import TimelineView from "./components/TimelineView"
 
 import DynamicView, { SignalMeta } from "./components/DynamicView"
@@ -29,6 +29,7 @@ import _, { isUndefined } from 'lodash';
 import { distinct, isDefined, ReferenceValue, ReferenceValueDict } from 'data/common';
 
 import { defaultCategoricalColor, getChildOrAppend, getOffsetById, getScaleLinear } from 'visualization/common';
+import { CloseOutlined } from '@material-ui/icons';
 
 
 const { Header, Content } = Layout;
@@ -50,6 +51,10 @@ interface AppStates {
   patientMeta?: PatientMeta,
   patientInfoMeta?: { [key: string]: any },
   predictions?: (target: string) => number,
+
+  //for table view
+  tableViewMeta?: TableMeta,
+  showTableView: boolean,
 
   //for view communication
   signalMetas: SignalMeta[],
@@ -83,7 +88,7 @@ class App extends React.Component<AppProps, AppStates>{
     super(props);
     this.state = {
       signalMetas: [], pinnedSignalMetas: [], conditions: { '': '' },
-      focusedFeatures: [], pinnedfocusedFeatures: [],
+      focusedFeatures: [], pinnedfocusedFeatures: [], showTableView: false,
       featureViewDense: false, dynamicViewLink: false, dynamicViewAlign: false
     };
 
@@ -102,6 +107,9 @@ class App extends React.Component<AppProps, AppStates>{
     this.updateSignalsByFeature = this.updateSignalsByFeature.bind(this);
     this.pinSignal = this.pinSignal.bind(this);
     this.removeSignal = this.removeSignal.bind(this);
+
+    this.updateTableView = this.updateTableView.bind(this);
+    this.updateTableViewFromFeatures = this.updateTableViewFromFeatures.bind(this);
 
     // Call-backs to update the Feature View
     this.updateFocusedFeatures = this.updateFocusedFeatures.bind(this);
@@ -126,6 +134,7 @@ class App extends React.Component<AppProps, AppStates>{
     const { patientMeta, dynamicViewLink, tableNames, patientGroup } = this.state;
     if (prevState.patientMeta?.subjectId !== patientMeta?.subjectId) {
       this.loadPredictions();
+      this.setState({ pinnedSignalMetas: [] });
     }
     if (prevState.dynamicViewLink !== dynamicViewLink) {
       if (dynamicViewLink) {
@@ -364,6 +373,35 @@ class App extends React.Component<AppProps, AppStates>{
     this.setState({ pinnedfocusedFeatures: newfeatures });
   }
 
+  private updateTableView(tableName: string, startTime: Date, endTime: Date, itemList: string[]) {
+    const tableViewMeta: TableMeta = { tableName, startTime, endTime, itemList };
+    this.setState({ tableViewMeta, showTableView: true });
+  }
+
+  private updateTableViewFromFeatures(feature: Feature) {
+    const { period, entityId } = feature;
+    const { patientMeta } = this.state;
+    // feature groups with multiple entities are not supported
+    const getItemList = (feature: Feature) => {
+      const item = feature.whereItem.length > 1 ? feature.whereItem[1] : undefined;
+      let items = item ? [item] : [];
+      if (feature.children)
+        for (const child of feature.children) {
+          items = items.concat(getItemList(child));
+        }
+      return items
+    }
+    if (patientMeta && entityId) {
+      const { SurgeryBeginTime, SurgeryEndTime } = patientMeta;
+      const startTime = (period === 'in-surgery') ? SurgeryBeginTime :
+        new Date(SurgeryBeginTime.getTime() - 1000 * 60 * 60 * 24 * 2);
+      const endTime = (period === 'in-surgery') ? SurgeryEndTime : SurgeryBeginTime;
+      const tableName = entityId;
+      const items = getItemList(feature);
+      this.updateTableView(tableName, startTime, endTime, items);
+    }
+  }
+
   private showDrawer = () => {
     const visible = true
     this.setState({ visible })
@@ -496,8 +534,8 @@ class App extends React.Component<AppProps, AppStates>{
 
   public render() {
 
-    const { subjectIds, patientMeta, tableNames, tableRecords, featureMeta, predictionTargets,
-      focusedFeatures, pinnedfocusedFeatures, target: selected, selectedsubjectId, predictions,
+    const { subjectIds, patientMeta, tableNames, tableRecords, featureMeta, predictionTargets, showTableView,
+      focusedFeatures, pinnedfocusedFeatures, target: selected, selectedsubjectId, predictions, tableViewMeta,
       itemDicts, signalMetas, patientInfoMeta, filterRange, visible, patientGroup, referenceValues } = this.state;
     const layout = this.layout;
 
@@ -507,7 +545,7 @@ class App extends React.Component<AppProps, AppStates>{
         <Layout>
           <Header className="app-header" id="header">
             <Row>
-              <Col span={2} className='system-name'>Bridges</Col>
+              <Col span={2} className='system-name'>VBridge</Col>
               <Col span={8} />
               <Col span={2} className='header-name'> Patient: </Col>
               <Col span={4} className='header-content'>
@@ -550,7 +588,7 @@ class App extends React.Component<AppProps, AppStates>{
           </Header>
           <Content>
             <Panel initialWidth={layout.featureViewWidth}
-              initialHeight={window.innerHeight - layout.headerHeight} x={0} y={0}
+              initialHeight={window.innerHeight - layout.headerHeight - 5} x={5} y={5}
               title={<div className="view-title">
                 <span className="view-title-text">Feature View</span>
                 <div className="widget">
@@ -570,32 +608,34 @@ class App extends React.Component<AppProps, AppStates>{
                 entityCategoricalColor={this.entityCategoricalColor}
                 // abnormalityColor={this.abnormalityColor}
                 focusedFeatures={[...pinnedfocusedFeatures, ...focusedFeatures]}
-                inspectFeature={this.updateSignalsByFeature}
+                inspectFeatureInSignal={this.updateSignalsByFeature}
+                inspectFeatureInTable={this.updateTableViewFromFeatures}
                 display={this.state.featureViewDense ? 'dense' : 'normal'}
                 target={selected}
               />}
             </Panel>
             {/* <Panel initialWidth={layout.timelineViewWidth} initialHeight={layout.timelineViewHeight}
              */}
-            <Panel initialWidth={window.innerWidth - layout.featureViewWidth - layout.ProfileWidth - 10}
+            <Panel initialWidth={window.innerWidth - layout.featureViewWidth - layout.ProfileWidth - 20}
               initialHeight={layout.timelineViewHeight}
-              x={layout.featureViewWidth + 5} y={0}
+              x={layout.featureViewWidth + 10} y={5}
               title={<div className="view-title">
                 <span className="view-title-text">Timeline View</span>
               </div>}>
-              {featureMeta && tableNames && <TimelineView
+              {featureMeta && tableNames && tableRecords && <TimelineView
                 tableNames={tableNames}
                 patientMeta={patientMeta}
                 featureMeta={featureMeta}
                 tableRecords={tableRecords}
+                width={window.innerWidth - layout.featureViewWidth - layout.ProfileWidth - 100}
                 onSelectEvents={this.updateSignalFromTimeline}
                 entityCategoricalColor={this.entityCategoricalColor}
               />}
             </Panel>
 
-            <Panel initialWidth={window.innerWidth - layout.featureViewWidth - layout.ProfileWidth - 10}
-              initialHeight={window.innerHeight - layout.headerHeight - layout.timelineViewHeight - 5}
-              x={layout.featureViewWidth + 5} y={265} 
+            <Panel initialWidth={window.innerWidth - layout.featureViewWidth - layout.ProfileWidth - 20}
+              initialHeight={window.innerHeight - layout.headerHeight - layout.timelineViewHeight - 10}
+              x={layout.featureViewWidth + 10} y={270}
               title={
                 <div className="view-title">
                   <span className="view-title-text">Temporal View</span>
@@ -614,6 +654,7 @@ class App extends React.Component<AppProps, AppStates>{
                 featureMeta={featureMeta}
                 tableRecords={tableRecords}
                 signalMetas={signalMetas}
+                width={window.innerWidth - layout.featureViewWidth - layout.ProfileWidth - 60}
                 itemDicts={itemDicts}
                 color={this.entityCategoricalColor}
                 updateFocusedFeatures={this.updateFocusedFeatures}
@@ -623,8 +664,8 @@ class App extends React.Component<AppProps, AppStates>{
                 referenceValues={referenceValues}
               />}
             </Panel>
-            <Panel initialWidth={layout.ProfileWidth} initialHeight={window.innerHeight - layout.headerHeight}
-              x={window.innerWidth - layout.ProfileWidth} y={0} 
+            <Panel initialWidth={layout.ProfileWidth} initialHeight={window.innerHeight - layout.headerHeight - 5}
+              x={window.innerWidth - layout.ProfileWidth - 5} y={5}
               title={<div className="view-title">
                 <span className="view-title-text">Profile</span>
               </div>}>
@@ -640,14 +681,25 @@ class App extends React.Component<AppProps, AppStates>{
               />
               }
             </Panel>
-            <svg className="app-link-svg" ref={this.ref} style={{ height: window.innerHeight - layout.headerHeight }} />
-            {/* {tableNames && <Panel initialWidth={400} initialHeight={435} x={1010} y={405}>
-              <TableView
+            {showTableView && tableNames && featureMeta && <Panel initialWidth={400} initialHeight={435} x={1010} y={405}
+              title={<div className="view-title">
+                <span className="view-title-text">{tableViewMeta?.tableName}</span>
+                <div className="widget">
+                  <Button icon={<CloseOutlined />} type="link" onClick={()=>this.setState({showTableView: false})}/>
+                </div>
+              </div>}>
+              {tableViewMeta && tableRecords && <TableView
+                featureMeta={featureMeta}
                 patientMeta={patientMeta}
                 tableNames={tableNames}
-              />
+                itemDicts={itemDicts}
+                // tableRecord={tableRecords ? tableRecords[0] : undefined}
+                tableMeta={tableViewMeta}
+                tableRecords={tableRecords}
+              />}
             </Panel>
-            }*/}
+            }
+            <svg className="app-link-svg" ref={this.ref} style={{ height: window.innerHeight - layout.headerHeight }} />
             {tableNames &&
               <Drawer maskClosable={false} title="Filter View" placement="right" closable={false}
                 onClose={this.onClose} visible={visible} width={450} >

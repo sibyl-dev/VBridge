@@ -15,9 +15,10 @@ import {
 } from "@ant-design/icons"
 import { ItemDict } from "data/table";
 import Histogram from "visualization/Histogram";
-import { arrayShallowCompare, getReferenceValue, ReferenceValue } from "data/common";
+import { arrayShallowCompare, getReferenceValue, isDefined, ReferenceValue } from "data/common";
 
 import "./index.scss"
+import Search from "antd/lib/input/Search";
 
 export interface FeatureViewProps {
     className?: string,
@@ -31,7 +32,8 @@ export interface FeatureViewProps {
     abnormalityColor?: (abnoramlity: number) => string,
     focusedFeatures: string[],
     display?: 'normal' | 'dense',
-    inspectFeature?: (feature: Feature) => void,
+    inspectFeatureInSignal?: (feature: Feature) => void,
+    inspectFeatureInTable?: (feature: Feature) => void,
     target: string,
 }
 
@@ -78,8 +80,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
             if (selectedVectors?.length == 0) {
                 alert("No patient in the selection.");
             }
-            else if(selectedVectors&&selectedVectors[0]){
-                console.log('selectedVectors', selectedVectors, selectedVectors&&selectedVectors[0]?'true':'false')
+            else if (selectedVectors && selectedVectors[0]) {
                 const selectedMatrix = selectedVectors && selectedVectors[0] ? new DataFrame(selectedVectors) : featureMatrix;
                 const selectedMatWithDesiredOutputs = selectedMatrix.where(row => row['complication'] === 0);
                 const selectedMatWithoutDesiredOutputs = selectedMatrix.where(row => row['complication'] !== 0);
@@ -109,7 +110,6 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
 
     private async updateFeatures() {
         let { patientMeta, featureMeta, itemDicts, target } = this.props
-        console.log('updateFeatures', target)
         const subject_id = patientMeta?.subjectId;
         if (subject_id !== undefined) {
             const featureValues = await getFeatureValues({ subject_id });
@@ -132,9 +132,11 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                 const sample = group.first();
                 const itemName = sample.whereItem![1] as string;
                 const itemLabel = itemDicts && sample.entityId && itemDicts(sample.entityId, itemName)?.LABEL_CN;
+                const entityId = _.uniq(group.getSeries('entityId').toArray().filter(isDefined)).length > 1 ? undefined : sample.entityId;
                 return {
                     ...sample,
                     name: 'g-' + _.reduce(group.getSeries('name').toArray(), (a, b) => `${a}-${b}`),
+                    entityId: entityId,
                     alias: itemLabel || itemName,
                     value: undefined,
                     primitive: undefined,
@@ -147,8 +149,10 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
             // level-3: group-by period
             const features = new DataFrame(L2Features.groupBy(row => row.type).toArray().map(group => {
                 const sample = group.first();
+                const entityId = _.uniq(group.getSeries('entityId').toArray().filter(isDefined)).length > 1 ? undefined : sample.entityId;
                 return {
                     ...sample,
+                    entityId: entityId,
                     name: 'g-' + _.reduce(group.getSeries('name').toArray(), (a, b) => `${a}-${b}`),
                     alias: sample.type,
                     value: undefined,
@@ -202,12 +206,15 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                         <span className="legend-anno">Abnormal</span>
                     </div>}
                 </div> */}
+                <div className="feature-view-search">
+                    <Search enterButton/>
+                </div>
                 <Divider />
                 {features && <FeatureList
                     {...rest}
                     features={features}
                     cellWidth={this.defaultCellWidth}
-                    selectedMatrix={selectedMatrix}
+                    // selectedMatrix={selectedMatrix}
                     selectedMatWithDesiredOutputs={selectedMatWithDesiredOutputs}
                     selectedMatWithoutDesiredOutputs={selectedMatWithoutDesiredOutputs}
                     getReferenceValue={this.getReferenceValues}
@@ -233,7 +240,8 @@ export interface FeatureListProps {
     focusedFeatures: string[],
     display?: 'normal' | 'dense',
 
-    inspectFeature?: (feature: Feature) => void,
+    inspectFeatureInSignal?: (feature: Feature) => void,
+    inspectFeatureInTable?: (feature: Feature) => void,
 }
 
 export interface FeatureListStates {
@@ -310,6 +318,7 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
                         <span>Contribution</span>
                         {order === 'dscending' ? <ArrowDownOutlined onClick={this.onClick.bind(this, 'ascending')} />
                             : <ArrowUpOutlined onClick={this.onClick.bind(this, 'dscending')} />}
+                        {/* <Filter /> */}
                     </div>
                 </div>
                 <div className="feature-content">
@@ -345,7 +354,8 @@ export interface FeatureBlockProps {
     focusedFeatures: string[],
     display?: 'normal' | 'dense',
 
-    inspectFeature?: (feature: Feature) => void,
+    inspectFeatureInSignal?: (feature: Feature) => void,
+    inspectFeatureInTable?: (feature: Feature) => void,
 }
 export interface FeatureBlockStates {
     collapsed: boolean,
@@ -394,7 +404,7 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
     }
 
     render() {
-        const { feature, x, cellWidth, entityCategoricalColor, abnormalityColor, inspectFeature,
+        const { feature, x, cellWidth, entityCategoricalColor, abnormalityColor, inspectFeatureInSignal, inspectFeatureInTable,
             className, depth, selectedMatWithDesiredOutputs, selectedMatWithoutDesiredOutputs,
             focusedFeatures, getReferenceValue, display, prediction } = this.props;
         const { collapsed, showDistibution, showWhatIf } = this.state
@@ -508,11 +518,11 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                     height: heigth
                 }} />
                 <Button size="small" type="primary" shape="circle"
-                    icon={<LineChartOutlined />} onClick={() => inspectFeature && inspectFeature(feature)}
+                    icon={<LineChartOutlined />} onClick={() => inspectFeatureInSignal && inspectFeatureInSignal(feature)}
                     className={"feature-button-linechart"}
                 />
                 <Button size="small" type="primary" shape="circle"
-                    icon={<TableOutlined />} onClick={() => inspectFeature && inspectFeature(feature)}
+                    icon={<TableOutlined />} onClick={() => inspectFeatureInTable && inspectFeatureInTable(feature)}
                     className={"feature-button-table"}
                 />
                 {showDistibution && isLeaf && outofRange !== 'none' && <Button size="small" type="primary" shape="circle"

@@ -1,5 +1,5 @@
 import { DataFrame } from "data-forge"
-import { DataFrameConfigFn, IDataFrameConfig } from "data-forge/build/lib/dataframe";
+import { DataFrameConfigFn, IDataFrame, IDataFrameConfig } from "data-forge/build/lib/dataframe";
 import { Index } from "react-virtualized";
 
 // export type columnType = 'numerical' | 'categorical' | 'timestamp';
@@ -54,7 +54,7 @@ export class Entity<IndexT, ValueT> extends DataFrame<IndexT, ValueT> {
     }
 }
 
-export function getColumnWidth(dataFrame: DataFrame, includeIndex?: boolean,
+export function getColumnWidth(dataFrame: IDataFrame, includeIndex?: boolean,
     maxWidth?: number, minWidth?: number) {
     return ((params: Index) => {
         let columnIndex = params.index;

@@ -362,24 +362,24 @@ export function drawGroupedHistogram(param: {
         .y1(d => d.y + d.height)
         .curve(d3.curveMonotoneX);
 
-    // const gs = current.selectAll<SVGGElement, BarLayout[]>("path.area")
-    //     .data(bins)
-    //     .join(enter => {
-    //         return enter
-    //             .append("path")
-    //             .attr("class", "area");
-    //     })
-    //     .attr("fill", (d, i) => color(i))
-    //     .attr("d", d => area(d));
-
-    const gs = current.selectAll<SVGGElement, BarLayout[]>("g.groups")
+    const gs = current.selectAll<SVGGElement, BarLayout[]>("path.area")
         .data(bins)
-        .join<SVGGElement>(enter => {
+        .join(enter => {
             return enter
-                .append("g")
-                .attr("class", "groups");
+                .append("path")
+                .attr("class", "area");
         })
-        .attr("fill", (d, i) => color(i));
+        .attr("fill", (d, i) => color(i))
+        .attr("d", d => area(d));
+
+    // const gs = current.selectAll<SVGGElement, BarLayout[]>("g.groups")
+    //     .data(bins)
+    //     .join<SVGGElement>(enter => {
+    //         return enter
+    //             .append("g")
+    //             .attr("class", "groups");
+    //     })
+    //     .attr("fill", (d, i) => color(i));
 
     const merged = gs
         .selectAll("rect.bar")
@@ -427,7 +427,7 @@ export function drawGroupedHistogram(param: {
     xScale && getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "x-axis-base")
         .attr("transform", `translate(0, ${yRange[1]})`)
         .attr("display", drawBottomAxis ? 'block' : 'none')
-        .call(d3.axisBottom(xScale).ticks(4));
+        .call(d3.axisBottom(xScale).ticks(8));
 
     // Render the shades for highlighting selected regions
     if (rangeSelector === 'bin-wise') {

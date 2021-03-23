@@ -1,10 +1,11 @@
 import * as _ from "lodash"
 import { Button } from "antd";
-import { IEvent } from "data/event";
+import { IEvent, IEventBin, MetaEvent } from "data/event";
 import React from "react";
 import { defaultMargin, getMargin, IMargin, MarginType } from "visualization/common";
 import { drawTimeline } from "visualization/timeline";
 import { drawTimelineList } from "visualization/timeline3";
+import { color } from "echarts";
 
 export interface TimelineStyle {
     width: number,
@@ -23,13 +24,14 @@ export const defaultTimelineStyle: TimelineStyle = {
 export interface TimelineListProps {
     className?: string,
     titles: (string | undefined)[],
-    events: IEvent[][],
+    events: IEventBin[][],
+    metaEvents?: MetaEvent[],
     timeScale?: d3.ScaleTime<number, number>,
     timelineStyle: Partial<TimelineStyle>,
     onSelectEvents?: (id: number, startDate: Date, endDate: Date) => void,
     color: (id: number) => string,
     margin: IMargin,
-    size: number,
+    // size: number,
     calculateNewTime?: (time: Date) => Date|undefined,
 }
 
@@ -80,7 +82,7 @@ export class TimelineList extends React.Component<TimelineListProps, TimelineLis
     private onSelectEvents(id: number, startDate: Date, endDate: Date, update: boolean) {
         const { onSelectEvents } = this.props;
         this.selectedX[id] = [startDate, endDate];
-        console.log('here onSelectEvents', startDate, endDate)
+        // console.log('here onSelectEvents', startDate, endDate)
         onSelectEvents && update && onSelectEvents(id, startDate, endDate);
     }
 
@@ -99,18 +101,18 @@ export class TimelineList extends React.Component<TimelineListProps, TimelineLis
     }
 
     private paint() {
-        const { timeScale, color, size } = this.props;
+        const { timeScale, color, metaEvents } = this.props;
         const style = { ...defaultTimelineStyle, ...this.props.timelineStyle };
         const { width, height, margin } = style;
-        // console.log('TimelineList paint', style.margin, defaultTimelineStyle, this.props.timelineStyle )
         const node = this.ref.current;
         let events = this.props.events;
-        if (timeScale) {
-            const extent = timeScale.domain();
-            events = events.map(es => es.filter(e => e.timestamp >= extent[0] && e.timestamp < extent[1]));
-        }
-        if (node && size && this.props.calculateNewTime) {
+        // if (timeScale) {
+        //     const extent = timeScale.domain();
+        //     events = events.map(es => es.filter(e => e.timestamp >= extent[0] && e.timestamp < extent[1]));
+        // }
+        if (node) {
             drawTimelineList({
+                metaEvents: metaEvents,
                 events: events,
                 node: node,
                 width: width,
@@ -120,10 +122,9 @@ export class TimelineList extends React.Component<TimelineListProps, TimelineLis
                 color: color,
                 timeScale: timeScale,
                 onBrush: this.onSelectEvents,
-                selectedX: this.selectedX,
+                // selectedX: this.selectedX,
                 onMouseOver: this.onMouseOver,
                 onMouseLeave: this.onMouseLeave,
-                size: size,
                 calculateNewTime: this.props.calculateNewTime,
             });
         }
@@ -131,7 +132,7 @@ export class TimelineList extends React.Component<TimelineListProps, TimelineLis
     }
 
     public render() {
-        const { className, titles, timeScale, margin, events } = this.props;
+        const { className, titles, timeScale, margin, events, color } = this.props;
         const { showButton, buttonRow } = this.state;
         const style = { ...defaultTimelineStyle, ...this.props.timelineStyle };
         const buttonXPos = (buttonRow !== undefined) && timeScale && (timeScale(this.selectedX[buttonRow]![1]) + margin.left + 40);
@@ -140,7 +141,8 @@ export class TimelineList extends React.Component<TimelineListProps, TimelineLis
 
         return <div className={"timeline-list" + (className ? ` ${className}` : "")}>
             <div className={"timeline-title-list"}>
-                {titles?.map(title => <div className={"timeline-title"} style={{ height: style.height }} key={title}>{title}</div>)}
+                {titles?.map((title, i) => <div className={"timeline-title"} 
+                style={{ height: style.height, borderLeftColor: color(i), borderLeftWidth: 4 }} key={title}>{title}</div>)}
             </div>
             <div className={"timeline-content"}>
                 {buttonXPos && buttonYPos && <Button style={{

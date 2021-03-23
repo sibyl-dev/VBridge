@@ -71,10 +71,10 @@ def get_available_ids():
     subjects_ids = fm.index
 
     df = es["SURGERY_INFO"].df
-    subjects_ids1 = df[(df['cardiac complication'] == 1) & (df['SUBJECT_ID'].isin(subjects_ids))][
-                        "SUBJECT_ID"].values[:30].tolist()
+    subjects_ids1 = df[(df['complication'] == 1) & (df['SUBJECT_ID'].isin(subjects_ids))][
+                        "SUBJECT_ID"].values[:30].tolist() + [12332, 10515, 4632, 10363]
 
-    return jsonify(subjects_ids1)
+    return jsonify([5856, 11300, 12332, 10515, 4632, 10363])
 
 
 @api.route('/individual_records', methods=['GET'])
