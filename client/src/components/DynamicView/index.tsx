@@ -228,8 +228,10 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
             { ...defaultTimeSeriesStyle, ...this.props };
         const { expand, pinned } = this.state;
         const { tableName, itemName, data, startTime, endTime } = signal;
+
         const itemLabel = itemDicts && itemDicts(tableName, itemName)?.LABEL_CN;
-        // console.log(data.values.toArray());
+
+        console.log('DynamicView', margin, height);
 
         return <div className={"ts-card"} id={`${className}-${signal.itemName}`}
             style={{ borderLeftColor: color || '#aaa', borderLeftWidth: 4 }}
@@ -251,8 +253,9 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
                 height={expand ? height : 30}
                 width={width}
                 xScale={xScale}
-                margin={expand ? margin : { ...margin, top: 12, bottom: 2 }}
+                margin={expand ? margin : { ...margin, top: 10, bottom: 0}}
                 color={color}
+                expand={expand}
                 // yScale={expand ? undefined : getScaleLinear(0, 0, undefined, [-1, 1])}
                 drawXAxis={expand}
                 drawYAxis={expand}

@@ -24,15 +24,19 @@
 .line-seg {
     stroke: #6695ca;
     /* stroke: #aaa; */
-    stroke-width: 2px;
+    stroke-width: 1px;
     opacity: 60%;
 }
 
 .highlight.line-seg {
     /* stroke: #e13caa; */
     stroke: #e13c60;
+    /*stroke-width: 2px;*/
+
 }
 
 .highlight.point {
-    fill: #e13c60a1;
+    fill: #fff;
+    stroke: #e13c60a1;;
+
 }

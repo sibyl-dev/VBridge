@@ -14,6 +14,7 @@ export interface LineChartOptions {
     xScale?: d3.ScaleTime<number, number>,
     yScale?: d3.ScaleLinear<number, number>,
     color?: string,
+    expand?: boolean,
 
     drawXAxis?: boolean,
     drawYAxis?: boolean,
@@ -34,7 +35,11 @@ export function drawLineChart(params: LineChartParams) {
     const values = data.values.toArray();
     const root = d3.select(svg);
     const margin = getMargin(params.margin || {});
+
     const height = params.height - margin.top - margin.bottom;
+
+    console.log('drawLineChart', margin, height)
+
     const width = params.width - margin.left - margin.right;
 
     const base = getChildOrAppend<SVGGElement, SVGElement>(root, "g", "base")
@@ -44,13 +49,15 @@ export function drawLineChart(params: LineChartParams) {
 
     let maxValue = d3.max(values);
     let minValue = d3.min(values);
-    if (referenceValue && referenceValue.ci95) {
+    if (referenceValue && referenceValue.ci95 && params.expand) {
         maxValue = Math.max(maxValue, referenceValue.ci95[1]);
         minValue = Math.min(minValue, referenceValue.ci95[0]);
     }
     // padding
-    const y = yScale || getScaleLinear(0, height, undefined, 
-        [maxValue+(maxValue-minValue)*0.1, Math.max(minValue-(maxValue-minValue)*0.1, 0)]);
+    // const y = yScale || getScaleLinear(0, height, undefined, 
+    //     [maxValue+(maxValue-minValue)*0.1, Math.max(minValue-(maxValue-minValue)*0.1, 0)]);
+    const y = yScale || getScaleLinear(3, height-4, undefined, 
+        [maxValue, Math.max(minValue, 0)]);
 
     getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "x-axis-base")
         .attr("transform", `translate(0, ${height})`)
@@ -103,6 +110,7 @@ export function drawLineChart(params: LineChartParams) {
         .attr("r", 3)
         .classed("highlight", (d, i) => outofCI ? outofCI(values[i]) : false);
 
+
     if (referenceValue) {
         getChildOrAppend<SVGLineElement, SVGGElement>(base, "line", "reference-line")
             .attr("x1", 0)
@@ -154,7 +162,7 @@ export default class LineChart extends React.PureComponent<LineChartProps> {
     render() {
         const { height, width } = this.props;
         return <div>
-            <svg ref={this.ref} className={"ts-svg"} style={{ width: width, height: height }} />
+            <svg ref={this.ref} className={"ts-svg"} style={{ width: '100%', height: height }} />
         </div>
     }
 }

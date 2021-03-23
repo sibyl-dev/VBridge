@@ -142,7 +142,7 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
         const { tmpConditions } = this.state
         const subjectIdGFilter = await getPatientGroup({ filterConditions: tmpConditions ? tmpConditions : { '': '' }, subject_id: 0, setSubjectIdG: false })
         const distributionFilter: number[] = Object.assign([], subjectIdGFilter.labelCounts)
-        const allPatientNumber: number = subjectIdGFilter.labelCounts.length
+        const allPatientNumber: number = subjectIdGFilter.ids.length
         this.setState({ distributionFilter, allPatientNumber }, () => { console.log(this.state.distributionFilter) })
     }
 

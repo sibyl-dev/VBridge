@@ -187,6 +187,7 @@ class App extends React.Component<AppProps, AppStates>{
   }
 
   public async selectPatientId(subjectId: number) {
+    // subjectId=11300
     const selectedsubjectId = subjectId
     const patientMeta = await getPatientMeta({ subject_id: subjectId });
     const patientInfoMeta = await getPatientInfoMeta({ subject_id: subjectId });
@@ -498,17 +499,56 @@ class App extends React.Component<AppProps, AppStates>{
 
         <Layout>
           <Header className="app-header" id="header">
+
             <Row>
-              <Col span={2} className='system-name'>Bridges</Col>
-              <Col span={8} />
-              <Col span={2} className='header-name'> Patient: </Col>
-              <Col span={4} className='header-content'>
-                <Select style={{ width: 170, marginRight: '20px' }} onChange={this.selectPatientId} className="patient-selector">
-                  {subjectIds && subjectIds.map((id, i) =>
-                    <Option value={id} key={i}>{id}</Option>
-                  )}
-                </Select>
+              <Col span={2} className='system-name'>VBridge</Col>
+              <Col span={5} />
+              <Col span={6} > 
+                <Row>
+                  <Col span={6} className='header-name'>Patient: </Col>
+                  <Col span={18} className='header-content'>
+                    <Select style={{ width: 170}} onChange={this.selectPatientId} className="patient-selector">
+                      {subjectIds && subjectIds.map((id, i) =>
+                        <Option value={id} key={i}>{id}</Option>
+                      )}
+                    </Select>
+                  </Col>
+                </Row>
+                <Row>
+                    <Col span={6} className='header-name'>Predictions: </Col>
+                    <Col span={18} className='header-content'>
+                      {predictionTargets && predictionTargets.filter(t => t !== 'complication').map((name, i) =>
+                        <Tooltip title={name} placement="top" key={name}>
+                          <div className={'prediction-icon' + (selected && name === selected ? " selected" : "") +
+                            ((predictions && predictions(name) > 0.5000) ? " active" : " inactive")}
+                            onClick={() => this.setState({ target: name })}>
+                            <span>{name.toUpperCase()[0]} </span>
+                          </div>
+                        </Tooltip>
+                      )}
+                    </Col>
+                </Row>
               </Col>
+              <Col span={2} />
+              <Col span={5} >
+                <Row>
+                  <Col span={16} className='header-name'> #Comparative Group: </Col>
+                  <Col span={8} className='header-content'>
+                    <span className="header-name"> {patientGroup && patientGroup.ids ? patientGroup.ids.length : 0} </span>
+                    <Tooltip title="Filter">
+                      <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={this.showDrawer} style={{ zIndex: 1 }} />
+                    </Tooltip>
+                  </Col>
+                </Row>
+                <Row>
+                  <Col span={16} className='header-name'> #Healthy Group: </Col>
+                  <Col span={8} className='header-content'>
+                    {patientGroup ? patientGroup.labelCounts[5] : 0}
+                  </Col>
+                </Row>
+              </Col>
+              <Col span={2} />
+            {/*
               <Col span={4} className='header-name'> #Comparative Group: </Col>
               <Col span={2} className='header-content'>
                 <span className="header-name"> {patientGroup && patientGroup.ids ? patientGroup.ids.length : 0} </span>
@@ -520,23 +560,13 @@ class App extends React.Component<AppProps, AppStates>{
             </Row>
             <Row>
               <Col span={10} />
-              <Col span={2} className='header-name'>Predictions: </Col>
-              <Col span={4} className='header-content'>
-                {predictionTargets && predictionTargets.filter(t => t !== 'complication').map((name, i) =>
-                  <Tooltip title={name} placement="top" key={name}>
-                    <div className={'prediction-icon' + (selected && name === selected ? " selected" : "") +
-                      ((predictions && predictions(name) > 0.5000) ? " active" : " inactive")}
-                      onClick={() => this.setState({ target: name })}>
-                      <span>{name.toUpperCase()[0]} </span>
-                    </div>
-                  </Tooltip>
-                )}
-              </Col>
+              
               <Col span={4} className='header-name'> #Healthy Group: </Col>
               <Col span={2} className='header-content'>
                 {patientGroup ? patientGroup.labelCounts[5] : 0}
               </Col>
               <Col span={2} />
+              */}
             </Row>
           </Header>
           <Content>
