@@ -256,7 +256,7 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
                 height={expand ? height : 30}
                 width={width}
                 xScale={xScale}
-                margin={expand ? margin : { ...margin, top: 0, bottom: 0}}
+                margin={expand ? margin : { ...margin, top: 4, bottom: 0}}
                 color={color}
                 expand={expand}
                 // yScale={expand ? undefined : getScaleLinear(0, 0, undefined, [-1, 1])}

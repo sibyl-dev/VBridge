@@ -69,8 +69,8 @@ def get_available_ids():
     es = current_app.es
     fm = current_app.fm
     df = es["SURGERY_INFO"].df
-
-    subjects_ids = fm.index
+    subjects_ids = current_app.subject_idG
+    # subjects_ids = fm.index
 
 
     # count the abnormality
@@ -97,7 +97,7 @@ def get_available_ids():
 
     # tmp_fm = tmp_fm.sort_values(by=['abnormalityCount'], ascending = False)  
     # subjects_ids1 = tmp_fm.index.values[:30].tolist()  
-    
+
     df = es["SURGERY_INFO"].df
     subjects_ids1 = df[(df['complication'] == 1) & (df['SUBJECT_ID'].isin(subjects_ids))][
                         "SUBJECT_ID"].values[:30].tolist() + [12332, 10515, 4632, 10363]
