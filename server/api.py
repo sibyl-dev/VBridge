@@ -102,7 +102,9 @@ def get_available_ids():
     subjects_ids1 = df[(df['complication'] == 1) & (df['SUBJECT_ID'].isin(subjects_ids))][
                         "SUBJECT_ID"].values[:30].tolist() + [12332, 10515, 4632, 10363]
 
-    return jsonify([5856, 11300, 12332, 10515, 4632, 10363])
+    # return jsonify([5856, 11300, 12332, 10515, 4632, 10363])
+    # return jsonify([5856, 11300, 6754, 8276, 9217, 11743, 13286])
+    return jsonify([5856, 11300, 5281, 5392, 10007, 10398, 10515, 12332])
 
 
 @api.route('/individual_records', methods=['GET'])
@@ -333,19 +335,31 @@ def get_feature_meta():
         else:
             info['period'] = 'others'
 
+        # if info['period'] == 'in-surgery':
+        #     feature_type = 'In-surgery Observations'
+        # elif info['period'] == 'pre-surgery':
+        #     if info['entityId'] == 'PRESCRIPTIONS':
+        #         feature_type = 'Pre-surgery Treatments'
+        #     else:
+        #         feature_type = 'Pre-surgery Observations'
+        # else:
+        #     if f.get_name() in ['Height', 'Weight', 'Age',
+        #                         'ADMISSIONS.ICD10_CODE_CN', 'ADMISSIONS.PATIENTS.GENDER']:
+        #         feature_type = 'Patient Information'
+        #     else:
+        #         feature_type = 'Surgery Information'
+
         if info['period'] == 'in-surgery':
-            feature_type = 'In-surgery Observations'
+            feature_type = 'In-surgery'
         elif info['period'] == 'pre-surgery':
-            if info['entityId'] == 'PRESCRIPTIONS':
-                feature_type = 'Pre-surgery Treatments'
-            else:
-                feature_type = 'Pre-surgery Observations'
+            feature_type = 'Pre-surgery'
         else:
             if f.get_name() in ['Height', 'Weight', 'Age',
                                 'ADMISSIONS.ICD10_CODE_CN', 'ADMISSIONS.PATIENTS.GENDER']:
-                feature_type = 'Patient Information'
+                feature_type = 'Pre-surgery'
             else:
-                feature_type = 'Surgery Information'
+                feature_type = 'In-surgery'
+
         info['type'] = feature_type
         feature_meta.append(info)
     return jsonify(feature_meta)
