@@ -8,8 +8,9 @@ export interface FeatureMeta {
     columnName: string
     whereItem: [string, string] | [],
     period: 'in-surgery' | 'pre-surgery',
-    type: 'Surgery Observations' | 'Pre-surgery Observations' | 'Pre-surgery Treatments' 
-    | 'In-surgery Information' | 'Patient Information'
+    // type: 'Surgery Observations' | 'Pre-surgery Observations' | 'Pre-surgery Treatments' 
+    // | 'In-surgery Information' | 'Patient Information'
+    type: 'Pre-surgery' | 'In-surgery'
 }
 
 export interface Feature extends FeatureMeta {

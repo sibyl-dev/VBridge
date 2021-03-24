@@ -15,7 +15,7 @@
     float: left;
     font-size: 40px;
     display: flex;
-    justify-content: center; 
+    justify-content: center;
     align-items: center;
 }
 
@@ -96,6 +96,7 @@
     /* color: #ff4e78; */
     background-color: #7fa5ec;
 }
+
 .prediction-icon.selected.active {
     /*border: #ff4e78 2px solid;*/
     /* color: #ff4e78; */
@@ -153,9 +154,9 @@
 
 .between-view-link {
     stroke: #fff;
-    stroke-width: 1px;
+    stroke-width: 2px;
     fill: none;
-    opacity: 0.4;
+    opacity: 0.8;
 }
 
 .between-view-dot {

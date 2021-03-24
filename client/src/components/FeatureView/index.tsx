@@ -2,13 +2,13 @@ import { Feature, FeatureMeta } from "data/feature";
 import { PatientMeta } from "data/patient";
 import * as React from "react";
 import * as d3 from "d3";
-import { Button, Divider, Tooltip, Input } from "antd"
+import { Button, Divider, Tooltip, Input, Popover, Slider } from "antd"
 import { getFeatureMatrix, getFeatureValues, getSHAPValues, getWhatIfSHAPValues } from "router/api";
 import { DataFrame, IDataFrame } from "data-forge";
 import * as _ from "lodash"
 import { getScaleLinear, beautifulPrinter, defaultCategoricalColor } from "visualization/common";
 import {
-    ArrowDownOutlined, ArrowUpOutlined, CaretRightOutlined, LineChartOutlined,
+    ArrowDownOutlined, ArrowUpOutlined, CaretRightOutlined, FilterOutlined, LineChartOutlined,
     QuestionCircleFilled,
     QuestionOutlined,
     SortAscendingOutlined, TableOutlined
@@ -40,6 +40,7 @@ export interface FeatureViewProps {
 export interface FeatureViewStates {
     featureDisplayValues?: DataFrame,
     features?: IDataFrame<number, Feature>,
+    shapValues?: number[],
     featureMatrix?: IDataFrame<number, any>,
     selectedMatrix?: IDataFrame<number, any>,
     selectedMatWithDesiredOutputs?: IDataFrame<number, any>,
@@ -80,8 +81,8 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
             if (selectedVectors?.length == 0) {
                 alert("No patient in the selection.");
             }
-            else if(selectedVectors&&!selectedVectors.includes(undefined)){
-                console.log('selectedVectors', selectedVectors, selectedVectors&&selectedVectors[0]?'true':'false')
+            else if (selectedVectors && !selectedVectors.includes(undefined)) {
+                console.log('selectedVectors', selectedVectors, selectedVectors && selectedVectors[0] ? 'true' : 'false')
                 const selectedMatrix = selectedVectors && selectedVectors[0] ? new DataFrame(selectedVectors) : featureMatrix;
                 const selectedMatWithDesiredOutputs = selectedMatrix.where(row => row['complication'] === 0);
                 const selectedMatWithoutDesiredOutputs = selectedMatrix.where(row => row['complication'] !== 0);
@@ -118,8 +119,16 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
             const whatIfShapValues = await getWhatIfSHAPValues({ subject_id, target });
             // level-1: individual features
             const L1Features: IDataFrame<number, Feature> = featureMeta.select(row => {
+                const {entityId, whereItem} = row;
+                let alias = row.alias;
+                if (whereItem.length > 0) {
+                    const itemName = whereItem[1];
+                    const itemLabel = itemDicts && entityId && itemDicts(entityId, itemName!)?.LABEL_CN;
+                    alias = `${row.alias}(${itemLabel || itemName})`
+                }
                 return {
                     ...row,
+                    alias,
                     value: featureValues(row['name']!),
                     contribution: shapValues(row['name']!),
                     contributionIfNormal: whatIfShapValues(row['name']!)
@@ -163,7 +172,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                     children: group
                 }
             }))
-            this.setState({ features })
+            this.setState({ features, shapValues: featureMeta.select(f => shapValues(f.name!)).toArray() })
         }
     }
 
@@ -179,7 +188,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
 
     public render() {
         const { target, tableNames, entityCategoricalColor, abnormalityColor, ...rest } = this.props;
-        const { features, featureMatrix, selectedMatrix, selectedMatWithDesiredOutputs, selectedMatWithoutDesiredOutputs } = this.state;
+        const { features, shapValues, selectedMatWithDesiredOutputs, selectedMatWithoutDesiredOutputs } = this.state;
 
         return (
             <div className="feature-view">
@@ -208,11 +217,12 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                     </div>}
                 </div> */}
                 <div className="feature-view-search">
-                    <Search enterButton/>
+                    <Search enterButton />
                 </div>
                 <Divider />
                 {features && <FeatureList
                     {...rest}
+                    shapValues={shapValues}
                     features={features}
                     cellWidth={this.defaultCellWidth}
                     // selectedMatrix={selectedMatrix}
@@ -230,6 +240,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
 export interface FeatureListProps {
     className?: string,
     features: IDataFrame<number, Feature>,
+    shapValues?: number[],
     prediction: number,
     cellWidth: (id: number) => number,
     entityCategoricalColor?: (entityName: string | undefined) => string,
@@ -248,6 +259,7 @@ export interface FeatureListProps {
 export interface FeatureListStates {
     // Contribution sorting order
     order?: 'ascending' | 'dscending',
+    threshold?: [number, number],
 }
 
 export class FeatureList extends React.Component<FeatureListProps, FeatureListStates> {
@@ -302,9 +314,12 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
     }
 
     public render() {
-        const { features, cellWidth, ...rest } = this.props;
-        const { order } = this.state;
+        const { features, cellWidth, shapValues, ...rest } = this.props;
+        const { order, threshold } = this.state;
         const sortedFeatures = this.sortFeatures(features);
+        shapValues && console.log([_.min(shapValues)!, _.sortBy(shapValues, d => d)[shapValues.length - 5]]);
+        const shapMin = _.min(shapValues);
+        const shapMax = _.max(shapValues);
 
         return <div style={{ width: "100%" }}>
             {/* <Search placeholder="input search text" style={{ marginLeft: 10, marginRight: 10, width: "90%" }} enterButton /> */}
@@ -312,14 +327,36 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
                 <div className="feature-header">
                     <div className="feature-header-cell" style={{ width: cellWidth(0) }}>
                         <span>Name</span>
-                        <SortAscendingOutlined />
+                        <Button type="text" icon={<SortAscendingOutlined />} />
                     </div>
                     <div className="feature-header-cell" style={{ width: cellWidth(1) }}>Value</div>
                     <div className="feature-header-cell" style={{ width: cellWidth(2) }}>
                         <span>Contribution</span>
-                        {order === 'dscending' ? <ArrowDownOutlined onClick={this.onClick.bind(this, 'ascending')} />
-                            : <ArrowUpOutlined onClick={this.onClick.bind(this, 'dscending')} />}
-                        {/* <Filter /> */}
+                        {order === 'dscending' ? <Button type="text" icon={<ArrowDownOutlined />} onClick={this.onClick.bind(this, 'ascending')} />
+                            : <Button type="text" icon={<ArrowUpOutlined />} onClick={this.onClick.bind(this, 'dscending')} />}
+                        <Popover placement="right" content={<div>
+                            {/* {shapValues && <Histogram
+                                data={shapValues}
+                                width={160}
+                                height={40}
+                                margin={0}
+                                drawBottomAxis={false}
+                                rangeSelector={'bin-wise'}
+                                binColor={x => (x > 0) ? "#FF0155" : (x < 0) ? "#3C88E1" : "#fff"}
+                                onSelectRange={(range: [number, number] | undefined) => this.setState({ threshold: range })}
+                                // onSelectRange={(range: [number, number] | undefined) => console.log( range )}
+                            // rectStyle={{strokeWidth: 1, stroke: '#eee'}}
+                            />} */}
+                            <div style={{ width: 160, height: 20 }} onMouseDown={(event) => event.stopPropagation()}>
+                                {shapValues && <Slider
+                                    range defaultValue={[_.sortBy(shapValues, d => d)[shapValues.length - 5], shapMax!]}
+                                    min={shapMin!} max={shapMax!} step={(shapMax! - shapMin!) / 100}
+                                    onAfterChange={(range) => this.setState({ threshold: range })}
+                                />}
+                            </div>
+                        </div>} trigger="click">
+                            <Button type="text" icon={<FilterOutlined />} />
+                        </Popover>
                     </div>
                 </div>
                 <div className="feature-content">
@@ -331,6 +368,7 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
                             x={this.getContributionXScale()}
                             cellWidth={cellWidth}
                             key={row.name || row.alias}
+                            threshold={threshold}
                         />
                     )}
                 </div>
@@ -354,6 +392,7 @@ export interface FeatureBlockProps {
     abnormalityColor?: (abnoramlity: number) => string,
     focusedFeatures: string[],
     display?: 'normal' | 'dense',
+    threshold?: [number, number],
 
     inspectFeatureInSignal?: (feature: Feature) => void,
     inspectFeatureInTable?: (feature: Feature) => void,
@@ -407,7 +446,7 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
     render() {
         const { feature, x, cellWidth, entityCategoricalColor, abnormalityColor, inspectFeatureInSignal, inspectFeatureInTable,
             className, depth, selectedMatWithDesiredOutputs, selectedMatWithoutDesiredOutputs,
-            focusedFeatures, getReferenceValue, display, prediction } = this.props;
+            focusedFeatures, getReferenceValue, display, prediction, threshold } = this.props;
         const { collapsed, showDistibution, showWhatIf } = this.state
         const { name, alias, value, contribution, children, entityId } = feature;
         const referenceValue = feature.name ? getReferenceValue(feature.name) : undefined;
@@ -439,7 +478,13 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
         if (display && display === 'dense') {
             if (showState === 'unfocused') showState = 'none';
         }
-        const heigth = showDistibution ? 80 : 30;
+        if (threshold) {
+            // higher is allowed
+            if (contribution < threshold[0])
+                showState = 'none';
+        }
+
+        const heigth = collapsed ? (showDistibution ? 80 : 30) : 8;
         const isLeaf = !feature.children || feature.children.count() === 0;
 
         let id: string | undefined = undefined
@@ -459,10 +504,12 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                 width: `calc(100% - ${depth * 10}px)`, left: `${depth * 10}px`
             }}>
                 <div style={{ width: 20 }}>
-                    {children && <CaretRightOutlined className="right-button"
+                    {children && collapsed && <CaretRightOutlined className="right-button"
                         onClick={this.onClickButton} rotate={collapsed ? 0 : 90} />}
                 </div>
-                <div className={`feature-block ${showState}` + ((depth === 0) ? " feature-top-block" : "")}
+                <div className={`feature-block ${showState}` + ((depth === 0) ? " feature-top-block" : "" 
+                + collapsed ? "" : " expanded"
+                )}
                     id={id}
                     style={{
                         height: heigth, borderRightWidth: 4,
@@ -486,6 +533,7 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                                 width={cellWidth(1) + 40}
                                 drawLeftAxis={false}
                                 drawBottomAxis={true}
+                                areaChart={true}
                                 margin={{ left: 10, bottom: 15 }}
                                 referenceValue={value as number}
                                 whatIfValue={showWhatIf ? whatIfValue : undefined}

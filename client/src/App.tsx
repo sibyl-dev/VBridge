@@ -637,7 +637,7 @@ class App extends React.Component<AppProps, AppStates>{
                 patientMeta={patientMeta}
                 featureMeta={featureMeta}
                 tableRecords={tableRecords}
-                width={window.innerWidth - layout.featureViewWidth - layout.ProfileWidth - 100}
+                width={window.innerWidth - layout.featureViewWidth - layout.ProfileWidth - 140}
                 onSelectEvents={this.updateSignalFromTimeline}
                 entityCategoricalColor={this.entityCategoricalColor}
               />}

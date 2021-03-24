@@ -131,7 +131,7 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
 
     public render() {
         const { patientMeta, tableRecords, onSelectEvents, entityCategoricalColor, tableNames, width } = this.props;
-        const { timeScale, events, eventBins, startDate, endDate } = this.state;
+        const { timeScale, events, eventBins, startDate, endDate, intervalByQuarter } = this.state;
         const margin: IMargin = { left: 15, right: 15, top: 0, bottom: 0 };
         const metaEvents = patientMeta ? [{
             name: 'Admit to Hospital',
@@ -175,21 +175,21 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
                         margin={{ top: 0, bottom: 0, left: 0, right: 0 }}
                     />
                 </div>}
-                {/* {tableRecords && choseInterval && firstStartDate && firstEndDate && <TimelineAxis
+                {tableRecords && intervalByQuarter && startDate && endDate && <TimelineAxis
                     className="fix-on-bottom"
-                    startTime={firstStartDate}
-                    endTime={firstEndDate}
+                    startTime={startDate}
+                    endTime={endDate}
                     timelineStyle={{
                         width: width,
                         height: 60,
                         margin: { ...margin, bottom: 20, top: 0 }
                     }}
-                    formulateStartandEnd={this.formulateStartandEnd}
+                    // formulateStartandEnd={this.formulateStartandEnd}
                     updateTimeScale={this.updateTimeScale}
-                    events={wholeEvents}
+                    events={events}
                     color={defaultCategoricalColor}
-                    size={choseInterval}
-                />} */}
+                    size={intervalByQuarter * 15}
+                />}
 
             </div>
         )
