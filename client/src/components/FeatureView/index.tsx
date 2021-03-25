@@ -82,7 +82,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                 alert("No patient in the selection.");
             }
             else if (selectedVectors && !selectedVectors.includes(undefined)) {
-                console.log('selectedVectors', selectedVectors, selectedVectors && selectedVectors[0] ? 'true' : 'false')
+                // console.log('selectedVectors', selectedVectors, selectedVectors && selectedVectors[0] ? 'true' : 'false')
                 const selectedMatrix = selectedVectors && selectedVectors[0] ? new DataFrame(selectedVectors) : featureMatrix;
                 const selectedMatWithDesiredOutputs = selectedMatrix.where(row => row['complication'] === 0);
                 const selectedMatWithoutDesiredOutputs = selectedMatrix.where(row => row['complication'] !== 0);
@@ -123,7 +123,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                 let alias = row.alias;
                 if (whereItem.length > 0) {
                     const itemName = whereItem[1];
-                    const itemLabel = itemDicts && entityId && itemDicts(entityId, itemName!)?.LABEL_CN;
+                    const itemLabel = itemDicts && entityId && itemDicts(entityId, itemName!)?.LABEL;
                     alias = `${row.alias}(${itemLabel || itemName})`
                 }
                 return {
@@ -141,7 +141,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
             const groupedFeature: IDataFrame<number, Feature> = new DataFrame(groups.map(group => {
                 const sample = group.first();
                 const itemName = sample.whereItem![1] as string;
-                const itemLabel = itemDicts && sample.entityId && itemDicts(sample.entityId, itemName)?.LABEL_CN;
+                const itemLabel = itemDicts && sample.entityId && itemDicts(sample.entityId, itemName)?.LABEL;
                 const entityId = _.uniq(group.getSeries('entityId').toArray().filter(isDefined)).length > 1 ? undefined : sample.entityId;
                 return {
                     ...sample,
@@ -311,13 +311,14 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
         const whatIfContributions = this.getContributions(features, 'contributionIfNormal').map(v => Math.abs(v));
         const maxAbsCont = _.max([...contributions, ...whatIfContributions]) as number;
         return getScaleLinear(0, cellWidth(2), undefined, [-maxAbsCont, maxAbsCont]);
+        // return getScaleLinear(0, cellWidth(2), contributions);
     }
 
     public render() {
         const { features, cellWidth, shapValues, ...rest } = this.props;
         const { order, threshold } = this.state;
         const sortedFeatures = this.sortFeatures(features);
-        shapValues && console.log([_.min(shapValues)!, _.sortBy(shapValues, d => d)[shapValues.length - 5]]);
+        // shapValues && console.log([_.min(shapValues)!, _.sortBy(shapValues, d => d)[shapValues.length - 5]]);
         const shapMin = _.min(shapValues);
         const shapMax = _.max(shapValues);
 
@@ -481,10 +482,11 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
         if (threshold) {
             // higher is allowed
             if (contribution < threshold[0])
-                showState = 'none';
+                if (showState !== 'focused') showState = 'none';
         }
 
-        const heigth = collapsed ? (showDistibution ? 80 : 30) : 8;
+        // const heigth = collapsed ? (showDistibution ? 80 : 30) : 8;
+        const heigth = showDistibution ? 80 : 30;
         const isLeaf = !feature.children || feature.children.count() === 0;
 
         let id: string | undefined = undefined
@@ -504,7 +506,7 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                 width: `calc(100% - ${depth * 10}px)`, left: `${depth * 10}px`
             }}>
                 <div style={{ width: 20 }}>
-                    {children && collapsed && <CaretRightOutlined className="right-button"
+                    {children && <CaretRightOutlined className="right-button"
                         onClick={this.onClickButton} rotate={collapsed ? 0 : 90} />}
                 </div>
                 <div className={`feature-block ${showState}` + ((depth === 0) ? " feature-top-block" : "" 

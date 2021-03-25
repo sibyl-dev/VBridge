@@ -10,7 +10,8 @@ export type MetaEvent = {
 export type IEvent = {
     entityName: string,
     timestamp: Date,
-    count: number
+    count: number,
+    abnormalyCount?: number,
 }
 
 export interface IEventBin {
@@ -18,7 +19,8 @@ export interface IEventBin {
     binId: number,
     binStartTime: Date,
     binEndTime: Date,
-    count: number
+    count: number,
+    abnormalyCount?: number,
 }
 
 export type EventGroup = {

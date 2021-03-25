@@ -11,6 +11,12 @@
     /* opacity: 70%; */
 }
 
+.point-anno-arrow {
+    stroke-width: 1px;
+    stroke: #3c89e1a8;
+}
+
+
 /*.ts-card:nth-child(even){
     background-color: #f9f9f9
 }
@@ -34,22 +40,24 @@
     /* stroke: #aaa; */
     stroke-width: 2px;
     opacity: 60%;
+    marker-end: "url(#arrowhead)";
 }
 
 .highlight.line-seg {
     /* stroke: #e13caa; */
-    stroke: #e13c60;
+    /* stroke: #e13c60; */
+    stroke: #3c89e1a8;
     /*stroke-width: 2px;*/
-
 }
 
 .highlight.point {
     fill: #fff;
-    stroke: #e13c60a1;;
-
+    /* stroke: #e13c60a1; */
+    stroke: #3c89e1a8;
+    ;
 }
 
-.dashed.line-seg{
+.dashed.line-seg {
     stroke: #fff;
-   /*stroke-dasharray: 5,5; */
+    /*stroke-dasharray: 5,5; */
 }

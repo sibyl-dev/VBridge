@@ -449,7 +449,7 @@ class App extends React.Component<AppProps, AppStates>{
           getOffsetById(`feature-view-element-${featureName}`))
           .filter(isDefined)
           .filter(start => (start.top > 30 + headerHeight) &&
-            (start.bottom < window.innerHeight))
+            (start.bottom < window.innerHeight + 20))
           ;
         return starts.map((start, i) => ({
           start: start,
@@ -640,6 +640,7 @@ class App extends React.Component<AppProps, AppStates>{
                 width={window.innerWidth - layout.featureViewWidth - layout.ProfileWidth - 140}
                 onSelectEvents={this.updateSignalFromTimeline}
                 entityCategoricalColor={this.entityCategoricalColor}
+                referenceValues={referenceValues}
               />}
             </Panel>
 

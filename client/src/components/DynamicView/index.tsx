@@ -230,7 +230,7 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
         const { expand, pinned } = this.state;
         const { tableName, itemName, data, startTime, endTime } = signal;
 
-        const itemLabel = itemDicts && itemDicts(tableName, itemName)?.LABEL_CN;
+        const itemLabel = itemDicts && itemDicts(tableName, itemName)?.LABEL;
 
         console.log('DynamicView', margin, height);
 
@@ -259,10 +259,11 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
                 margin={expand ? margin : { ...margin, top: 4, bottom: 0}}
                 color={color}
                 expand={expand}
-                // yScale={expand ? undefined : getScaleLinear(0, 0, undefined, [-1, 1])}
+                yScale={expand ? undefined : getScaleLinear(15, 15, undefined, [-1, 1])}
                 drawXAxis={expand}
                 drawYAxis={expand}
                 drawDots={expand}
+                drawAnnotations={!expand}
                 drawReferences={expand && referenceValues != undefined}
             />}
         </div>
