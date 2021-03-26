@@ -12,6 +12,8 @@ export type IEvent = {
     timestamp: Date,
     count: number,
     abnormalyCount?: number,
+    items?: string[],
+    abnormalItems?: string[]
 }
 
 export interface IEventBin {
@@ -21,6 +23,8 @@ export interface IEventBin {
     binEndTime: Date,
     count: number,
     abnormalyCount?: number,
+    items?: string[],
+    abnormalItems?: string[]
 }
 
 export type EventGroup = {
@@ -28,6 +32,19 @@ export type EventGroup = {
     endTime: Date,
     count: number,
     items: any[]
+}
+
+export type Segment = {
+    startTime: Date,
+    endTime: Date,
+    contriSum: number,
+    maxValue: number,
+    minValue: number
+}
+
+export type SegmentExplanation = {
+    featureName: string,
+    segments: Segment[]
 }
 
 export function groupEvents(entity: Entity<number, any>, deltaHour: number) {

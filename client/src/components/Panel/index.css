@@ -10,7 +10,8 @@
 
 .panel-header {
     height: 30px;
-    background-color: #e8f0fa;
+    /* background-color: #e8f0fa; */
+    background-color: #97c4d0;
     cursor: move;
     line-height: 30px;
 }
@@ -19,6 +20,8 @@
     height: calc(100% - 38px);
     margin: 4px;
     overflow: scroll;
+    margin-top: 15px;
+    /* background-color: #e9e9e9; */
 }
 
 span.panel-title {

@@ -17,5 +17,6 @@ export interface Feature extends FeatureMeta {
     value: undefined | number | string | Array<any>,
     contribution: number,
     contributionIfNormal?: number,
+    predictionIfNormal?: number,
     children?: IDataFrame<number, Feature>
 }

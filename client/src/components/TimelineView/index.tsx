@@ -90,17 +90,24 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
                 const referenceValueDict = referenceValues && referenceValues(name!)
 
                 const eventSeries: ISeries<number, IEvent> = entity.groupBy(row => row[timeIndex!]).select(group => {
+                    const { item_index, value_indexes } = entity.metaInfo!;
                     const sample = group.first();
+                    const items = _.uniq(group.getSeries(item_index!).toArray());
+                    const abnormalItems: string[] = [];
                     let abnormalyCount = undefined;
                     if (referenceValueDict) {
                         abnormalyCount = group.where(row => {
-                            const { item_index, value_indexes } = entity.metaInfo!;
                             const item = row[item_index!]
                             if (item_index && value_indexes && value_indexes.length > 0) {
                                 const value_index = value_indexes[0];
                                 const referenceValue = referenceValueDict(item);
-                                if (referenceValue)
-                                    return (row[value_index] > referenceValue?.ci95[1]) || (row[value_index] < referenceValue?.ci95[0])
+                                if (referenceValue) {
+                                    const outOfRange = (row[value_index] > referenceValue?.ci95[1]) || (row[value_index] < referenceValue?.ci95[0]);
+                                    if (outOfRange) {
+                                        abnormalItems.push(item);
+                                    }
+                                    return outOfRange
+                                }
                             }
                             return false
                         }).count()
@@ -109,7 +116,9 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
                         entityName: name!,
                         timestamp: new Date(sample[timeIndex!]),
                         count: group.count(),
-                        abnormalyCount: abnormalyCount
+                        abnormalyCount: abnormalyCount,
+                        items: items,
+                        abnormalItems: abnormalItems
                     }
                 });
 
@@ -120,11 +129,16 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
                         const binId = Math.floor(getIdbyQuarter(sample.timestamp.getTime() - startDate.getTime()) / intervalByQuarter);
                         const binStartTime = new Date(startDate.getTime() + binId * (QUATER_IN_MILI * intervalByQuarter));
                         const binEndTime = new Date(startDate.getTime() + (binId + 1) * (QUATER_IN_MILI * intervalByQuarter));
+                        const groupArray = group.toArray();
+                        const items: string[] = _.uniq(_.flatten(groupArray.map(d => d.items).filter(isDefined)));
+                        const abnormalItems: string[] = _.uniq(_.flatten(groupArray.map(d => d.abnormalItems).filter(isDefined)));
                         return {
                             entityName: sample.entityName,
                             binStartTime, binEndTime, binId,
-                            count: _.sum(group.toArray().map(d => d.count)),
-                            abnormalyCount: _.sum(group.toArray().map(d => d.abnormalyCount).filter(isDefined))
+                            count: _.sum(groupArray.map(d => d.count)),
+                            abnormalyCount: _.sum(groupArray.map(d => d.abnormalyCount).filter(isDefined)),
+                            items: items,
+                            abnormalItems: abnormalItems
                         }
                     });
                 events.push(eventSeries.toArray());

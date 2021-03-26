@@ -8,6 +8,7 @@ import { ROOT_URL, DEV_MODE } from "./env";
 import { patientInfoMeta } from 'data/metaInfo';
 import { filterType } from 'data/filterType';
 import { ReferenceValue, ReferenceValueDict } from "data/common";
+import { SegmentExplanation } from "data/event";
 
 
 const API = `${ROOT_URL}/api`;
@@ -147,7 +148,7 @@ export async function getSHAPValues(params: {
 export async function getWhatIfSHAPValues(params: {
     subject_id: number,
     target: string,
-}): Promise<(featureName: string) => number | undefined> {
+}): Promise<(featureName: string) => {prediction: number, shap: number} | undefined> {
     const url = `${API}/what_if_shap_values`;
     const response = await axios.get(url, { params });
     const checked = checkResponse(response, []);
@@ -187,16 +188,12 @@ export async function getReferenceValues(params: {
     }
 }
 
-// export async function getRangeDistribution(): Promise<(itemName: string) => (referenceValue|undefined)> {
-//     const url = `${API}/reference_value`
-//     const response = await axios.get(url, {params});
-//     const checked = checkResponse(response, []);
-//     return (itemName: string) => {
-//         var res = checked
-
-//         if (_.has(res, itemName)){
-//             return res[itemName];
-//         }
-//         return undefined;
-//     }
-// }
+export async function getSegmentExplanation(params: {
+    subject_id: number,
+    item_id: number | string,
+}): Promise<SegmentExplanation[]> {
+    const url = `${API}/explain_signal`
+    const response = await axios.get(url, { params });
+    const checked = checkResponse(response, []);
+    return checked;
+}
