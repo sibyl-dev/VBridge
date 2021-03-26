@@ -416,7 +416,7 @@ class App extends React.Component<AppProps, AppStates>{
   private entityCategoricalColor(entityName?: string) {
     const { tableNames } = this.state;
     if (entityName && ['Demographic', 'Admission', 'Surgery'].includes(entityName))
-      return defaultCategoricalColor(3);
+      return defaultCategoricalColor(8);
     else if (tableNames && entityName) {
       let i = (tableNames?.indexOf(entityName) + 4);
       // if (i == 3) {
@@ -546,55 +546,40 @@ class App extends React.Component<AppProps, AppStates>{
         <Layout>
           <Header className="app-header" id="header">
 
-            <Row>
-              <Col span={2} className='system-name'>VBridge</Col>
-              <Col span={5} />
-              <Col span={6} >
-                <Row>
-                  <Col span={6} className='header-name'>Patient: </Col>
-                  <Col span={18} className='header-content'>
-                    <Select style={{ width: 170 }} onChange={this.selectPatientId} className="patient-selector">
-                      {subjectIds && subjectIds.map((id, i) =>
-                        <Option value={id} key={i}>{id}</Option>
-                      )}
-                    </Select>
-                  </Col>
-                </Row>
-                <Row>
-                  <Col span={6} className='header-name'>Predictions: </Col>
-                  <Col span={18} className='header-content'>
-                    {predictionTargets && predictionTargets.filter(t => t !== 'complication').map((name, i) =>
-                      <Tooltip title={name} placement="top" key={name}>
-                        <div className={'prediction-icon' + (selected && name === selected ? " selected" : "") +
-                          ((predictions && predictions(name) > 0.5000) ? " active" : " inactive")}
-                          onClick={() => this.setState({ target: name })}>
-                          <span>{name.toUpperCase()[0]} </span>
-                        </div>
-                      </Tooltip>
+            <span className='system-name'>VBridge</span>
+            <div className='system-info'>
+              <div className='system-widget'>
+                <div className='legend-area'>
+                </div>
+                <span className='header-name'>Patient: </span>
+                <div className='header-content'>
+                  <Select style={{ width: 170 }} onChange={this.selectPatientId} className="patient-selector">
+                    {subjectIds && subjectIds.map((id, i) =>
+                      <Option value={id} key={i}>{id}</Option>
                     )}
-                  </Col>
-                </Row>
-              </Col>
-              <Col span={2} />
-              <Col span={5} >
-                <Row>
-                  <Col span={16} className='header-name'> #Comparative Group: </Col>
-                  <Col span={8} className='header-content'>
-                    <span className="header-name"> {patientGroup && patientGroup.ids ? patientGroup.ids.length : 0} </span>
-                    <Tooltip title="Filter">
-                      <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={this.showDrawer} style={{ zIndex: 1 }} />
+                  </Select>
+                </div>
+                <div className='header-content predictions'>
+                  {predictionTargets && predictionTargets.filter(t => t !== 'complication').map((name, i) =>
+                    <Tooltip title={name} placement="top" key={name}>
+                      <div className={'prediction-icon' + (selected && name === selected ? " selected" : "") +
+                        ((predictions && predictions(name) > 0.5000) ? " active" : " inactive")}
+                        onClick={() => this.setState({ target: name })}>
+                        <span>{name.toUpperCase()[0]} </span>
+                      </div>
                     </Tooltip>
-                  </Col>
-                </Row>
-                <Row>
-                  <Col span={16} className='header-name'> #Healthy Group: </Col>
-                  <Col span={8} className='header-content'>
-                    {patientGroup ? patientGroup.labelCounts[5] : 0}
-                  </Col>
-                </Row>
-              </Col>
-              <Col span={2} />
-            </Row>
+                  )}
+                </div>
+
+                <span className='header-name'>#Comparative Group:</span>
+                {/* <span className="header-name"> {`${patientGroup && patientGroup.ids ? patientGroup.ids.length : 0}
+                    (${patientGroup ? patientGroup.labelCounts[5] : 0})`} </span> */}
+                <span className="header-name group-count"> {`${patientGroup && patientGroup.ids ? patientGroup.ids.length : 0}`} </span>
+                <Tooltip title="Filter">
+                  <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={this.showDrawer} style={{ zIndex: 1 }} />
+                </Tooltip>
+              </div>
+            </div>
           </Header>
           <Content>
             <Panel initialWidth={featureViewWidth}
@@ -626,9 +611,9 @@ class App extends React.Component<AppProps, AppStates>{
             </Panel>
             {/* <Panel initialWidth={layout.timelineViewWidth} initialHeight={layout.timelineViewHeight}
              */}
-            <Panel initialWidth={window.innerWidth - featureViewWidth - ProfileWidth - xPadding*4}
+            <Panel initialWidth={window.innerWidth - featureViewWidth - ProfileWidth - xPadding * 4}
               initialHeight={timelineViewHeight}
-              x={featureViewWidth + xPadding*2} y={yPadding}
+              x={featureViewWidth + xPadding * 2} y={yPadding}
               title={<div className="view-title">
                 <span className="view-title-text">Timeline View</span>
               </div>}>
@@ -637,7 +622,7 @@ class App extends React.Component<AppProps, AppStates>{
                 patientMeta={patientMeta}
                 featureMeta={featureMeta}
                 tableRecords={tableRecords}
-                width={window.innerWidth - featureViewWidth - ProfileWidth - 140 - xPadding*2}
+                width={window.innerWidth - featureViewWidth - ProfileWidth - 140 - xPadding * 2}
                 onSelectEvents={this.updateSignalFromTimeline}
                 entityCategoricalColor={this.entityCategoricalColor}
                 referenceValues={referenceValues}
@@ -665,7 +650,7 @@ class App extends React.Component<AppProps, AppStates>{
                 featureMeta={featureMeta}
                 tableRecords={tableRecords}
                 signalMetas={signalMetas}
-                width={window.innerWidth - featureViewWidth - ProfileWidth - 40 - xPadding*4}
+                width={window.innerWidth - featureViewWidth - ProfileWidth - 40 - xPadding * 4}
                 itemDicts={itemDicts}
                 color={this.entityCategoricalColor}
                 updateFocusedFeatures={this.updateFocusedFeatures}
@@ -675,7 +660,7 @@ class App extends React.Component<AppProps, AppStates>{
                 referenceValues={referenceValues}
               />}
             </Panel>
-            <Panel initialWidth={ProfileWidth} initialHeight={window.innerHeight - headerHeight - yPadding*2}
+            <Panel initialWidth={ProfileWidth} initialHeight={window.innerHeight - headerHeight - yPadding * 2}
               x={window.innerWidth - ProfileWidth - xPadding} y={yPadding}
               title={<div className="view-title">
                 <span className="view-title-text">Patient's Profile</span>

@@ -330,13 +330,13 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
                 <div className="feature-header">
                     <div className="feature-header-cell" style={{ width: cellWidth(0) }}>
                         <span>Name</span>
-                        <Button type="text" icon={<SortAscendingOutlined />} />
+                        <Button type="text" className={'header-buttion'} icon={<SortAscendingOutlined />} />
                     </div>
                     <div className="feature-header-cell" style={{ width: cellWidth(1) }}>Value</div>
                     <div className="feature-header-cell" style={{ width: cellWidth(2) }}>
                         <span>Contribution</span>
-                        {order === 'dscending' ? <Button type="text" icon={<ArrowDownOutlined />} onClick={this.onClick.bind(this, 'ascending')} />
-                            : <Button type="text" icon={<ArrowUpOutlined />} onClick={this.onClick.bind(this, 'dscending')} />}
+                        {order === 'dscending' ? <Button type="text" className={'header-buttion'} icon={<ArrowDownOutlined />} onClick={this.onClick.bind(this, 'ascending')} />
+                            : <Button type="text" className={'header-buttion'} icon={<ArrowUpOutlined />} onClick={this.onClick.bind(this, 'dscending')} />}
                         <Popover placement="right" content={<div>
                             {/* {shapValues && <Histogram
                                 data={shapValues}
@@ -358,7 +358,7 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
                                 />}
                             </div>
                         </div>} trigger="click">
-                            <Button type="text" icon={<FilterOutlined />} />
+                            <Button type="text" className={'header-buttion'} icon={<FilterOutlined />} />
                         </Popover>
                     </div>
                 </div>
@@ -523,7 +523,7 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                     <div className={`feature-block-inner`}>
                         <Tooltip title={alias}>
                             <div className="feature-block-cell feature-name" style={{ width: cellWidth(0) - 10 * depth }}>
-                                <span className={"feature-block-cell-text"}>{beautifulPrinter(alias, 25)}</span>
+                                <span className={"feature-block-cell-text"}>{beautifulPrinter(alias, 20)}</span>
                             </div>
                         </Tooltip>
                         <div className={"feature-block-cell" + (isLeaf ? " feature-value" : "")}
@@ -554,15 +554,19 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                         // onClick={() => this.setState({ showWhatIf: !showWhatIf })}
                         >
                             <div>
-                                {SHAPContributions({ feature, x, showWhatIf, height: 16, rectStyle: { opacity: !collapsed ? 0.3 : undefined } })}
+                                {SHAPContributions({ feature, x, showWhatIf, height: 14, rectStyle: { opacity: !collapsed ? 0.3 : undefined } })}
                             </div>
                             {/* {showWhatIf && whatIfValue && <div className={"what-if-content"}>
                                 <span> After {(whatIfValue > (value as number))?'inceasing':'decreasing'} to {beautifulPrinter(whatIfValue)}</span>
                             </div>} */}
                             {showWhatIf && predictionIfNormal && whatIfValue && <div className={"what-if-label"}>
-                                <div className={"label-circle"} style={{backgroundColor: defaultCategoricalColor(Math.round(prediction))}}/>
+                                <div className={"label-circle"} style={{backgroundColor: defaultCategoricalColor(Math.round(prediction))}}>
+                                    {prediction > 0.5 ?'Has C.':'No C.'}
+                                </div>
                                 <ArrowRightOutlined />
-                                <div className={"label-circle"} style={{backgroundColor: defaultCategoricalColor(Math.round(predictionIfNormal))}}/>
+                                <div className={"label-circle"} style={{backgroundColor: defaultCategoricalColor(Math.round(predictionIfNormal))}}>
+                                {predictionIfNormal > 0.5 ?'Has C.':'No C.'}
+                                </div>
                             </div>}
                         </div>
                     </div>
@@ -609,6 +613,7 @@ const SHAPContributions = (params: {
     const whatifcont = feature.contributionIfNormal;
     const posSegValue = _.range(0, 3).fill(0);
     const negSegValue = _.range(0, 3).fill(0);
+    const width = x.range()[1] - x.range()[0];
     if (cont > 0) posSegValue[0] = cont;
     else negSegValue[0] = -cont;
     if (whatifcont !== undefined && showWhatIf) {
@@ -626,20 +631,21 @@ const SHAPContributions = (params: {
         // negative differences: b - a
         negSegValue[2] = (whatifcont < 0) ? Math.max(0, (-whatifcont) - Math.max(0, (-cont))) : 0;
     }
-    return <svg className={"contribution-svg"} height={height}>
+    return <svg className={"contribution-svg"} height={height+4}>
+        <rect className="contribution-background" width={width} height={height+2} x={x.range()[0]} y={0}/>
         {negSegValue[0] > 0 && <rect className="neg-feature a-and-b" style={rectStyle}
-            width={x(negSegValue[0]) - x(0)} height={height} transform={`translate(${x(-negSegValue[0])}, 0)`} />}
+            width={x(negSegValue[0]) - x(0)} y={1} height={height} transform={`translate(${x(-negSegValue[0])}, 0)`} />}
         {negSegValue[1] > 0 && <rect className="neg-feature a-sub-b" style={rectStyle}
-            width={x(negSegValue[1]) - x(0)} height={height} transform={`translate(${x(-negSegValue[1] - negSegValue[0])}, 0)`} />}
+            width={x(negSegValue[1]) - x(0)} y={1} height={height} transform={`translate(${x(-negSegValue[1] - negSegValue[0])}, 0)`} />}
         {negSegValue[2] > 0 && <rect className="neg-feature b-sub-a" style={rectStyle}
-            width={x(negSegValue[2]) - x(0)} height={height} transform={`translate(${x(-negSegValue[2] - negSegValue[0])}, 0)`} />}
+            width={x(negSegValue[2]) - x(0)} y={1} height={height} transform={`translate(${x(-negSegValue[2] - negSegValue[0])}, 0)`} />}
 
         {posSegValue[0] > 0 && <rect className="pos-feature a-and-b" style={rectStyle}
-            width={x(posSegValue[0]) - x(0)} height={height} transform={`translate(${x(0)}, 0)`} />}
+            width={x(posSegValue[0]) - x(0)} y={1} height={height} transform={`translate(${x(0)}, 0)`} />}
         {posSegValue[1] > 0 && <rect className="pos-feature a-sub-b" style={rectStyle}
-            width={x(posSegValue[1]) - x(0)} height={height} transform={`translate(${x(posSegValue[0])}, 0)`} />}
+            width={x(posSegValue[1]) - x(0)} y={1} height={height} transform={`translate(${x(posSegValue[0])}, 0)`} />}
         {posSegValue[2] > 0 && <rect className="pos-feature b-sub-a" style={rectStyle}
-            width={x(posSegValue[2]) - x(0)} height={height} transform={`translate(${x(posSegValue[0])}, 0)`} />}
+            width={x(posSegValue[2]) - x(0)} y={1} height={height} transform={`translate(${x(posSegValue[0])}, 0)`} />}
         <defs>
             <pattern id="pattern-stripe"
                 width="4" height="4"

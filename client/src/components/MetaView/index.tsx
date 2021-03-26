@@ -27,7 +27,7 @@ export type MetaItems = {
 export default class MetaView extends React.PureComponent<MetaViewProps, MetaViewStates> {
 
     private metaItems: MetaItems[];
-    private layout: number[] = [0, 10, 1, 11, 2];
+    private layout: number[] = [0, 11, 1, 12, 0];
 
     constructor(props: MetaViewProps) {
         super(props);

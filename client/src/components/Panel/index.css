@@ -17,7 +17,7 @@
 }
 
 .panel-body {
-    height: calc(100% - 38px);
+    height: calc(100% - 50px);
     margin: 4px;
     overflow: scroll;
     margin-top: 15px;
@@ -29,8 +29,4 @@ span.panel-title {
     margin-left: 10px;
     font-weight: bold;
     width: 100%;
-}
-
-.ant-layout-header {
-    height: 80px;
 }

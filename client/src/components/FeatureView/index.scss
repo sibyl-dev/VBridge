@@ -137,12 +137,14 @@
                     align-items: center;
                     margin-top: 10px;
                     .label-circle {
-                        width: 20px;
+                        width: 60px;
                         height: 20px;
-                        border-radius: 10px;
+                        border-radius: 2px;
                         margin-right: 5px;
                         margin-left: 5px;
                         background-color: #aaa;
+                        font-size: 8px;
+                        color: #fff;
                     }
                 }
             }
@@ -286,4 +288,14 @@
 
 .feature-block.expanded {
     background-color: #aaa;
+}
+
+.contribution-background {
+    fill: rgb(240, 240, 240);
+    opacity: 50%;
+    // stroke: #aaa;
+}
+
+.header-buttion {
+    width: 20px;
 }
