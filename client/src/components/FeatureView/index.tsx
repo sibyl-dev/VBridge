@@ -8,7 +8,7 @@ import { DataFrame, IDataFrame } from "data-forge";
 import * as _ from "lodash"
 import { getScaleLinear, beautifulPrinter, defaultCategoricalColor } from "visualization/common";
 import {
-    ArrowDownOutlined, ArrowUpOutlined, CaretRightOutlined, FilterOutlined, LineChartOutlined,
+    ArrowDownOutlined, ArrowRightOutlined, ArrowUpOutlined, CaretRightOutlined, FilterOutlined, LineChartOutlined,
     QuestionCircleFilled,
     QuestionOutlined,
     SortAscendingOutlined, TableOutlined
@@ -120,6 +120,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
             // level-1: individual features
             const L1Features: IDataFrame<number, Feature> = featureMeta.select(row => {
                 const {entityId, whereItem} = row;
+                const whatifResults = whatIfShapValues(row['name']!);
                 let alias = row.alias;
                 if (whereItem.length > 0) {
                     const itemName = whereItem[1];
@@ -131,7 +132,8 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                     alias,
                     value: featureValues(row['name']!),
                     contribution: shapValues(row['name']!),
-                    contributionIfNormal: whatIfShapValues(row['name']!)
+                    contributionIfNormal: whatifResults && whatifResults.shap,
+                    predictionIfNormal: whatifResults && whatifResults.prediction
                 };
             });
             // level-2: group-by item & period
@@ -216,10 +218,10 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                         <span className="legend-anno">Abnormal</span>
                     </div>}
                 </div> */}
-                <div className="feature-view-search">
+                {/* <div className="feature-view-search">
                     <Search enterButton />
                 </div>
-                <Divider />
+                <Divider /> */}
                 {features && <FeatureList
                     {...rest}
                     shapValues={shapValues}
@@ -449,7 +451,7 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
             className, depth, selectedMatWithDesiredOutputs, selectedMatWithoutDesiredOutputs,
             focusedFeatures, getReferenceValue, display, prediction, threshold } = this.props;
         const { collapsed, showDistibution, showWhatIf } = this.state
-        const { name, alias, value, contribution, children, entityId } = feature;
+        const { name, alias, value, contribution, children, entityId, predictionIfNormal } = feature;
         const referenceValue = feature.name ? getReferenceValue(feature.name) : undefined;
 
         // console.log('referenceValue', feature.name, referenceValue, value,)
@@ -554,13 +556,14 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                             <div>
                                 {SHAPContributions({ feature, x, showWhatIf, height: 16, rectStyle: { opacity: !collapsed ? 0.3 : undefined } })}
                             </div>
-                            {showWhatIf && <div className={"what-if-content"}>
-                                <span> {beautifulPrinter(value)} to {beautifulPrinter(whatIfValue)}</span>
-                            </div>}
-                            {/* <div className={"what-if-label"}>
+                            {/* {showWhatIf && whatIfValue && <div className={"what-if-content"}>
+                                <span> After {(whatIfValue > (value as number))?'inceasing':'decreasing'} to {beautifulPrinter(whatIfValue)}</span>
+                            </div>} */}
+                            {showWhatIf && predictionIfNormal && whatIfValue && <div className={"what-if-label"}>
                                 <div className={"label-circle"} style={{backgroundColor: defaultCategoricalColor(Math.round(prediction))}}/>
-                                <div className={"label-circle"} />
-                            </div> */}
+                                <ArrowRightOutlined />
+                                <div className={"label-circle"} style={{backgroundColor: defaultCategoricalColor(Math.round(predictionIfNormal))}}/>
+                            </div>}
                         </div>
                     </div>
                 </div>

@@ -8,7 +8,7 @@ from model.data import load_pic
 from model.utils import load_entityset, load_fm
 from model.model_manager import ModelManager
 from model.featurization import generate_cutoff_times, Featurization
-
+from engine.explanation import Explainer
 
 def create_app():
     app = Flask(__name__)
@@ -44,9 +44,8 @@ def create_app():
     app.model_manager = model_manager
     app.subject_idG = fm.index
 
-
-
     # load explainer
+    app.ex = Explainer(es, fm, model_manager)
 
     app.register_blueprint(api, url_prefix='/api')
     CORS(app, resources={r"/api/*": {"origins": "*"}})
