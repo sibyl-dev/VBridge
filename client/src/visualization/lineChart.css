@@ -16,6 +16,15 @@
     stroke: #3c89e1a8;
 }
 
+.segment-box {
+    fill: none;
+    stroke-width: 2px;
+    /* stroke: #3c89e1a8; */
+    stroke: #ee7545a8;
+    /* fill: #ee7545a8;
+    opacity: 20%; */
+}
+
 
 /*.ts-card:nth-child(even){
     background-color: #f9f9f9
@@ -60,4 +69,8 @@
 .dashed.line-seg {
     stroke: #fff;
     /*stroke-dasharray: 5,5; */
+}
+
+.ts-svg {
+    /* margin-left: 10px; */
 }

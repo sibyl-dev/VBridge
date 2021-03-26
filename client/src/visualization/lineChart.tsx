@@ -7,6 +7,7 @@ import { getChildOrAppend, getScaleLinear, getScaleTime, defaultCategoricalColor
 import { ISeries } from "data-forge";
 import { ReferenceValue } from "data/common";
 import { ImportsNotUsedAsValues } from "typescript";
+import { Segment } from "data/event";
 
 export type PointLayout = {
     x: number,
@@ -34,12 +35,13 @@ export interface LineChartOptions {
 
 export interface LineChartParams extends LineChartOptions {
     data: { dates: ISeries<number, Date>, values: ISeries<number, any> }
-    referenceValue?: ReferenceValue
+    referenceValue?: ReferenceValue,
+    segments?: Segment[],
     svg: SVGElement,
 }
 
 export function drawLineChart(params: LineChartParams) {
-    const { data, svg, referenceValue, xScale, yScale, drawXAxis, drawYAxis,
+    const { data, svg, referenceValue, segments, xScale, yScale, drawXAxis, drawYAxis,
         drawDots, drawReferences, drawAnnotations } = params;
     const dates = data.dates.toArray();
     const values = data.values.toArray();
@@ -56,22 +58,15 @@ export function drawLineChart(params: LineChartParams) {
 
     let maxValue = d3.max(values);
     let minValue = d3.min(values);
-    // let y = d3.scaleLinear().domain(_extent).range([x0, x1])
-    let y = yScale || getScaleLinear(0, height, undefined,
-        [maxValue, Math.max(minValue, 0)]);
-    // let y = yScale || getScaleLinear((height-4)/2, (height-4)/2, undefined, 
-    //     [maxValue, Math.max(minValue, 0)]);
     if (referenceValue && referenceValue.ci95 && params.expand) {
         maxValue = Math.max(maxValue, referenceValue.ci95[1]);
         minValue = Math.min(minValue, referenceValue.ci95[0]);
-        y = yScale || getScaleLinear(0, height, undefined,
-            [maxValue, Math.max(minValue, 0)]);
-        // y = yScale || getScaleLinear(3, height-4, undefined, [maxValue, Math.max(minValue, 0)]);
     }
-    // padding
-    // const y = yScale || getScaleLinear(0, height, undefined, 
-    //     [maxValue+(maxValue-minValue)*0.1, Math.max(minValue-(maxValue-minValue)*0.1, 0)]);
+    const yPadding = (maxValue - minValue) * 0.1
+    const y = yScale || getScaleLinear(0, height, undefined,
+        [maxValue + yPadding, Math.max(minValue - yPadding, 0)]);
 
+console.log(margin);
 
     getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "x-axis-base")
         .attr("transform", `translate(0, ${height})`)
@@ -138,6 +133,13 @@ export function drawLineChart(params: LineChartParams) {
     //     .datum(points)
     //     .attr("class", "line")
     //     .attr("d", line);
+    // const segmentLayouts: SegmentLayout[] | undefined = segments?.map(d => {
+    //     const involvedValues = 
+    //     return {...d}
+    // })
+
+
+
     pointPairs && getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "line-base")
         .selectAll(".line-seg")
         .data(pointPairs)
@@ -156,12 +158,12 @@ export function drawLineChart(params: LineChartParams) {
         .classed("dashed", (d, i) => outofCI && !params.expand ? !(outofCI(values[i]) && outofCI(values[i + 1])) : false)
 
     const annotBase = getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "point-anno-base")
-    // annotBase.selectAll(".point-anno")
+    // annotBase.selectAll(".point-anno-arrow")
     //     .data(points)
     //     .join(
     //         enter => enter
     //             .append("line")
-    //             .attr("class", "point-anno"),
+    //             .attr("class", "point-anno-arrow"),
     //         update => update,
     //         exit => { exit.remove() }
     //     )
@@ -180,7 +182,7 @@ export function drawLineChart(params: LineChartParams) {
     //     })
     //     .style("marker-end", "url(#arrowhead)");
 
-    const abnormalBase = getChildOrAppend<SVGGElement, SVGGElement>(annotBase, "g", "point-anno-base");
+    const abnormalBase = getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "point-anno-base");
     abnormalBase
         .selectAll(".point-anno-arrow")
         .data(outofCISegments)
@@ -226,6 +228,28 @@ export function drawLineChart(params: LineChartParams) {
         // .classed("highlight", (d, i) => outofCI ? outofCI(values[i]) : false);
         .classed("highlight", d => beginEndOfSeg(d) === 'none' ? false : true)
 
+    const padding = 5;
+
+    if (segments) {
+        getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "segment-base")
+            .selectAll(".segment-box")
+            .data(segments)
+            .join(
+                enter => enter
+                    .append("rect")
+                    .attr("class", "segment-box"),
+                update => update,
+                exit => { exit.remove() }
+            )
+            .attr("x", d => t(new Date(d.startTime)) - padding)
+            .attr("width", d => t(new Date(d.endTime)) - t(new Date(d.startTime)) + 2 * padding)
+            .attr("y", d => y(d.maxValue) - 5)
+            .attr("height", d => y(d.minValue) - y(d.maxValue) + 10)
+            .attr("rx", 5);
+            // .attr("y", 0)
+            // .attr("height", height);
+    }
+
 
     if (referenceValue) {
         getChildOrAppend<SVGLineElement, SVGGElement>(base, "line", "reference-line")
@@ -246,6 +270,7 @@ export function drawLineChart(params: LineChartParams) {
 export interface LineChartProps extends LineChartOptions {
     data: { dates: ISeries<number, Date>, values: ISeries<number, any> }
     referenceValue?: ReferenceValue
+    segments?: Segment[]
 }
 
 export default class LineChart extends React.PureComponent<LineChartProps> {

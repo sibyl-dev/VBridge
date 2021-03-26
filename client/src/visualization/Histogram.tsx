@@ -427,6 +427,13 @@ export function drawGroupedHistogram(param: {
         .attr("x2", xScale(referenceValue))
         .attr("y1", 0)
         .attr("y2", yRange[1])
+
+    // referenceValue && xScale && getChildOrAppend<SVGTextElement, SVGGElement>(base, "text", "reference-line-text")
+    //     .attr("x", xScale(referenceValue))
+    //     .attr("y", yRange[1])
+    //     .attr("dy", 10)
+    //     .attr("dx", -10)
+    //     .text(referenceValue)
     // .append("title")
     // .text(referenceValue.toFixed(2));
 
