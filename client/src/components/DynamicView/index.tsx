@@ -107,7 +107,7 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
     public render() {
         const { patientMeta, itemDicts, color, updateFocusedFeatures, removeSignal, className, referenceValues, align, width } = this.props;
         const { signalGroups, globalStartTime, globalEndTime } = this.state;
-        const margin = { bottom: 20, left: 30, top: 15, right: 30 };
+        const margin = { bottom: 20, left: 30, top: 15, right: 10 };
         let xScale: d3.ScaleTime<number, number> | undefined = undefined;
         if (align && globalStartTime && globalEndTime) {
             const paddingTime = (globalEndTime.getTime() - globalStartTime.getTime()) * 0.05;
