@@ -13,16 +13,17 @@
 
 .point-anno-arrow {
     stroke-width: 1px;
-    stroke: #3c89e1a8;
+    /* stroke: #3c89e1a8; */
+    stroke: #e13c60;
 }
 
 .segment-box {
     fill: none;
     stroke-width: 2px;
     /* stroke: #3c89e1a8; */
-    stroke: #ee7545a8;
-    /* fill: #ee7545a8;
-    opacity: 20%; */
+    /* stroke: #ee7545a8; */
+    fill: #ee7545a8;
+    opacity: 50%;
 }
 
 
@@ -47,22 +48,23 @@
 .line-seg {
     stroke: #6695ca;
     /* stroke: #aaa; */
-    stroke-width: 2px;
-    opacity: 60%;
+    stroke-width: 3px;
+    /* opacity: 60%; */
     marker-end: "url(#arrowhead)";
 }
 
 .highlight.line-seg {
     /* stroke: #e13caa; */
-    /* stroke: #e13c60; */
-    stroke: #3c89e1a8;
+    stroke: #e13c60;
+    /* stroke: #3c89e1a8; */
     /*stroke-width: 2px;*/
 }
 
 .highlight.point {
     fill: #fff;
-    /* stroke: #e13c60a1; */
-    stroke: #3c89e1a8;
+    stroke: #e13c60;
+    stroke-width: 2px;
+    /* stroke: #3c89e1a8; */
     ;
 }
 

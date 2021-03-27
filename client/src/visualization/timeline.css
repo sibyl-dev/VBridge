@@ -35,3 +35,7 @@
     stroke-width: 1px;
     stroke: #eee;
 }
+
+.timeline-cell-inner {
+    fill: rgb(145, 145, 145);
+}

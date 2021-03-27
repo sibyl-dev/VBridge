@@ -119,14 +119,14 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
             const whatIfShapValues = await getWhatIfSHAPValues({ subject_id, target });
             // level-1: individual features
             const L1Features: IDataFrame<number, Feature> = featureMeta.select(row => {
-                const {entityId, whereItem} = row;
+                const { entityId, whereItem } = row;
                 const whatifResults = whatIfShapValues(row['name']!);
                 let alias = row.alias;
-                if (whereItem.length > 0) {
-                    const itemName = whereItem[1];
-                    const itemLabel = itemDicts && entityId && itemDicts(entityId, itemName!)?.LABEL;
-                    alias = `${row.alias}(${itemLabel || itemName})`
-                }
+                // if (whereItem.length > 0) {
+                //     const itemName = whereItem[1];
+                //     const itemLabel = itemDicts && entityId && itemDicts(entityId, itemName!)?.LABEL;
+                //     alias = `${row.alias}(${itemLabel || itemName})`
+                // }
                 return {
                     ...row,
                     alias,
@@ -511,8 +511,8 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                     {children && <CaretRightOutlined className="right-button"
                         onClick={this.onClickButton} rotate={collapsed ? 0 : 90} />}
                 </div>
-                <div className={`feature-block ${showState}` + ((depth === 0) ? " feature-top-block" : "" 
-                + collapsed ? "" : " expanded"
+                <div className={`feature-block ${showState}` + ((depth === 0) ? " feature-top-block" : ""
+                    + collapsed ? "" : " expanded"
                 )}
                     id={id}
                     style={{
@@ -523,7 +523,7 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                     <div className={`feature-block-inner`}>
                         <Tooltip title={alias}>
                             <div className="feature-block-cell feature-name" style={{ width: cellWidth(0) - 10 * depth }}>
-                                <span className={"feature-block-cell-text"}>{beautifulPrinter(alias, 20)}</span>
+                                <span className={"feature-block-cell-text"}>{showDistibution ? alias : beautifulPrinter(alias, 22)}</span>
                             </div>
                         </Tooltip>
                         <div className={"feature-block-cell" + (isLeaf ? " feature-value" : "")}
@@ -554,18 +554,19 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                         // onClick={() => this.setState({ showWhatIf: !showWhatIf })}
                         >
                             <div>
-                                {SHAPContributions({ feature, x, showWhatIf, height: 14, rectStyle: { opacity: !collapsed ? 0.3 : undefined } })}
+                                {/* {SHAPContributions({ feature, x, showWhatIf, height: 14, rectStyle: { opacity: !collapsed ? 0.3 : undefined } })} */}
+                                {SHAPContributions({ feature, x, showWhatIf, height: 14 })}
                             </div>
                             {/* {showWhatIf && whatIfValue && <div className={"what-if-content"}>
                                 <span> After {(whatIfValue > (value as number))?'inceasing':'decreasing'} to {beautifulPrinter(whatIfValue)}</span>
                             </div>} */}
                             {showWhatIf && predictionIfNormal && whatIfValue && <div className={"what-if-label"}>
-                                <div className={"label-circle"} style={{backgroundColor: defaultCategoricalColor(Math.round(prediction))}}>
-                                    {prediction > 0.5 ?'Has C.':'No C.'}
+                                <div className={"label-circle"} style={{ backgroundColor: defaultCategoricalColor(Math.round(prediction)) }}>
+                                    {prediction > 0.5 ? 'Has C.' : 'No C.'}
                                 </div>
                                 <ArrowRightOutlined />
-                                <div className={"label-circle"} style={{backgroundColor: defaultCategoricalColor(Math.round(predictionIfNormal))}}>
-                                {predictionIfNormal > 0.5 ?'Has C.':'No C.'}
+                                <div className={"label-circle"} style={{ backgroundColor: defaultCategoricalColor(Math.round(predictionIfNormal)) }}>
+                                    {predictionIfNormal > 0.5 ? 'Has C.' : 'No C.'}
                                 </div>
                             </div>}
                         </div>
@@ -631,8 +632,8 @@ const SHAPContributions = (params: {
         // negative differences: b - a
         negSegValue[2] = (whatifcont < 0) ? Math.max(0, (-whatifcont) - Math.max(0, (-cont))) : 0;
     }
-    return <svg className={"contribution-svg"} height={height+4}>
-        <rect className="contribution-background" width={width} height={height+2} x={x.range()[0]} y={0}/>
+    return <svg className={"contribution-svg"} height={height + 4}>
+        <rect className="contribution-background" width={width} height={height + 2} x={x.range()[0]} y={0} />
         {negSegValue[0] > 0 && <rect className="neg-feature a-and-b" style={rectStyle}
             width={x(negSegValue[0]) - x(0)} y={1} height={height} transform={`translate(${x(-negSegValue[0])}, 0)`} />}
         {negSegValue[1] > 0 && <rect className="neg-feature a-sub-b" style={rectStyle}

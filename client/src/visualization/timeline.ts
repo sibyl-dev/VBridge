@@ -1,3 +1,4 @@
+import { colors } from "@material-ui/core";
 import * as d3 from "d3"
 import { IEventBin, MetaEvent } from "data/event";
 import { getChildOrAppend, getScaleLinear, getScaleTime, defaultCategoricalColor, IMargin, getMargin } from "./common";
@@ -17,7 +18,7 @@ export function drawTimeline(params: {
     onMouseOver?: () => void;
     onMouseLeave?: () => void;
 }) {
-    const { color, events, node, timeScale, onBrush, onMouseOver, onMouseLeave } = params
+    const { events, node, timeScale, onBrush, onMouseOver, onMouseLeave } = params
     // console.log('drawTimeline', params)
     const root = d3.select(node);
     const margin = getMargin(params.margin || {});
@@ -38,7 +39,9 @@ export function drawTimeline(params: {
 
     const t = timeScale || getScaleTime(0, width, [...events.map(e => e.binStartTime), ...events.map(e => e.binEndTime)]);
     // const r = getScaleLinear(0, 30, events.map(d => d.count));
-    const opacity = getScaleLinear(0, 0.8, undefined, [0, d3.max(events.map(d => d.count))!]);
+    const colorScale = getScaleLinear(0.2, 0.5, undefined, [0, d3.max(events.map(d => d.count))!]);
+    // const color = (id: number) => d3.interpolateRgb('#B2FEFA', '#0ED2F7')(colorScale(id));
+    const color = (id: number) => d3.interpolateBlues(colorScale(id));
     // getChildOrAppend(base, "rect", "base-rect")
     //     .attr("width", width)
     //     .attr("height", height)
@@ -118,8 +121,9 @@ export function drawTimeline(params: {
         .attr("rx", 2)
         .attr('width', d => t(d.binEndTime) - t(d.binStartTime) - cellPadding * 2)
         .attr("height", height - cellPadding)
-        .style("fill", defaultCategoricalColor(0))
-        .style('opacity', d => opacity(d.count))
+        // .style("fill", defaultCategoricalColor(0))
+        // .style('opacity', d => colorScale(d.count))
+        .style("fill", d => color(d.count))
 
     // bubbleBase.selectAll(".timeline-cell-inner")
     //     .data(events)
@@ -153,9 +157,9 @@ export function drawTimeline(params: {
     .attr('width', d => (t(d.binEndTime) - t(d.binStartTime) - cellPadding * 2) * (d.abnormalItems!.length / d.items!.length))
     .attr("height", d => (height - cellPadding * 2) * (d.abnormalItems!.length / d.items!.length))
     // .style("fill", color?color:defaultCategoricalColor(0))
-    .style("fill", defaultCategoricalColor(0))
-    // .style("fill", "#000")
-    .style('opacity', d => opacity(d.count))
+    // .style("fill", d3.schemeGreys[0])
+    // .style("fill", "#ccc")
+    // .style('opacity', d => opacity(d.count))
 
     // .style('stroke', 'black')
     // .style('stroke-width', '1px')
