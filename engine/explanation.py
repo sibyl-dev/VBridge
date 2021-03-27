@@ -156,7 +156,7 @@ class Explainer:
     def occlusion_explain(self, record_id, table_name, primitive, subject_id,
                           algorithm="full_linear_fit", window_size=5, start_time=None, end_time=None,
                           weight_with_shap=False, feature_name=None, return_signal=False, record_format=True,
-                          lower_threshold=True):
+                          lower_threshold=True, flip=False):
 
         # Calculate signal contributions using the occlusion algorithm
         time_index = META_INFO[table_name]['time_index']
@@ -189,10 +189,12 @@ class Explainer:
         time = signal_table[time_index].values
         pos_v = np.array([max(0, c) for c in v])
         neg_v = np.array([max(0, -c) for c in v])
+        if flip:
+            v = -v
         # anomaly_list += find_anomalies(pos_v, index, anomaly_padding=0, lower_threshold=False).tolist()
         # anomaly_list += find_anomalies(neg_v, index, anomaly_padding=0, lower_threshold=False).tolist()
         print(v)
-        anomaly_list = find_anomalies(v, index, anomaly_padding=0, lower_threshold=lower_threshold).tolist()
+        anomaly_list = find_anomalies(v, index, anomaly_padding=0, lower_threshold=False).tolist()
         for anomaly in anomaly_list:
             # value means sum of the contributions
             start_id = int(anomaly[0])
