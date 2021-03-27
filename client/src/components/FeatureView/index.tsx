@@ -2,13 +2,13 @@ import { Feature, FeatureMeta } from "data/feature";
 import { PatientMeta } from "data/patient";
 import * as React from "react";
 import * as d3 from "d3";
-import { Button, Divider, Tooltip, Input } from "antd"
+import { Button, Divider, Tooltip, Input, Popover, Slider } from "antd"
 import { getFeatureMatrix, getFeatureValues, getSHAPValues, getWhatIfSHAPValues } from "router/api";
 import { DataFrame, IDataFrame } from "data-forge";
 import * as _ from "lodash"
 import { getScaleLinear, beautifulPrinter, defaultCategoricalColor } from "visualization/common";
 import {
-    ArrowDownOutlined, ArrowUpOutlined, CaretRightOutlined, LineChartOutlined,
+    ArrowDownOutlined, ArrowRightOutlined, ArrowUpOutlined, CaretRightOutlined, FilterOutlined, LineChartOutlined,
     QuestionCircleFilled,
     QuestionOutlined,
     SortAscendingOutlined, TableOutlined
@@ -40,6 +40,7 @@ export interface FeatureViewProps {
 export interface FeatureViewStates {
     featureDisplayValues?: DataFrame,
     features?: IDataFrame<number, Feature>,
+    shapValues?: number[],
     featureMatrix?: IDataFrame<number, any>,
     selectedMatrix?: IDataFrame<number, any>,
     selectedMatWithDesiredOutputs?: IDataFrame<number, any>,
@@ -120,11 +121,21 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
             const whatIfShapValues = await getWhatIfSHAPValues({ subject_id, target });
             // level-1: individual features
             const L1Features: IDataFrame<number, Feature> = featureMeta.select(row => {
+                const {entityId, whereItem} = row;
+                const whatifResults = whatIfShapValues(row['name']!);
+                let alias = row.alias;
+                if (whereItem.length > 0) {
+                    const itemName = whereItem[1];
+                    const itemLabel = itemDicts && entityId && itemDicts(entityId, itemName!)?.LABEL;
+                    alias = `${row.alias}(${itemLabel || itemName})`
+                }
                 return {
                     ...row,
+                    alias,
                     value: featureValues(row['name']!),
                     contribution: shapValues(row['name']!),
-                    contributionIfNormal: whatIfShapValues(row['name']!)
+                    contributionIfNormal: whatifResults && whatifResults.shap,
+                    predictionIfNormal: whatifResults && whatifResults.prediction
                 };
             });
             // level-2: group-by item & period
@@ -134,7 +145,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
             const groupedFeature: IDataFrame<number, Feature> = new DataFrame(groups.map(group => {
                 const sample = group.first();
                 const itemName = sample.whereItem![1] as string;
-                const itemLabel = itemDicts && sample.entityId && itemDicts(sample.entityId, itemName)?.LABEL_CN;
+                const itemLabel = itemDicts && sample.entityId && itemDicts(sample.entityId, itemName)?.LABEL;
                 const entityId = _.uniq(group.getSeries('entityId').toArray().filter(isDefined)).length > 1 ? undefined : sample.entityId;
                 return {
                     ...sample,
@@ -165,7 +176,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                     children: group
                 }
             }))
-            this.setState({ features })
+            this.setState({ features, shapValues: featureMeta.select(f => shapValues(f.name!)).toArray() })
         }
     }
 
@@ -181,7 +192,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
 
     public render() {
         const { target, tableNames, entityCategoricalColor, abnormalityColor, ...rest } = this.props;
-        const { features, featureMatrix, selectedMatrix, selectedMatWithDesiredOutputs, selectedMatWithoutDesiredOutputs } = this.state;
+        const { features, shapValues, selectedMatWithDesiredOutputs, selectedMatWithoutDesiredOutputs } = this.state;
 
         return (
             <div className="feature-view">
@@ -209,12 +220,13 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                         <span className="legend-anno">Abnormal</span>
                     </div>}
                 </div> */}
-                <div className="feature-view-search">
-                    <Search enterButton/>
+                {/* <div className="feature-view-search">
+                    <Search enterButton />
                 </div>
-                <Divider />
+                <Divider /> */}
                 {features && <FeatureList
                     {...rest}
+                    shapValues={shapValues}
                     features={features}
                     cellWidth={this.defaultCellWidth}
                     // selectedMatrix={selectedMatrix}
@@ -232,6 +244,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
 export interface FeatureListProps {
     className?: string,
     features: IDataFrame<number, Feature>,
+    shapValues?: number[],
     prediction: number,
     cellWidth: (id: number) => number,
     entityCategoricalColor?: (entityName: string | undefined) => string,
@@ -250,6 +263,7 @@ export interface FeatureListProps {
 export interface FeatureListStates {
     // Contribution sorting order
     order?: 'ascending' | 'dscending',
+    threshold?: [number, number],
 }
 
 export class FeatureList extends React.Component<FeatureListProps, FeatureListStates> {
@@ -301,12 +315,16 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
         const whatIfContributions = this.getContributions(features, 'contributionIfNormal').map(v => Math.abs(v));
         const maxAbsCont = _.max([...contributions, ...whatIfContributions]) as number;
         return getScaleLinear(0, cellWidth(2), undefined, [-maxAbsCont, maxAbsCont]);
+        // return getScaleLinear(0, cellWidth(2), contributions);
     }
 
     public render() {
-        const { features, cellWidth, ...rest } = this.props;
-        const { order } = this.state;
+        const { features, cellWidth, shapValues, ...rest } = this.props;
+        const { order, threshold } = this.state;
         const sortedFeatures = this.sortFeatures(features);
+        // shapValues && console.log([_.min(shapValues)!, _.sortBy(shapValues, d => d)[shapValues.length - 5]]);
+        const shapMin = _.min(shapValues);
+        const shapMax = _.max(shapValues);
 
         return <div style={{ width: "100%" }}>
             {/* <Search placeholder="input search text" style={{ marginLeft: 10, marginRight: 10, width: "90%" }} enterButton /> */}
@@ -314,14 +332,36 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
                 <div className="feature-header">
                     <div className="feature-header-cell" style={{ width: cellWidth(0) }}>
                         <span>Name</span>
-                        <SortAscendingOutlined />
+                        <Button type="text" className={'header-buttion'} icon={<SortAscendingOutlined />} />
                     </div>
                     <div className="feature-header-cell" style={{ width: cellWidth(1) }}>Value</div>
                     <div className="feature-header-cell" style={{ width: cellWidth(2) }}>
                         <span>Contribution</span>
-                        {order === 'dscending' ? <ArrowDownOutlined onClick={this.onClick.bind(this, 'ascending')} />
-                            : <ArrowUpOutlined onClick={this.onClick.bind(this, 'dscending')} />}
-                        {/* <Filter /> */}
+                        {order === 'dscending' ? <Button type="text" className={'header-buttion'} icon={<ArrowDownOutlined />} onClick={this.onClick.bind(this, 'ascending')} />
+                            : <Button type="text" className={'header-buttion'} icon={<ArrowUpOutlined />} onClick={this.onClick.bind(this, 'dscending')} />}
+                        <Popover placement="right" content={<div>
+                            {/* {shapValues && <Histogram
+                                data={shapValues}
+                                width={160}
+                                height={40}
+                                margin={0}
+                                drawBottomAxis={false}
+                                rangeSelector={'bin-wise'}
+                                binColor={x => (x > 0) ? "#FF0155" : (x < 0) ? "#3C88E1" : "#fff"}
+                                onSelectRange={(range: [number, number] | undefined) => this.setState({ threshold: range })}
+                                // onSelectRange={(range: [number, number] | undefined) => console.log( range )}
+                            // rectStyle={{strokeWidth: 1, stroke: '#eee'}}
+                            />} */}
+                            <div style={{ width: 160, height: 20 }} onMouseDown={(event) => event.stopPropagation()}>
+                                {shapValues && <Slider
+                                    range defaultValue={[_.sortBy(shapValues, d => d)[shapValues.length - 5], shapMax!]}
+                                    min={shapMin!} max={shapMax!} step={(shapMax! - shapMin!) / 100}
+                                    onAfterChange={(range) => this.setState({ threshold: range })}
+                                />}
+                            </div>
+                        </div>} trigger="click">
+                            <Button type="text" className={'header-buttion'} icon={<FilterOutlined />} />
+                        </Popover>
                     </div>
                 </div>
                 <div className="feature-content">
@@ -333,6 +373,7 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
                             x={this.getContributionXScale()}
                             cellWidth={cellWidth}
                             key={row.name || row.alias}
+                            threshold={threshold}
                         />
                     )}
                 </div>
@@ -356,6 +397,7 @@ export interface FeatureBlockProps {
     abnormalityColor?: (abnoramlity: number) => string,
     focusedFeatures: string[],
     display?: 'normal' | 'dense',
+    threshold?: [number, number],
 
     inspectFeatureInSignal?: (feature: Feature) => void,
     inspectFeatureInTable?: (feature: Feature) => void,
@@ -409,9 +451,9 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
     render() {
         const { feature, x, cellWidth, entityCategoricalColor, abnormalityColor, inspectFeatureInSignal, inspectFeatureInTable,
             className, depth, selectedMatWithDesiredOutputs, selectedMatWithoutDesiredOutputs,
-            focusedFeatures, getReferenceValue, display, prediction } = this.props;
+            focusedFeatures, getReferenceValue, display, prediction, threshold } = this.props;
         const { collapsed, showDistibution, showWhatIf } = this.state
-        const { name, alias, value, contribution, children, entityId } = feature;
+        const { name, alias, value, contribution, children, entityId, predictionIfNormal } = feature;
         const referenceValue = feature.name ? getReferenceValue(feature.name) : undefined;
 
         // console.log('referenceValue', feature.name, referenceValue, value,)
@@ -441,6 +483,13 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
         if (display && display === 'dense') {
             if (showState === 'unfocused') showState = 'none';
         }
+        if (threshold) {
+            // higher is allowed
+            if (contribution < threshold[0])
+                if (showState !== 'focused') showState = 'none';
+        }
+
+        // const heigth = collapsed ? (showDistibution ? 80 : 30) : 8;
         const heigth = showDistibution ? 80 : 30;
         const isLeaf = !feature.children || feature.children.count() === 0;
 
@@ -464,7 +513,9 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                     {children && <CaretRightOutlined className="right-button"
                         onClick={this.onClickButton} rotate={collapsed ? 0 : 90} />}
                 </div>
-                <div className={`feature-block ${showState}` + ((depth === 0) ? " feature-top-block" : "")}
+                <div className={`feature-block ${showState}` + ((depth === 0) ? " feature-top-block" : "" 
+                + collapsed ? "" : " expanded"
+                )}
                     id={id}
                     style={{
                         height: heigth, borderRightWidth: 4,
@@ -474,7 +525,7 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                     <div className={`feature-block-inner`}>
                         <Tooltip title={alias}>
                             <div className="feature-block-cell feature-name" style={{ width: cellWidth(0) - 10 * depth }}>
-                                <span className={"feature-block-cell-text"}>{beautifulPrinter(alias, 25)}</span>
+                                <span className={"feature-block-cell-text"}>{beautifulPrinter(alias, 20)}</span>
                             </div>
                         </Tooltip>
                         <div className={"feature-block-cell" + (isLeaf ? " feature-value" : "")}
@@ -488,6 +539,7 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                                 width={cellWidth(1) + 40}
                                 drawLeftAxis={false}
                                 drawBottomAxis={true}
+                                areaChart={true}
                                 margin={{ left: 10, bottom: 15 }}
                                 referenceValue={value as number}
                                 whatIfValue={showWhatIf ? whatIfValue : undefined}
@@ -504,15 +556,20 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                         // onClick={() => this.setState({ showWhatIf: !showWhatIf })}
                         >
                             <div>
-                                {SHAPContributions({ feature, x, showWhatIf, height: 16, rectStyle: { opacity: !collapsed ? 0.3 : undefined } })}
+                                {SHAPContributions({ feature, x, showWhatIf, height: 14, rectStyle: { opacity: !collapsed ? 0.3 : undefined } })}
                             </div>
-                            {showWhatIf && <div className={"what-if-content"}>
-                                <span> {beautifulPrinter(value)} to {beautifulPrinter(whatIfValue)}</span>
+                            {/* {showWhatIf && whatIfValue && <div className={"what-if-content"}>
+                                <span> After {(whatIfValue > (value as number))?'inceasing':'decreasing'} to {beautifulPrinter(whatIfValue)}</span>
+                            </div>} */}
+                            {showWhatIf && predictionIfNormal && whatIfValue && <div className={"what-if-label"}>
+                                <div className={"label-circle"} style={{backgroundColor: defaultCategoricalColor(Math.round(prediction))}}>
+                                    {prediction > 0.5 ?'Has C.':'No C.'}
+                                </div>
+                                <ArrowRightOutlined />
+                                <div className={"label-circle"} style={{backgroundColor: defaultCategoricalColor(Math.round(predictionIfNormal))}}>
+                                {predictionIfNormal > 0.5 ?'Has C.':'No C.'}
+                                </div>
                             </div>}
-                            {/* <div className={"what-if-label"}>
-                                <div className={"label-circle"} style={{backgroundColor: defaultCategoricalColor(Math.round(prediction))}}/>
-                                <div className={"label-circle"} />
-                            </div> */}
                         </div>
                     </div>
                 </div>
@@ -558,6 +615,7 @@ const SHAPContributions = (params: {
     const whatifcont = feature.contributionIfNormal;
     const posSegValue = _.range(0, 3).fill(0);
     const negSegValue = _.range(0, 3).fill(0);
+    const width = x.range()[1] - x.range()[0];
     if (cont > 0) posSegValue[0] = cont;
     else negSegValue[0] = -cont;
     if (whatifcont !== undefined && showWhatIf) {
@@ -575,20 +633,21 @@ const SHAPContributions = (params: {
         // negative differences: b - a
         negSegValue[2] = (whatifcont < 0) ? Math.max(0, (-whatifcont) - Math.max(0, (-cont))) : 0;
     }
-    return <svg className={"contribution-svg"} height={height}>
+    return <svg className={"contribution-svg"} height={height+4}>
+        <rect className="contribution-background" width={width} height={height+2} x={x.range()[0]} y={0}/>
         {negSegValue[0] > 0 && <rect className="neg-feature a-and-b" style={rectStyle}
-            width={x(negSegValue[0]) - x(0)} height={height} transform={`translate(${x(-negSegValue[0])}, 0)`} />}
+            width={x(negSegValue[0]) - x(0)} y={1} height={height} transform={`translate(${x(-negSegValue[0])}, 0)`} />}
         {negSegValue[1] > 0 && <rect className="neg-feature a-sub-b" style={rectStyle}
-            width={x(negSegValue[1]) - x(0)} height={height} transform={`translate(${x(-negSegValue[1] - negSegValue[0])}, 0)`} />}
+            width={x(negSegValue[1]) - x(0)} y={1} height={height} transform={`translate(${x(-negSegValue[1] - negSegValue[0])}, 0)`} />}
         {negSegValue[2] > 0 && <rect className="neg-feature b-sub-a" style={rectStyle}
-            width={x(negSegValue[2]) - x(0)} height={height} transform={`translate(${x(-negSegValue[2] - negSegValue[0])}, 0)`} />}
+            width={x(negSegValue[2]) - x(0)} y={1} height={height} transform={`translate(${x(-negSegValue[2] - negSegValue[0])}, 0)`} />}
 
         {posSegValue[0] > 0 && <rect className="pos-feature a-and-b" style={rectStyle}
-            width={x(posSegValue[0]) - x(0)} height={height} transform={`translate(${x(0)}, 0)`} />}
+            width={x(posSegValue[0]) - x(0)} y={1} height={height} transform={`translate(${x(0)}, 0)`} />}
         {posSegValue[1] > 0 && <rect className="pos-feature a-sub-b" style={rectStyle}
-            width={x(posSegValue[1]) - x(0)} height={height} transform={`translate(${x(posSegValue[0])}, 0)`} />}
+            width={x(posSegValue[1]) - x(0)} y={1} height={height} transform={`translate(${x(posSegValue[0])}, 0)`} />}
         {posSegValue[2] > 0 && <rect className="pos-feature b-sub-a" style={rectStyle}
-            width={x(posSegValue[2]) - x(0)} height={height} transform={`translate(${x(posSegValue[0])}, 0)`} />}
+            width={x(posSegValue[2]) - x(0)} y={1} height={height} transform={`translate(${x(posSegValue[0])}, 0)`} />}
         <defs>
             <pattern id="pattern-stripe"
                 width="4" height="4"

@@ -29,6 +29,7 @@ class ModelManager:
         return pd.DataFrame(scores).T
 
     def predict_proba(self, id=None, X=None):
+        scores = {}
         if id is not None:
             if id in self.X_train.index:
                 X = self.X_train.loc[id]
@@ -37,13 +38,14 @@ class ModelManager:
             else:
                 raise ValueError("Invalid id.")
             X = X.to_frame().T
+            for target_name, model in self._models.items():
+                scores[target_name] = model.transform(X)[0, 1]
         elif X is not None:
             X = X
+            for target_name, model in self._models.items():
+                scores[target_name] = model.transform(X)[:, 1]
         else:
             raise ValueError("id and X should not be both None.")
-        scores = {}
-        for target_name, model in self._models.items():
-            scores[target_name] = model.transform(X)[0, 1]
         return scores
 
     def explain(self, id=None, X=None,target='complication'):

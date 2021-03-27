@@ -79,7 +79,7 @@ interface AppStates {
 }
 
 class App extends React.Component<AppProps, AppStates>{
-  private layout = { featureViewWidth: 520, ProfileWidth: 300, timelineViewHeight: 260, headerHeight: 64 };
+  private layout = { featureViewWidth: 520, ProfileWidth: 280, timelineViewHeight: 260, headerHeight: 64, xPadding: 15, yPadding: 5 };
   private abnormalityColorScale = d3.scaleSequential(d3.interpolateRdYlGn).domain([2.5 + 0.5, 1 - 0.5]);
   private ref: React.RefObject<SVGSVGElement> = React.createRef();
   private paintId: any = undefined;
@@ -416,7 +416,7 @@ class App extends React.Component<AppProps, AppStates>{
   private entityCategoricalColor(entityName?: string) {
     const { tableNames } = this.state;
     if (entityName && ['Demographic', 'Admission', 'Surgery'].includes(entityName))
-      return defaultCategoricalColor(3);
+      return defaultCategoricalColor(8);
     else if (tableNames && entityName) {
       let i = (tableNames?.indexOf(entityName) + 4);
       // if (i == 3) {
@@ -449,7 +449,7 @@ class App extends React.Component<AppProps, AppStates>{
           getOffsetById(`feature-view-element-${featureName}`))
           .filter(isDefined)
           .filter(start => (start.top > 30 + headerHeight) &&
-            (start.bottom < window.innerHeight))
+            (start.bottom < window.innerHeight + 20))
           ;
         return starts.map((start, i) => ({
           start: start,
@@ -538,7 +538,7 @@ class App extends React.Component<AppProps, AppStates>{
     const { subjectIds, patientMeta, tableNames, tableRecords, featureMeta, predictionTargets, showTableView,
       focusedFeatures, pinnedfocusedFeatures, target: selected, selectedsubjectId, predictions, tableViewMeta,
       itemDicts, signalMetas, patientInfoMeta, filterRange, visible, patientGroup, referenceValues } = this.state;
-    const layout = this.layout;
+    const { headerHeight, featureViewWidth, timelineViewHeight, ProfileWidth, xPadding, yPadding } = this.layout;
 
     return (
       <div className='App'>
@@ -546,59 +546,44 @@ class App extends React.Component<AppProps, AppStates>{
         <Layout>
           <Header className="app-header" id="header">
 
-            <Row>
-              <Col span={2} className='system-name'>VBridge</Col>
-              <Col span={5} />
-              <Col span={6} > 
-                <Row>
-                  <Col span={6} className='header-name'>Patient: </Col>
-                  <Col span={18} className='header-content'>
-                    <Select style={{ width: 170}} onChange={this.selectPatientId} className="patient-selector">
-                      {subjectIds && subjectIds.map((id, i) =>
-                        <Option value={id} key={i}>{id}</Option>
-                      )}
-                    </Select>
-                  </Col>
-                </Row>
-                <Row>
-                    <Col span={6} className='header-name'>Predictions: </Col>
-                    <Col span={18} className='header-content'>
-                      {predictionTargets && predictionTargets.filter(t => t !== 'complication').map((name, i) =>
-                        <Tooltip title={name} placement="top" key={name}>
-                          <div className={'prediction-icon' + (selected && name === selected ? " selected" : "") +
-                            ((predictions && predictions(name) > 0.5000) ? " active" : " inactive")}
-                            onClick={() => this.setState({ target: name })}>
-                            <span>{name.toUpperCase()[0]} </span>
-                          </div>
-                        </Tooltip>
-                      )}
-                    </Col>
-                </Row>
-              </Col>
-              <Col span={2} />
-              <Col span={5} >
-                <Row>
-                  <Col span={16} className='header-name'> #Comparative Group: </Col>
-                  <Col span={8} className='header-content'>
-                    <span className="header-name"> {patientGroup && patientGroup.ids ? patientGroup.ids.length : 0} </span>
-                    <Tooltip title="Filter">
-                      <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={this.showDrawer} style={{ zIndex: 1 }} />
+            <span className='system-name'>VBridge</span>
+            <div className='system-info'>
+              <div className='system-widget'>
+                <div className='legend-area'>
+                </div>
+                <span className='header-name'>Patient: </span>
+                <div className='header-content'>
+                  <Select style={{ width: 170 }} onChange={this.selectPatientId} className="patient-selector">
+                    {subjectIds && subjectIds.map((id, i) =>
+                      <Option value={id} key={i}>{id}</Option>
+                    )}
+                  </Select>
+                </div>
+                <div className='header-content predictions'>
+                  {predictionTargets && predictionTargets.filter(t => t !== 'complication').map((name, i) =>
+                    <Tooltip title={name} placement="top" key={name}>
+                      <div className={'prediction-icon' + (selected && name === selected ? " selected" : "") +
+                        ((predictions && predictions(name) > 0.5000) ? " active" : " inactive")}
+                        onClick={() => this.setState({ target: name })}>
+                        <span>{name.toUpperCase()[0]} </span>
+                      </div>
                     </Tooltip>
-                  </Col>
-                </Row>
-                <Row>
-                  <Col span={16} className='header-name'> #Healthy Group: </Col>
-                  <Col span={8} className='header-content'>
-                    {patientGroup ? patientGroup.labelCounts[5] : 0}
-                  </Col>
-                </Row>
-              </Col>
-              <Col span={2} />
-            </Row>
+                  )}
+                </div>
+
+                <span className='header-name'>#Comparative Group:</span>
+                {/* <span className="header-name"> {`${patientGroup && patientGroup.ids ? patientGroup.ids.length : 0}
+                    (${patientGroup ? patientGroup.labelCounts[5] : 0})`} </span> */}
+                <span className="header-name group-count"> {`${patientGroup && patientGroup.ids ? patientGroup.ids.length : 0}`} </span>
+                <Tooltip title="Filter">
+                  <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={this.showDrawer} style={{ zIndex: 1 }} />
+                </Tooltip>
+              </div>
+            </div>
           </Header>
           <Content>
-            <Panel initialWidth={layout.featureViewWidth}
-              initialHeight={window.innerHeight - layout.headerHeight - 5} x={5} y={5}
+            <Panel initialWidth={featureViewWidth}
+              initialHeight={window.innerHeight - headerHeight - yPadding * 2} x={xPadding} y={yPadding}
               title={<div className="view-title">
                 <span className="view-title-text">Feature View</span>
                 <div className="widget">
@@ -626,9 +611,9 @@ class App extends React.Component<AppProps, AppStates>{
             </Panel>
             {/* <Panel initialWidth={layout.timelineViewWidth} initialHeight={layout.timelineViewHeight}
              */}
-            <Panel initialWidth={window.innerWidth - layout.featureViewWidth - layout.ProfileWidth - 20}
-              initialHeight={layout.timelineViewHeight}
-              x={layout.featureViewWidth + 10} y={5}
+            <Panel initialWidth={window.innerWidth - featureViewWidth - ProfileWidth - xPadding * 4}
+              initialHeight={timelineViewHeight}
+              x={featureViewWidth + xPadding * 2} y={yPadding}
               title={<div className="view-title">
                 <span className="view-title-text">Timeline View</span>
               </div>}>
@@ -637,15 +622,16 @@ class App extends React.Component<AppProps, AppStates>{
                 patientMeta={patientMeta}
                 featureMeta={featureMeta}
                 tableRecords={tableRecords}
-                width={window.innerWidth - layout.featureViewWidth - layout.ProfileWidth - 100}
+                width={window.innerWidth - featureViewWidth - ProfileWidth - 140 - xPadding * 2}
                 onSelectEvents={this.updateSignalFromTimeline}
                 entityCategoricalColor={this.entityCategoricalColor}
+                referenceValues={referenceValues}
               />}
             </Panel>
 
-            <Panel initialWidth={window.innerWidth - layout.featureViewWidth - layout.ProfileWidth - 20}
-              initialHeight={window.innerHeight - layout.headerHeight - layout.timelineViewHeight - 10}
-              x={layout.featureViewWidth + 10} y={270}
+            <Panel initialWidth={window.innerWidth - featureViewWidth - ProfileWidth - xPadding * 4}
+              initialHeight={window.innerHeight - headerHeight - timelineViewHeight - yPadding * 3}
+              x={featureViewWidth + xPadding * 2} y={timelineViewHeight + yPadding * 2}
               title={
                 <div className="view-title">
                   <span className="view-title-text">Temporal View</span>
@@ -664,7 +650,7 @@ class App extends React.Component<AppProps, AppStates>{
                 featureMeta={featureMeta}
                 tableRecords={tableRecords}
                 signalMetas={signalMetas}
-                width={window.innerWidth - layout.featureViewWidth - layout.ProfileWidth - 60}
+                width={window.innerWidth - featureViewWidth - ProfileWidth - 40 - xPadding * 4}
                 itemDicts={itemDicts}
                 color={this.entityCategoricalColor}
                 updateFocusedFeatures={this.updateFocusedFeatures}
@@ -674,10 +660,10 @@ class App extends React.Component<AppProps, AppStates>{
                 referenceValues={referenceValues}
               />}
             </Panel>
-            <Panel initialWidth={layout.ProfileWidth} initialHeight={window.innerHeight - layout.headerHeight - 5}
-              x={window.innerWidth - layout.ProfileWidth - 5} y={5}
+            <Panel initialWidth={ProfileWidth} initialHeight={window.innerHeight - headerHeight - yPadding * 2}
+              x={window.innerWidth - ProfileWidth - xPadding} y={yPadding}
               title={<div className="view-title">
-                <span className="view-title-text">Profile</span>
+                <span className="view-title-text">Patient's Profile</span>
               </div>}>
               {tableNames && featureMeta && <MetaView
                 className={"meta-view-element"}
@@ -695,7 +681,7 @@ class App extends React.Component<AppProps, AppStates>{
               title={<div className="view-title">
                 <span className="view-title-text">{tableViewMeta?.tableName}</span>
                 <div className="widget">
-                  <Button icon={<CloseOutlined />} type="link" onClick={()=>this.setState({showTableView: false})}/>
+                  <Button icon={<CloseOutlined />} type="link" onClick={() => this.setState({ showTableView: false })} />
                 </div>
               </div>}>
               {tableViewMeta && tableRecords && <TableView
@@ -709,7 +695,7 @@ class App extends React.Component<AppProps, AppStates>{
               />}
             </Panel>
             }
-            <svg className="app-link-svg" ref={this.ref} style={{ height: window.innerHeight - layout.headerHeight }} />
+            <svg className="app-link-svg" ref={this.ref} style={{ height: window.innerHeight - headerHeight }} />
             {tableNames &&
               <Drawer maskClosable={false} title="Filter View" placement="right" closable={false}
                 onClose={this.onClose} visible={visible} width={450} >

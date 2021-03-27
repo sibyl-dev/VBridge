@@ -1,4 +1,4 @@
-import { Button, Card, Divider, Select } from "antd";
+import { Button, Card, Divider, Select, Spin } from "antd";
 import { PatientMeta } from "data/patient";
 import { Entity, ItemDict } from "data/table";
 import * as React from "react";
@@ -7,11 +7,12 @@ import { DataFrame, IDataFrame, ISeries } from "data-forge";
 import { defaultMargin, getMargin, getScaleLinear, getScaleTime, IMargin } from "visualization/common";
 import { CloseOutlined, ExpandAltOutlined, PushpinOutlined, ShrinkOutlined } from "@ant-design/icons";
 import { arrayShallowCompare, ReferenceValue, ReferenceValueDict, timeDeltaPrinter } from "data/common";
-import { getReferenceValues } from "router/api";
+import { getSegmentExplanation } from "router/api";
 import LineChart from "visualization/lineChart";
 
 import "./index.scss";
 import { FeatureMeta } from "data/feature";
+import { SegmentExplanation } from "data/event";
 
 export interface SignalMeta {
     tableName: string,
@@ -106,9 +107,14 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
     public render() {
         const { patientMeta, itemDicts, color, updateFocusedFeatures, removeSignal, className, referenceValues, align, width } = this.props;
         const { signalGroups, globalStartTime, globalEndTime } = this.state;
-        const margin = { bottom: 20, left: 25, top: 15, right: 25 };
-        const xScale = (align && globalStartTime && globalEndTime) ?
-            getScaleTime(0, width-margin.left-margin.right, undefined, [globalStartTime, globalEndTime]) : undefined;
+        const margin = { bottom: 20, left: 30, top: 15, right: 30 };
+        let xScale: d3.ScaleTime<number, number> | undefined = undefined;
+        if (align && globalStartTime && globalEndTime) {
+            const paddingTime = (globalEndTime.getTime() - globalStartTime.getTime()) * 0.05;
+            const paddedStartTime = new Date(globalStartTime.getTime() - paddingTime);
+            const paddedEndTime = new Date(globalEndTime.getTime() + paddingTime);
+            xScale = getScaleTime(0, width - margin.left - margin.right, undefined, [paddedStartTime, paddedEndTime])
+        }
         return (
             <div>
                 <div>
@@ -117,6 +123,7 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
                         {group.toArray().map((signal, i) =>
                             <DynamicCard
                                 className={className}
+                                patientMeta={patientMeta}
                                 signal={signal}
                                 referenceValues={referenceValues && referenceValues(signal.tableName)}
                                 key={signal.itemName}
@@ -155,6 +162,7 @@ const defaultTimeSeriesStyle: TimeSeriesStyle = {
 
 export interface DynamicCardProps extends Partial<TimeSeriesStyle> {
     signal: Signal,
+    patientMeta: PatientMeta,
     className: string,
     align?: boolean,
     // timeSeriesStyle: Partial<TimeSeriesStyle>,
@@ -173,7 +181,9 @@ export interface DynamicCardProps extends Partial<TimeSeriesStyle> {
 export interface DynamicCardStates {
     expand: boolean,
     pinned: boolean,
-    referenceValue?: ReferenceValue
+    explain: boolean,
+    loading: boolean,
+    segmentExplanation?: SegmentExplanation[]
 }
 
 export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardStates> {
@@ -183,32 +193,31 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
         this.state = {
             expand: false,
             pinned: false,
+            explain: false,
+            loading: false,
         };
+        this.loadSegmentExplanation = this.loadSegmentExplanation.bind(this);
 
         this.onExpand = this.onExpand.bind(this);
         this.onCollapse = this.onCollapse.bind(this);
         this.onPin = this.onPin.bind(this);
+        this.onExplain = this.onExplain.bind(this);
     }
 
     componentDidMount() {
-        // this.loadReferenceValues();
     }
     componentDidUpdate(prevProps: DynamicCardProps, prevState: DynamicCardStates) {
-        // if (prevProps.subjectIdG?.sort().toString() !== this.props.subjectIdG?.sort().toString()) {
-        //     //why comment here?
-        //     this.loadReferenceValues();
-        // }
     }
 
-    private async loadReferenceValues() {
-        const { tableName, columnName, itemName } = this.props.signal;
-        const valueFn = await getReferenceValues({
-            table_name: tableName,
-            column_name: columnName
-        });
-        const referenceValue = valueFn(itemName);
-        this.setState({ referenceValue });
-        // console.log('loadReferenceValues', this.state.referenceValue)
+    private async loadSegmentExplanation() {
+        this.setState({ loading: true });
+        const { signal, patientMeta } = this.props;
+        const { itemName, tableName } = signal;
+        if (tableName === 'SURGERY_VITAL_SIGNS') {
+            const segmentExplanation = await getSegmentExplanation({ subject_id: patientMeta.subjectId, item_id: itemName });
+            this.setState({ segmentExplanation, loading: false });
+        }
+        this.setState({ loading: false });
     }
 
     private onExpand() {
@@ -224,22 +233,51 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
         this.setState({ pinned: !this.state.pinned });
     }
 
+    public onExplain() {
+        const { explain, segmentExplanation } = this.state;
+        if (explain) this.setState({ explain: false })
+        else {
+            if (!segmentExplanation)
+                this.loadSegmentExplanation();
+            this.setState({ explain: true });
+        }
+    }
+
     public render() {
         const { className, signal, itemDicts, width, height, color, margin, xScale, referenceValues, onHover, onLeave, onRemove } =
             { ...defaultTimeSeriesStyle, ...this.props };
-        const { expand, pinned } = this.state;
+        const { expand, pinned, segmentExplanation, explain } = this.state;
         const { tableName, itemName, data, startTime, endTime } = signal;
 
-        const itemLabel = itemDicts && itemDicts(tableName, itemName)?.LABEL_CN;
+        const itemLabel = itemDicts && itemDicts(tableName, itemName)?.LABEL;
 
         console.log('DynamicView', margin, height);
 
         return <div className={"ts-card"} id={`${className}-${signal.itemName}`}
             style={{ borderLeftColor: color || '#aaa', borderLeftWidth: 4 }}
             onMouseOver={onHover} onMouseOut={onLeave}>
+            <Spin spinning={this.state.loading} delay={500}>
+                {data && <LineChart
+                    data={data}
+                    referenceValue={referenceValues && referenceValues(itemName)}
+                    segments={explain ? segmentExplanation && _.flatten(segmentExplanation.map(d => d.segments)) : []}
+                    height={expand ? height : 30}
+                    width={width}
+                    xScale={xScale}
+                    margin={expand ? margin : { ...margin, top: 4, bottom: 0}}
+                    color={color}
+                    expand={expand}
+                    yScale={expand ? undefined : getScaleLinear(15, 15, undefined, [-1, 1])}
+                    drawXAxis={expand}
+                    drawYAxis={expand}
+                    drawDots={expand}
+                    drawAnnotations={!expand}
+                    drawReferences={expand && referenceValues != undefined}
+                />}
+            </Spin>
             <div className={"ts-title-float"} style={{ width: width }}>
                 {/* <span className={"ts-title-float-text"}>{`${itemLabel || itemName} (${timeDeltaPrinter(startTime, endTime)})`}</span> */}
-            <span className={"ts-title-float-text"}>{`${itemLabel || itemName}`}</span>
+                <span className={"ts-title-float-text"}>{`${itemLabel || itemName}`}</span>
 
                 <Button size="small" type="primary" shape="circle" icon={<PushpinOutlined />} className={"ts-title-button"}
                     style={{ display: pinned ? 'block' : undefined }} onClick={this.onPin}
@@ -248,23 +286,8 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
                     onClick={onRemove} />
                 {expand ? <Button size="small" type="primary" shape="circle" icon={<ShrinkOutlined />} className={"ts-title-button"} onClick={this.onCollapse} />
                     : <Button size="small" type="primary" shape="circle" icon={<ExpandAltOutlined />} className={"ts-title-button"} onClick={this.onExpand} />}
-                {/* <Button size="small" type="primary" className={"ts-title-button"}>Explain</Button> */}
+                <Button size="small" type="primary" shape="circle" className={"ts-title-button"} onClick={this.onExplain}>E</Button>
             </div>
-            {data && <LineChart
-                data={data}
-                referenceValue={referenceValues && referenceValues(itemName)}
-                height={expand ? height : 30}
-                width={width}
-                xScale={xScale}
-                margin={expand ? margin : { ...margin, top: 4, bottom: 0}}
-                color={color}
-                expand={expand}
-                // yScale={expand ? undefined : getScaleLinear(0, 0, undefined, [-1, 1])}
-                drawXAxis={expand}
-                drawYAxis={expand}
-                drawDots={expand}
-                drawReferences={expand && referenceValues != undefined}
-            />}
         </div>
     }
 }

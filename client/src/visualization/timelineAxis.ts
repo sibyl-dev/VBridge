@@ -25,7 +25,7 @@ export function drawTimelineAxis(params: {
     const margin = getMargin(params.margin || {});
     const height = params.height - margin.top - margin.bottom;
     const width = params.width - margin.left - margin.right;
-    console.log('drawTimelineAxis', height, width, margin, svg)
+    // console.log('drawTimelineAxis', height, width, margin, svg)
 
     let focusedTimeScale = d3.scaleTime().range([0, width]).domain(defaultTimeScale.domain());
 
@@ -77,7 +77,7 @@ export function drawTimelineAxis(params: {
         else {
             extent = defaultTimeScale.domain();
         }
-        console.log('timelineAxis selection after',  choseInterval, choseInterval/60,extent )
+        // console.log('timelineAxis selection after',  choseInterval, choseInterval/60,extent )
 
         // focusedTimeScale.domain(extent);
         focusedTimeScale = d3.scaleTime().range([0, width]).domain(extent);
@@ -95,7 +95,7 @@ export function drawTimelineAxis(params: {
         longAxis = d3.axisBottom(defaultTimeScale).ticks(d3.timeMonth.every(1));
     }
     defaultAxisbase.call(longAxis);
-    console.log('drawTimelineAxis size', size, size!/60)
+    // console.log('drawTimelineAxis size', size, size!/60)
 
     function updateAxis(extent: Date[], choseInterval: number) {
         shortAxis = d3.axisBottom(focusedTimeScale).ticks(d3.timeHour.every(choseInterval!/60));
@@ -124,7 +124,7 @@ export function drawTimelineAxis(params: {
     if(size!/60/24>15){
         shortAxis = d3.axisBottom(focusedTimeScale).ticks(d3.timeMonth.every(1));
     }
-    console.log('shortAxis', size, size!/60)
+    // console.log('shortAxis', size, size!/60)
 
     focusedAxisbase.call(shortAxis);
 

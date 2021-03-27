@@ -3,12 +3,15 @@ import json
 
 import numpy as np
 import pandas as pd
+import featuretools as ft
 from flask.json import JSONEncoder
 from flask import request, jsonify, Blueprint, current_app, Response
 
 from model.data import get_patient_records
 from model.modeler import Modeler
 from model.settings import interesting_variables, META_INFO, filter_variable, filter_variable1
+from engine.explanation import Explainer
+from engine.anomaly import find_anomalies
 
 api = Blueprint('api', __name__)
 
@@ -111,7 +114,9 @@ def get_available_ids():
     # subjects_ids1 = df[(df['complication'] == 1) & (df['SUBJECT_ID'].isin(subjects_ids))]["SUBJECT_ID"].values[:30].tolist()
     # return jsonify(subjects_ids1)
 
-    return jsonify([5856, 11300, 12332, 10515, 4632, 10363])
+    # return jsonify([5856, 11300, 12332, 10515, 4632, 10363])
+    # return jsonify([5856, 11300, 6754, 8276, 9217, 11743, 13286])
+    return jsonify([5856, 11300, 6560, 5281, 5392, 10007, 10398, 10515, 12332])
 
 
 @api.route('/individual_records', methods=['GET'])
@@ -342,19 +347,31 @@ def get_feature_meta():
         else:
             info['period'] = 'others'
 
+        # if info['period'] == 'in-surgery':
+        #     feature_type = 'In-surgery Observations'
+        # elif info['period'] == 'pre-surgery':
+        #     if info['entityId'] == 'PRESCRIPTIONS':
+        #         feature_type = 'Pre-surgery Treatments'
+        #     else:
+        #         feature_type = 'Pre-surgery Observations'
+        # else:
+        #     if f.get_name() in ['Height', 'Weight', 'Age',
+        #                         'ADMISSIONS.ICD10_CODE_CN', 'ADMISSIONS.PATIENTS.GENDER']:
+        #         feature_type = 'Patient Information'
+        #     else:
+        #         feature_type = 'Surgery Information'
+
         if info['period'] == 'in-surgery':
-            feature_type = 'In-surgery Observations'
+            feature_type = 'In-surgery'
         elif info['period'] == 'pre-surgery':
-            if info['entityId'] == 'PRESCRIPTIONS':
-                feature_type = 'Pre-surgery Treatments'
-            else:
-                feature_type = 'Pre-surgery Observations'
+            feature_type = 'Pre-surgery'
         else:
             if f.get_name() in ['Height', 'Weight', 'Age',
                                 'ADMISSIONS.ICD10_CODE_CN', 'ADMISSIONS.PATIENTS.GENDER']:
-                feature_type = 'Patient Information'
+                feature_type = 'Pre-surgery'
             else:
-                feature_type = 'Surgery Information'
+                feature_type = 'In-surgery'
+
         info['type'] = feature_type
         feature_meta.append(info)
     return jsonify(feature_meta)
@@ -401,14 +418,14 @@ def get_what_if_shap_values():
     target = request.args.get('target')
     shap_values = {}
     fm = current_app.fm
-    if current_app.subject_idG:
+    if current_app.subject_idG is not None:
         fm = fm.loc[current_app.subject_idG]
         fm = fm[fm['complication'] == 0]
     model_manager = current_app.model_manager
     targets = Modeler.prediction_targets()
     stat = fm.agg(['mean', 'count', 'std']).T
-    stat['ci95_low'] = stat['mean'] - stat['std'] * 1.96
-    stat['ci95_high'] = stat['mean'] + stat['std'] * 1.96
+    stat['low'] = stat['mean'] - stat['std'] * 1.96
+    stat['high'] = stat['mean'] + stat['std'] * 1.96
     # stat['ci95_low'] = stat['mean'] - stat['std']
     # stat['ci95_high'] = stat['mean'] + stat['std']
 
@@ -416,30 +433,34 @@ def get_what_if_shap_values():
 
     # What-if analysis on out-of-distribution high values
 
-    high_features = target_fv[target_fv > stat['ci95_high']].index
+    high_features = target_fv[target_fv > stat['high']].index
     high_features = [f for f in high_features if f not in targets]
     if len(high_features) > 0:
         high_fm = pd.DataFrame(
             target_fv.values.repeat(len(high_features)).reshape(-1, len(high_features)),
             columns=high_features, index=fm.columns)
         for feature in high_features:
-            high_fm.loc[feature, feature] = stat.loc[feature]['ci95_high']
-        results = model_manager.explain(X=high_fm.T, target=target)
+            high_fm.loc[feature, feature] = stat.loc[feature]['high']
+        explanations = model_manager.explain(X=high_fm.T, target=target)
+        predictions = model_manager.predict_proba(X=high_fm.T)[target]
         for i, feature in enumerate(high_features):
-            shap_values[feature] = results.loc[i, feature]
+            shap_values[feature] = {'shap': explanations.loc[i, feature], 
+            'prediction': predictions[i]}
 
     # What-if analysis on out-of-distribution low values
-    low_features = target_fv[target_fv < stat['ci95_low']].index
+    low_features = target_fv[target_fv < stat['low']].index
     low_features = [f for f in low_features if f not in targets]
     if len(low_features) > 0:
         low_fm = pd.DataFrame(
             target_fv.values.repeat(len(low_features)).reshape(-1, len(low_features)),
             columns=low_features, index=fm.columns)
         for feature in low_features:
-            low_fm.loc[feature, feature] = stat.loc[feature]['ci95_low']
-        results = model_manager.explain(X=low_fm.T, target=target)
+            low_fm.loc[feature, feature] = stat.loc[feature]['low']
+        explanations = model_manager.explain(X=low_fm.T, target=target)
+        predictions = model_manager.predict_proba(X=low_fm.T)[target]
         for i, feature in enumerate(low_features):
-            shap_values[feature] = results.loc[i, feature]
+            shap_values[feature] = {'shap': explanations.loc[i, feature], 
+            'prediction': predictions[i]}
 
     return jsonify(shap_values)
 
@@ -482,3 +503,28 @@ def get_reference_value():
         }
     # print('final reference_value', references)
     return jsonify(references)
+
+@api.route('/explain_signal', methods=['GET'])
+def get_explain_signal():
+    subject_id = int(request.args.get('subject_id'))
+    item_id = request.args.get('item_id')
+    # primitive_list = request.args.get('items')
+    # start_time = request.args.get('start_time', None)
+    # end_time = request.args.get('end_time', None)
+    important_segs = []
+    for primitive in ['mean', 'std', 'trend']:
+        if primitive.lower() == 'mean':
+            primitive_fn = ft.primitives.Mean()
+            feature_name = "in-surgery#MEAN(SURGERY_VITAL_SIGNS.VALUE WHERE ITEMID = %s)" % (item_id)
+        elif primitive.lower() == 'std':
+            primitive_fn = ft.primitives.Std()
+            feature_name = "in-surgery#STD(SURGERY_VITAL_SIGNS.VALUE WHERE ITEMID = %s)" % (item_id)
+        elif primitive.lower() == 'trend':
+            primitive_fn = ft.primitives.Trend()
+            feature_name = "in-surgery#TREND(SURGERY_VITAL_SIGNS.VALUE, MONITOR_TIME WHERE ITEMID = %s)" % (item_id)
+        important_segs.append({
+            'featureName': feature_name,
+            'segments': current_app.ex.occlusion_explain(item_id, "SURGERY_VITAL_SIGNS", 
+            primitive_fn, subject_id, lower_threshold=True)})
+    
+    return jsonify(important_segs)

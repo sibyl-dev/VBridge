@@ -43,7 +43,7 @@
             // fill: url(#gini-gradient);
         }
         .x-axis-base {
-            stroke: #aaa;
+            // stroke: #aaa;
             stroke-width: 1px;
             font-size: 8px;
             opacity: 80%;
@@ -51,6 +51,11 @@
         line.reference-line {
             stroke-width: 2px;
             stroke: red;
+        }
+        text.reference-line-text {
+            font-size: 10px;
+            fill: red;
+            stroke-width: 1px;
         }
         line.reference-line-whatif {
             stroke-width: 2px;

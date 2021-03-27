@@ -9,14 +9,19 @@
     color: #61dafb;
 }
 
+.app-header {
+    line-height: 38px;
+}
+
 .system-name {
     font-style: bold;
     color: white;
     float: left;
     font-size: 40px;
     display: flex;
-    justify-content: center; 
+    justify-content: center;
     align-items: center;
+    margin-top: 7px;
 }
 
 .view-title {
@@ -28,8 +33,28 @@
 
 .view-title-text {
     position: absolute;
+    color: #fff;
     left: 10px;
     top: 0px;
+}
+
+.system-info {
+    height: 100%;
+}
+
+.system-widget {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    height: 100%;
+}
+
+.predictions {
+    margin-right: 50px;
+}
+
+.group-count {
+    margin-right: 20px
 }
 
 .widget {
@@ -44,7 +69,18 @@
 .widget-text {
     margin-left: 10px;
     margin-right: 5px;
-    color: #7fa5ec;
+    /* color: #7fa5ec; */
+    color: #fff;
+}
+
+.ant-switch-inner {
+    /* background-color: #001529;s */
+    justify-content: center;
+    align-items: center;
+}
+
+.ant-switch-checked {
+    background-color: #025caf;
 }
 
 .header-name {
@@ -59,10 +95,6 @@
     color: white;
     font-size: 20px;
     padding-left: 20px;
-}
-
-.app-header {
-    line-height: 38px;
 }
 
 .prediction-icon {
@@ -81,25 +113,30 @@
 
 .prediction-icon.inactive {
     /*background-color: #ccc;*/
-    border: #7fa5ec 3px solid;
+    /* border: #7fa5ec 3px solid; */
+    border: rgb(78, 121, 167) 3px solid;
     /*color: #7fa5ec;*/
 }
 
 .prediction-icon.active {
     /*background-color: #7fa5ec;*/
-    border: #e8b27c 3px solid;
+    /* border: #e8b27c 3px solid; */
+    border: rgb(242, 142, 44) 3px solid;
     /*color: #e8b27c;*/
 }
 
 .prediction-icon.selected.inactive {
     /*border: #ff4e78 2px solid;*/
     /* color: #ff4e78; */
-    background-color: #7fa5ec;
+    /* background-color: #7fa5ec; */
+    background-color: rgb(78, 121, 167);
 }
+
 .prediction-icon.selected.active {
     /*border: #ff4e78 2px solid;*/
     /* color: #ff4e78; */
-    background-color: #e8b27c;
+    /* background-color: #e8b27c; */
+    background-color: rgb(242, 142, 44);
 }
 
 #Filter {
@@ -153,9 +190,9 @@
 
 .between-view-link {
     stroke: #fff;
-    stroke-width: 1px;
+    stroke-width: 2px;
     fill: none;
-    opacity: 0.4;
+    opacity: 0.6;
 }
 
 .between-view-dot {
@@ -163,3 +200,13 @@
     /* stroke-width: 1px; */
     opacity: 0.4;
 }
+
+
+/* .legend-area {
+    width: 200px;
+    height: calc(100% - 20px);
+    max-height: 40px;
+    background-color: #fff;
+    margin-right: 80px;
+    border-radius: 2px;
+} */

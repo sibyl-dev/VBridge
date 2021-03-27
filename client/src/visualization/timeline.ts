@@ -23,6 +23,7 @@ export function drawTimeline(params: {
     const margin = getMargin(params.margin || {});
     const height = params.height - margin.top - margin.bottom;
     const width = params.width - margin.left - margin.right;
+    const cellPadding = 1;
 
     const base = getChildOrAppend<SVGGElement, SVGElement>(root, "g", "base")
         .attr("transform", `translate(${margin.left}, ${margin.top})`);
@@ -112,13 +113,50 @@ export function drawTimeline(params: {
                 .attr("class", "timeline-cell");
         }, update => update,
             exit => { exit.remove() })
-        .attr("x", d => t(d.binStartTime) + 1)
-        .attr('y', 1)
+        .attr("x", d => t(d.binStartTime) + cellPadding)
+        .attr('y', cellPadding)
         .attr("rx", 2)
-        .attr('width', d => t(d.binEndTime) - t(d.binStartTime) - 2)
-        .attr("height", height - 2)
+        .attr('width', d => t(d.binEndTime) - t(d.binStartTime) - cellPadding * 2)
+        .attr("height", height - cellPadding)
         .style("fill", defaultCategoricalColor(0))
         .style('opacity', d => opacity(d.count))
+
+    // bubbleBase.selectAll(".timeline-cell-inner")
+    //     .data(events)
+    //     .join<SVGRectElement>(enter => {
+    //         return enter
+    //             .append("rect")
+    //             .attr("class", "timeline-cell-inner");
+    //     }, update => update,
+    //         exit => { exit.remove() })
+    //     .attr("x", d => t(d.binStartTime) + cellPadding +
+    //         (t(d.binEndTime) - t(d.binStartTime) - cellPadding * 2) * (d.abnormalItems!.length / d.items!.length) / 2)
+    //     .attr('y', d => cellPadding + ((height - cellPadding * 2)) * (d.abnormalItems!.length / d.items!.length) / 2)
+    //     .attr("rx", 2)
+    //     .attr('width', d => (t(d.binEndTime) - t(d.binStartTime) - cellPadding * 2) * (1 - d.abnormalItems!.length / d.items!.length))
+    //     .attr("height", d => (height - cellPadding * 2) * (1 - d.abnormalItems!.length / d.items!.length))
+    //     .style("fill", defaultCategoricalColor(0))
+    //     .style('opacity', d => opacity(d.count))
+
+    bubbleBase.selectAll(".timeline-cell-inner")
+    .data(events)
+    .join<SVGRectElement>(enter => {
+        return enter
+            .append("rect")
+            .attr("class", "timeline-cell-inner");
+    }, update => update,
+        exit => { exit.remove() })
+    .attr("x", d => t(d.binStartTime) + cellPadding +
+        (t(d.binEndTime) - t(d.binStartTime) - cellPadding * 2) * (1 - d.abnormalItems!.length / d.items!.length) / 2)
+    .attr('y', d => cellPadding + ((height - cellPadding * 2)) * (1 - d.abnormalItems!.length / d.items!.length) / 2)
+    .attr("rx", 2)
+    .attr('width', d => (t(d.binEndTime) - t(d.binStartTime) - cellPadding * 2) * (d.abnormalItems!.length / d.items!.length))
+    .attr("height", d => (height - cellPadding * 2) * (d.abnormalItems!.length / d.items!.length))
+    // .style("fill", color?color:defaultCategoricalColor(0))
+    .style("fill", defaultCategoricalColor(0))
+    // .style("fill", "#000")
+    .style('opacity', d => opacity(d.count))
+
     // .style('stroke', 'black')
     // .style('stroke-width', '1px')
     // .attr("transform", d=> `translate(0, ${height - r(d.count)})`);

@@ -1,4 +1,5 @@
 import { Button } from "antd";
+import { ReferenceValueDict } from "data/common";
 import { IEvent } from "data/event";
 import { Entity } from "data/table";
 import React from "react";
@@ -27,6 +28,7 @@ export interface TimelineProps {
     timeScale?: d3.ScaleTime<number, number>,
     timelineStyle: Partial<TimelineStyle>,
     onSelectEvents?: (startDate: Date, endDate: Date) => void,
+    referenceValues?: (tableName: string) => ReferenceValueDict | undefined,
 }
 
 export interface TimelineStates {

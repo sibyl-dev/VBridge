@@ -12,7 +12,9 @@ import "./index.scss"
 import { TimelineList } from "./TimelineList";
 import { FeatureMeta } from "data/feature";
 import { IDataFrame, ISeries } from "data-forge";
+import { isDefined, ReferenceValueDict } from "data/common";
 
+const QUATER_IN_MILI = 1000 * 60 * 15;
 const HOUR_IN_QUATER = 4;
 const IntervalBins = [1, 2, HOUR_IN_QUATER, HOUR_IN_QUATER * 2, HOUR_IN_QUATER * 4, HOUR_IN_QUATER * 8,
     HOUR_IN_QUATER * 12, HOUR_IN_QUATER * 24, HOUR_IN_QUATER * 48];
@@ -25,6 +27,7 @@ export interface TimelineViewProps {
     tableRecords: Entity<number, any>[],
     onSelectEvents?: (entityName: string, startDate: Date, endDate: Date) => void,
     entityCategoricalColor?: (entityName?: string) => string,
+    referenceValues?: (tableName: string) => ReferenceValueDict | undefined,
     width: number,
 }
 
@@ -75,7 +78,7 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
     }
 
     private _extractEvents() {
-        const { tableRecords } = this.props
+        const { tableRecords, referenceValues } = this.props
         const { intervalByQuarter, startDate, endDate } = this.state
 
         if (tableRecords && intervalByQuarter && startDate) {
@@ -84,27 +87,58 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
             const eventBins: IEventBin[][] = [];
             for (const entity of tableRecords) {
                 const { timeIndex, name } = entity;
+                const referenceValueDict = referenceValues && referenceValues(name!)
 
                 const eventSeries: ISeries<number, IEvent> = entity.groupBy(row => row[timeIndex!]).select(group => {
+                    const { item_index, value_indexes } = entity.metaInfo!;
                     const sample = group.first();
+                    const items = _.uniq(group.getSeries(item_index!).toArray());
+                    const abnormalItems: string[] = [];
+                    let abnormalyCount = undefined;
+                    if (referenceValueDict) {
+                        abnormalyCount = group.where(row => {
+                            const item = row[item_index!]
+                            if (item_index && value_indexes && value_indexes.length > 0) {
+                                const value_index = value_indexes[0];
+                                const referenceValue = referenceValueDict(item);
+                                if (referenceValue) {
+                                    const outOfRange = (row[value_index] > referenceValue?.ci95[1]) || (row[value_index] < referenceValue?.ci95[0]);
+                                    if (outOfRange) {
+                                        abnormalItems.push(item);
+                                    }
+                                    return outOfRange
+                                }
+                            }
+                            return false
+                        }).count()
+                    }
                     return {
                         entityName: name!,
                         timestamp: new Date(sample[timeIndex!]),
-                        count: group.count()
+                        count: group.count(),
+                        abnormalyCount: abnormalyCount,
+                        items: items,
+                        abnormalItems: abnormalItems
                     }
                 });
 
                 const eventBinSeries: ISeries<number, IEventBin> = eventSeries
-                    .groupBy(row => Math.floor(row.timestamp.getTime() / (1000 * 60 * 15 * intervalByQuarter)))
+                    .groupBy(row => Math.floor(row.timestamp.getTime() / (QUATER_IN_MILI * intervalByQuarter)))
                     .select(group => {
                         const sample = group.first();
                         const binId = Math.floor(getIdbyQuarter(sample.timestamp.getTime() - startDate.getTime()) / intervalByQuarter);
-                        const binStartTime = new Date(startDate.getTime() + binId * (1000 * 60 * 15 * intervalByQuarter));
-                        const binEndTime = new Date(startDate.getTime() + (binId + 1) * (1000 * 60 * 15 * intervalByQuarter));
+                        const binStartTime = new Date(startDate.getTime() + binId * (QUATER_IN_MILI * intervalByQuarter));
+                        const binEndTime = new Date(startDate.getTime() + (binId + 1) * (QUATER_IN_MILI * intervalByQuarter));
+                        const groupArray = group.toArray();
+                        const items: string[] = _.uniq(_.flatten(groupArray.map(d => d.items).filter(isDefined)));
+                        const abnormalItems: string[] = _.uniq(_.flatten(groupArray.map(d => d.abnormalItems).filter(isDefined)));
                         return {
                             entityName: sample.entityName,
                             binStartTime, binEndTime, binId,
-                            count: _.sum(group.toArray().map(d => d.count))
+                            count: _.sum(groupArray.map(d => d.count)),
+                            abnormalyCount: _.sum(groupArray.map(d => d.abnormalyCount).filter(isDefined)),
+                            items: items,
+                            abnormalItems: abnormalItems
                         }
                     });
                 events.push(eventSeries.toArray());
@@ -131,7 +165,7 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
 
     public render() {
         const { patientMeta, tableRecords, onSelectEvents, entityCategoricalColor, tableNames, width } = this.props;
-        const { timeScale, events, eventBins, startDate, endDate } = this.state;
+        const { timeScale, events, eventBins, startDate, endDate, intervalByQuarter } = this.state;
         const margin: IMargin = { left: 15, right: 15, top: 0, bottom: 0 };
         const metaEvents = patientMeta ? [{
             name: 'Admit to Hospital',
@@ -175,20 +209,20 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
                         margin={{ top: 0, bottom: 0, left: 0, right: 0 }}
                     />
                 </div>}
-                {/* {tableRecords && choseInterval && firstStartDate && firstEndDate && <TimelineAxis
+                {/* {tableRecords && intervalByQuarter && startDate && endDate && <TimelineAxis
                     className="fix-on-bottom"
-                    startTime={firstStartDate}
-                    endTime={firstEndDate}
+                    startTime={startDate}
+                    endTime={endDate}
                     timelineStyle={{
                         width: width,
                         height: 60,
                         margin: { ...margin, bottom: 20, top: 0 }
                     }}
-                    formulateStartandEnd={this.formulateStartandEnd}
+                    // formulateStartandEnd={this.formulateStartandEnd}
                     updateTimeScale={this.updateTimeScale}
-                    events={wholeEvents}
+                    events={events}
                     color={defaultCategoricalColor}
-                    size={choseInterval}
+                    size={intervalByQuarter * 15}
                 />} */}
 
             </div>
