@@ -83,7 +83,7 @@ rect.selection {
     flex-wrap: wrap;
     margin-bottom: 10px;
     margin-right: 20px;
-    margin-left: 20px;
+    margin-left: 120px;
     font-size:10px;
     .abnormal{
         display: flex;
@@ -96,12 +96,13 @@ rect.selection {
         }
     }
     .eventsNumber{
-        margin-left:20px;
+        margin-left:150px;
         display: flex;
         align-items: baseline;
         .colorLegend{
             margin-left:5px;
             margin-right:5px;
+            margin-top:6px;
         }
     }
 
