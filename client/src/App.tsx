@@ -415,13 +415,11 @@ class App extends React.Component<AppProps, AppStates>{
 
   private entityCategoricalColor(entityName?: string) {
     const { tableNames } = this.state;
-    if (entityName && ['Demographic', 'Admission', 'Surgery'].includes(entityName))
+    if (entityName && ['Demographic', 'Admission', 'Surgery', 
+    'SURGERY_INFO', 'ADMISSIONS', 'PATIENTS'].includes(entityName))
       return defaultCategoricalColor(8);
     else if (tableNames && entityName) {
       let i = (tableNames?.indexOf(entityName) + 4);
-      // if (i == 3) {
-      //   i = 2;
-      // }
       return defaultCategoricalColor(i);
     }
     else {
@@ -634,7 +632,7 @@ class App extends React.Component<AppProps, AppStates>{
                 patientMeta={patientMeta}
                 featureMeta={featureMeta}
                 tableRecords={tableRecords}
-                width={window.innerWidth - featureViewWidth - ProfileWidth - 140 - xPadding * 2}
+                width={window.innerWidth - featureViewWidth - ProfileWidth - 160 - xPadding * 2}
                 onSelectEvents={this.updateSignalFromTimeline}
                 entityCategoricalColor={this.entityCategoricalColor}
                 referenceValues={referenceValues}
@@ -662,7 +660,7 @@ class App extends React.Component<AppProps, AppStates>{
                 featureMeta={featureMeta}
                 tableRecords={tableRecords}
                 signalMetas={signalMetas}
-                width={window.innerWidth - featureViewWidth - ProfileWidth - 40 - xPadding * 4}
+                width={window.innerWidth - featureViewWidth - ProfileWidth - 60 - xPadding * 4}
                 itemDicts={itemDicts}
                 color={this.entityCategoricalColor}
                 updateFocusedFeatures={this.updateFocusedFeatures}

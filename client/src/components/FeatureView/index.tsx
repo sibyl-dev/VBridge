@@ -1,4 +1,4 @@
-import { Feature, FeatureMeta, VFeature } from "data/feature";
+import { Feature, FeatureMeta } from "data/feature";
 import { PatientMeta } from "data/patient";
 import * as React from "react";
 import * as d3 from "d3";
@@ -8,7 +8,7 @@ import { DataFrame, IDataFrame } from "data-forge";
 import * as _ from "lodash"
 import { getScaleLinear, beautifulPrinter, defaultCategoricalColor } from "visualization/common";
 import {
-    ArrowDownOutlined, ArrowRightOutlined, ArrowUpOutlined, CaretRightOutlined, FilterOutlined, LineChartOutlined,
+    ArrowDownOutlined, ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, CaretRightOutlined, FilterOutlined, LineChartOutlined,
     QuestionCircleFilled,
     QuestionOutlined,
     SortAscendingOutlined, TableOutlined
@@ -18,7 +18,6 @@ import Histogram from "visualization/Histogram";
 import { arrayShallowCompare, getReferenceValue, isDefined, ReferenceValue } from "data/common";
 
 import "./index.scss"
-import Search from "antd/lib/input/Search";
 
 export interface FeatureViewProps {
     className?: string,
@@ -258,36 +257,96 @@ export interface FeatureListProps {
     inspectFeatureInTable?: (feature: Feature) => void,
 }
 
+type VFeature = {
+    feature: Feature,
+    show: boolean,
+    children: VFeature[],
+    parent?: VFeature,
+}
+
+function buildShowState(feature: Feature, parent?: VFeature): VFeature {
+    const nodeState: VFeature = {
+        feature: feature,
+        show: false,
+        parent: parent,
+        children: feature.children?.select(f => buildShowState(f)).toArray() || []
+    };
+    return nodeState;
+}
+
+function extractSelfAndChildren(showState: VFeature): VFeature[] {
+    return [showState, ..._.flatten(showState.children.map(f => extractSelfAndChildren(f)))];
+}
+
+function buildShowStateList(features: Feature[]): VFeature[] {
+    const VFeatureTree: VFeature[] = features.map(f => buildShowState(f));
+    for (const vfeature of VFeatureTree){
+        vfeature.show = true;
+    }
+    const VFeatureList: VFeature[] = _.flatten(VFeatureTree.map(s => extractSelfAndChildren(s)));
+
+    return VFeatureList;
+}
+
 export interface FeatureListStates {
     // Contribution sorting order
     order?: 'ascending' | 'dscending',
     threshold?: [number, number],
+    VFeatureList: VFeature[],
 }
 
 export class FeatureList extends React.Component<FeatureListProps, FeatureListStates> {
     constructor(props: FeatureListProps) {
         super(props);
 
-        this.state = { order: 'dscending' };
+        this.state = { order: 'dscending', VFeatureList: buildShowStateList(props.features.toArray()) };
 
         this.onClick = this.onClick.bind(this);
         this.getContributions = this.getContributions.bind(this);
         this.sortFeatures = this.sortFeatures.bind(this);
         this.getContributionXScale = this.getContributionXScale.bind(this);
+        this.flipShowState = this.flipShowState.bind(this);
     }
 
     private onClick(newOrder?: 'ascending' | 'dscending') {
         this.setState({ order: newOrder })
     }
 
-    private getContributions(features: IDataFrame<number, Feature>, colName: string = 'contribution'): number[] {
-        let contributions = features.getSeries(colName).toArray();
-        for (const feature of features) {
-            if (feature.children) {
-                contributions = [...contributions, ...this.getContributions(feature.children)]
+    componentDidUpdate(prevProps: FeatureListProps){
+        if (prevProps.features != this.props.features) {
+            this.setState({VFeatureList: buildShowStateList(this.props.features.toArray())});
+        }
+    }
+
+    // private getContributions(features: IDataFrame<number, Feature>, colName: string = 'contribution'): number[] {
+    //     let contributions = features.getSeries(colName).toArray();
+    //     for (const feature of features) {
+    //         if (feature.children) {
+    //             contributions = [...contributions, ...this.getContributions(feature.children)]
+    //         }
+    //     }
+    //     return contributions
+    // }
+    private getContributions(features: VFeature[], colName: string = 'contribution'): number[] {
+        let contributions = features.map(f => f.feature.contribution);
+        return contributions
+    }
+
+    private flipShowState(feature: Feature) {
+        const { VFeatureList } = this.state;
+        // const VFeature = VFeatureList.find(d => d.feature === feature);
+        // if (VFeature) {
+        //     VFeature.show = !VFeature.show;
+        //     VFeature.children.forEach(c => c.show = !c.show);
+        // }
+        for (const vFeature of VFeatureList) {
+            if (vFeature.feature.name === feature.name){
+                vFeature.show = !vFeature.show;
+                vFeature.children.forEach(f => f.show = !f.show);
             }
         }
-        return contributions
+        console.log(VFeatureList.filter(d => d.show));
+        this.setState({ VFeatureList });
     }
 
     private sortFeatures(features: IDataFrame<number, any>): IDataFrame<number, any> {
@@ -308,10 +367,13 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
     }
 
     private getContributionXScale() {
-        const { features, cellWidth } = this.props;
+        const { cellWidth } = this.props;
+        const { VFeatureList } = this.state;
+        const features = VFeatureList.filter(f => f.show);
         const contributions = this.getContributions(features, 'contribution').map(v => Math.abs(v));
         const whatIfContributions = this.getContributions(features, 'contributionIfNormal').map(v => Math.abs(v));
         const maxAbsCont = _.max([...contributions, ...whatIfContributions]) as number;
+        console.log(maxAbsCont);
         return getScaleLinear(0, cellWidth(2), undefined, [-maxAbsCont, maxAbsCont]);
         // return getScaleLinear(0, cellWidth(2), contributions);
     }
@@ -372,6 +434,7 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
                             cellWidth={cellWidth}
                             key={row.name || row.alias}
                             threshold={threshold}
+                            onCollapse={this.flipShowState}
                         />
                     )}
                 </div>
@@ -399,6 +462,7 @@ export interface FeatureBlockProps {
 
     inspectFeatureInSignal?: (feature: Feature) => void,
     inspectFeatureInTable?: (feature: Feature) => void,
+    onCollapse?: (feature: Feature) => void;
 }
 export interface FeatureBlockStates {
     collapsed: boolean,
@@ -439,7 +503,10 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
     }
 
     protected onClickButton() {
+        const { onCollapse, feature } = this.props;
         this.setState({ collapsed: !this.state.collapsed });
+
+        window.setTimeout(() => onCollapse && onCollapse(feature), 500);
     }
 
     protected onClickDiv() {
@@ -555,9 +622,13 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                         >
                             <div>
                                 {/* {SHAPContributions({ feature, x, showWhatIf, height: 14, rectStyle: { opacity: !collapsed ? 0.3 : undefined } })} */}
-                                {SHAPContributions({ feature, x, showWhatIf, height: 14, 
-                                    posRectStyle: { fill: !collapsed ? '#f8a3bf': undefined},
-                                    negRectStyle: { fill: !collapsed ? '#9abce4': undefined}})}
+                                {SHAPContributions({
+                                    feature, x, showWhatIf, height: 14,
+                                    posRectStyle: { fill: !collapsed ? '#f8a3bf' : undefined },
+                                    negRectStyle: { fill: !collapsed ? '#9abce4' : undefined }
+                                })}
+                                {(contribution > x.domain()[1]) && <ArrowRightOutlined className="overflow-notation-right"/>}
+                                {(contribution < x.domain()[0]) && <ArrowLeftOutlined className="overflow-notation-left"/>}
                             </div>
                             {/* {showWhatIf && whatIfValue && <div className={"what-if-content"}>
                                 <span> After {(whatIfValue > (value as number))?'inceasing':'decreasing'} to {beautifulPrinter(whatIfValue)}</span>
@@ -618,6 +689,7 @@ const SHAPContributions = (params: {
     const posSegValue = _.range(0, 3).fill(0);
     const negSegValue = _.range(0, 3).fill(0);
     const width = x.range()[1] - x.range()[0];
+    console.log(x.domain());
     if (cont > 0) posSegValue[0] = cont;
     else negSegValue[0] = -cont;
     if (whatifcont !== undefined && showWhatIf) {
