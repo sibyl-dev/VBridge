@@ -70,11 +70,11 @@ export function drawTimeline(params: {
         if (selection) {
             let extent = selection.map(t.invert);
             // extent = calExtentRange(extent)
-            updateHandle(extent as [Date, Date]);
+            // updateHandle(extent as [Date, Date]);
             onBrush && onBrush(extent[0], extent[1], false);
         }
         else {
-            updateHandle();
+            // updateHandle();
         }
     }
 
@@ -83,11 +83,11 @@ export function drawTimeline(params: {
         if (selection) {
             let extent = selection.map(t.invert);
             // extent = calExtentRange(extent)
-            updateHandle(extent as [Date, Date]);
+            // updateHandle(extent as [Date, Date]);
             onBrush && onBrush(extent[0], extent[1], true);
         }
         else {
-            updateHandle();
+            // updateHandle();
         }
     }
 

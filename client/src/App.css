@@ -201,12 +201,13 @@
     opacity: 0.4;
 }
 
-
-/* .legend-area {
-    width: 200px;
+.legend-area {
+    width: 300px;
     height: calc(100% - 20px);
     max-height: 40px;
     background-color: #fff;
-    margin-right: 80px;
+    margin-right: 50px;
     border-radius: 2px;
-} */
+    justify-content: center;
+    align-items: center;
+}

@@ -544,16 +544,28 @@ class App extends React.Component<AppProps, AppStates>{
       <div className='App'>
 
         <Layout>
-          <Header className="app-header" id="header">
+          <Header className="app-header" id="header" style={{background: '#001529'}}>
 
             <span className='system-name'>VBridge</span>
             <div className='system-info'>
               <div className='system-widget'>
-                <div className='legend-area'>
-                </div>
+                {/* <div className='legend-area'>
+                  <div className="category-legend-container" style={{ height: '17px' }}>
+                    <div className="legend-block">
+                      <div className='legend-rect' style={{ backgroundColor: this.entityCategoricalColor('Admission') }} />
+                      <span className='legend-name'>{"Patient Info & Surgery Info"}</span>
+                    </div>
+                    {tableNames && tableNames.map(name =>
+                      <div className="legend-block" key={name}>
+                        <div className='legend-rect' style={{ backgroundColor: this.entityCategoricalColor(name) }} />
+                        <span className='legend-name'>{name.toLocaleLowerCase()}</span>
+                      </div>
+                    )}
+                  </div>
+                </div> */}
                 <span className='header-name'>Patient: </span>
                 <div className='header-content'>
-                  <Select style={{ width: 170 }} onChange={this.selectPatientId} className="patient-selector">
+                  <Select style={{ width: 120 }} onChange={this.selectPatientId} className="patient-selector">
                     {subjectIds && subjectIds.map((id, i) =>
                       <Option value={id} key={i}>{id}</Option>
                     )}

@@ -110,6 +110,7 @@
                         stroke-width: 1px;
                         opacity: 80%;
                         rx: 2px;
+                        transition: all 0.5s;
                     }
                     rect.pos-feature {
                         fill: #FF0155;
@@ -119,6 +120,7 @@
                         stroke-width: 1px;
                         rx: 2px;
                         opacity: 80%;
+                        transition: all 0.5s;
                     }
                     rect.a-sub-b {
                         // fill: #fff;
@@ -144,6 +146,7 @@
                         margin-left: 5px;
                         background-color: #aaa;
                         font-size: 8px;
+                        // opacity: 80%;
                         color: #fff;
                     }
                 }

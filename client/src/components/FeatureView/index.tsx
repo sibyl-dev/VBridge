@@ -1,4 +1,4 @@
-import { Feature, FeatureMeta } from "data/feature";
+import { Feature, FeatureMeta, VFeature } from "data/feature";
 import { PatientMeta } from "data/patient";
 import * as React from "react";
 import * as d3 from "d3";
@@ -133,7 +133,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                     value: featureValues(row['name']!),
                     contribution: shapValues(row['name']!),
                     contributionIfNormal: whatifResults && whatifResults.shap,
-                    predictionIfNormal: whatifResults && whatifResults.prediction
+                    predictionIfNormal: whatifResults && whatifResults.prediction,
                 };
             });
             // level-2: group-by item & period
@@ -555,7 +555,9 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                         >
                             <div>
                                 {/* {SHAPContributions({ feature, x, showWhatIf, height: 14, rectStyle: { opacity: !collapsed ? 0.3 : undefined } })} */}
-                                {SHAPContributions({ feature, x, showWhatIf, height: 14 })}
+                                {SHAPContributions({ feature, x, showWhatIf, height: 14, 
+                                    posRectStyle: { fill: !collapsed ? '#f8a3bf': undefined},
+                                    negRectStyle: { fill: !collapsed ? '#9abce4': undefined}})}
                             </div>
                             {/* {showWhatIf && whatIfValue && <div className={"what-if-content"}>
                                 <span> After {(whatIfValue > (value as number))?'inceasing':'decreasing'} to {beautifulPrinter(whatIfValue)}</span>
@@ -572,10 +574,10 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                         </div>
                     </div>
                 </div>
-                <span className={`feature-block-annote ${showState}`} style={{
+                {(isLeaf || collapsed) && <span className={`feature-block-annote ${showState}`} style={{
                     backgroundColor: entityCategoricalColor && entityCategoricalColor(entityId),
                     height: heigth
-                }} />
+                }} />}
                 <Button size="small" type="primary" shape="circle"
                     icon={<LineChartOutlined />} onClick={() => inspectFeatureInSignal && inspectFeatureInSignal(feature)}
                     className={"feature-button-linechart"}
@@ -607,9 +609,10 @@ const SHAPContributions = (params: {
     x: d3.ScaleLinear<number, number>,
     showWhatIf: boolean,
     height: number,
-    rectStyle?: React.CSSProperties
+    posRectStyle?: React.CSSProperties,
+    negRectStyle?: React.CSSProperties
 }) => {
-    const { feature, x, height, rectStyle, showWhatIf } = params;
+    const { feature, x, height, posRectStyle, negRectStyle, showWhatIf } = params;
     const cont = feature.contribution;
     const whatifcont = feature.contributionIfNormal;
     const posSegValue = _.range(0, 3).fill(0);
@@ -634,18 +637,18 @@ const SHAPContributions = (params: {
     }
     return <svg className={"contribution-svg"} height={height + 4}>
         <rect className="contribution-background" width={width} height={height + 2} x={x.range()[0]} y={0} />
-        {negSegValue[0] > 0 && <rect className="neg-feature a-and-b" style={rectStyle}
+        {negSegValue[0] > 0 && <rect className="neg-feature a-and-b" style={negRectStyle}
             width={x(negSegValue[0]) - x(0)} y={1} height={height} transform={`translate(${x(-negSegValue[0])}, 0)`} />}
-        {negSegValue[1] > 0 && <rect className="neg-feature a-sub-b" style={rectStyle}
+        {negSegValue[1] > 0 && <rect className="neg-feature a-sub-b" style={negRectStyle}
             width={x(negSegValue[1]) - x(0)} y={1} height={height} transform={`translate(${x(-negSegValue[1] - negSegValue[0])}, 0)`} />}
-        {negSegValue[2] > 0 && <rect className="neg-feature b-sub-a" style={rectStyle}
+        {negSegValue[2] > 0 && <rect className="neg-feature b-sub-a" style={negRectStyle}
             width={x(negSegValue[2]) - x(0)} y={1} height={height} transform={`translate(${x(-negSegValue[2] - negSegValue[0])}, 0)`} />}
 
-        {posSegValue[0] > 0 && <rect className="pos-feature a-and-b" style={rectStyle}
+        {posSegValue[0] > 0 && <rect className="pos-feature a-and-b" style={posRectStyle}
             width={x(posSegValue[0]) - x(0)} y={1} height={height} transform={`translate(${x(0)}, 0)`} />}
-        {posSegValue[1] > 0 && <rect className="pos-feature a-sub-b" style={rectStyle}
+        {posSegValue[1] > 0 && <rect className="pos-feature a-sub-b" style={posRectStyle}
             width={x(posSegValue[1]) - x(0)} y={1} height={height} transform={`translate(${x(posSegValue[0])}, 0)`} />}
-        {posSegValue[2] > 0 && <rect className="pos-feature b-sub-a" style={rectStyle}
+        {posSegValue[2] > 0 && <rect className="pos-feature b-sub-a" style={posRectStyle}
             width={x(posSegValue[2]) - x(0)} y={1} height={height} transform={`translate(${x(posSegValue[0])}, 0)`} />}
         <defs>
             <pattern id="pattern-stripe"

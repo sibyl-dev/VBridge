@@ -150,15 +150,22 @@ export function calIntervalsByQuarter(
   minBins: number,
   maxBins: number,
   intervalOptions: number[],
+  range?: number,
+  width?: number,
 ) {
-  for (const interval of intervalOptions) {
-    const extent = getRefinedStartEndTime(startTime, endTime, interval);
-    const nBins = (extent[1].getTime() - extent[0].getTime()) / (1000 * 60 * 15 * interval);
-    if (nBins <= maxBins && nBins >= minBins) {
-      return interval;
+  // if (width && range) {
+  //   const binNum = Math.floor(range / width);
+  // }
+  // else {s
+    for (const interval of intervalOptions) {
+      const extent = getRefinedStartEndTime(startTime, endTime, interval);
+      const nBins = (extent[1].getTime() - extent[0].getTime()) / (1000 * 60 * 15 * interval);
+      if (nBins <= maxBins && nBins >= minBins) {
+        return interval;
+      }
     }
-  }
-  return intervalOptions[intervalOptions.length - 1];
+    return intervalOptions[intervalOptions.length - 1];
+  // }
 }
 
 export function getScaleTime(
