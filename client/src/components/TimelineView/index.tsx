@@ -180,19 +180,20 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
 
         return (
             <div style={{ height: "100%", width: "100%" }}>
-                {entityCategoricalColor && <div className="category-legend-container" style={{ height: '17px' }}>
-                    <div className="legend-block">
-                        <div className='legend-rect' style={{ backgroundColor: entityCategoricalColor('Admission') }} />
-                        <span className='legend-name'>{"Patient Info & Surgery Info"}</span>
+                <div className='timeline-legend'>
+                    <div className="abnormal">
+                      <span> Less Abnormal Items </span>
+                      <div className='legend-rect' style={{ backgroundColor: '#919191',height:'10px', width:'10px'}} />
+                      <div className='legend-rect' style={{ backgroundColor: '#919191',height:'13px', width:'13px'}} />
+                      <div className='legend-rect' style={{ backgroundColor: '#919191',height:'16px', width:'16px'}} />
+                      <span> More Abnormal Items </span>
                     </div>
-                    {tableNames && tableNames.map(name =>
-                        <div className="legend-block" key={name}>
-                            <div className='legend-rect' style={{ backgroundColor: entityCategoricalColor(name) }} />
-                            <span className='legend-name'>{name.toLocaleLowerCase()}</span>
-                        </div>
-                    )}
-                </div>}
-
+                    <div className="eventsNumber">
+                      <span> Less Records </span>
+                      <div className='colorLegend' style={{ backgroundColor: '#919191',height:'10px', width:'50px'}} />
+                      <span> More Records </span>
+                    </div>
+                </div>
                 {tableRecords && eventBins && startDate && endDate && <div ref={this.ref} className={"timeline-view-content"}>
                     <TimelineList
                         // metaEvents={metaEvents}

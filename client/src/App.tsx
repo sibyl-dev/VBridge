@@ -547,20 +547,32 @@ class App extends React.Component<AppProps, AppStates>{
             <span className='system-name'>VBridge</span>
             <div className='system-info'>
               <div className='system-widget'>
-                {/* <div className='legend-area'>
-                  <div className="category-legend-container" style={{ height: '17px' }}>
-                    <div className="legend-block">
-                      <div className='legend-rect' style={{ backgroundColor: this.entityCategoricalColor('Admission') }} />
-                      <span className='legend-name'>{"Patient Info & Surgery Info"}</span>
-                    </div>
-                    {tableNames && tableNames.map(name =>
-                      <div className="legend-block" key={name}>
-                        <div className='legend-rect' style={{ backgroundColor: this.entityCategoricalColor(name) }} />
-                        <span className='legend-name'>{name.toLocaleLowerCase()}</span>
+                 
+                   <div className='legend-area'>
+                    <div className="category-legend-container">
+                      
+                      {tableNames && tableNames.map(name =>
+                        <div className="legend-block" key={name}>
+                          <div className='legend-rect' style={{ backgroundColor: this.entityCategoricalColor(name) }} />
+                          <span className='legend-name'>{name.toLocaleLowerCase()}</span>
+                        </div>
+                      )}
+                      <div className="legend-block">
+                        <div className='legend-rect' style={{ backgroundColor: this.entityCategoricalColor('Admission') }} />
+                        <span className='legend-name'>{"Patient Info & Surgery Info"}</span>
                       </div>
-                    )}
+                    </div>
+                  <div className='healthy-legend'>
+                    <div className="legend-block">
+                        <div className='legend-rect' style={{ backgroundColor: 'rgb(242, 142, 44)'}} />
+                        <span className='legend-name'>{"With complication"}</span>
+                      </div>
+                      <div className="legend-block">
+                        <div className='legend-rect' style={{ backgroundColor: 'rgb(78, 121, 167)'}} />
+                        <span className='legend-name'>{"Without complication"}</span>
+                      </div>
                   </div>
-                </div> */}
+                  </div>
                 <span className='header-name'>Patient: </span>
                 <div className='header-content'>
                   <Select style={{ width: 120 }} onChange={this.selectPatientId} className="patient-selector">

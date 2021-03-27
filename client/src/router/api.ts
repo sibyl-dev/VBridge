@@ -44,7 +44,10 @@ export async function getPatientRecords(params: {
 export async function getTableNames(): Promise<string[]> {
     const url = `${API}/table_names`;
     const response = await axios.get(url);
-    const tableNames = checkResponse(response, []);
+    let tableNames = checkResponse(response, []);
+    let tmp3 = tableNames[3]
+    tableNames[3] = tableNames[1]
+    tableNames[1] = tmp3
     return tableNames;
 }
 
