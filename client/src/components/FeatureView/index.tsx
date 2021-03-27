@@ -8,7 +8,7 @@ import { DataFrame, IDataFrame } from "data-forge";
 import * as _ from "lodash"
 import { getScaleLinear, beautifulPrinter, defaultCategoricalColor } from "visualization/common";
 import {
-    ArrowDownOutlined, ArrowRightOutlined, ArrowUpOutlined, CaretRightOutlined, FilterOutlined, LineChartOutlined,
+    ArrowDownOutlined, ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, CaretRightOutlined, FilterOutlined, LineChartOutlined,
     QuestionCircleFilled,
     QuestionOutlined,
     SortAscendingOutlined, TableOutlined
@@ -18,7 +18,6 @@ import Histogram from "visualization/Histogram";
 import { arrayShallowCompare, getReferenceValue, isDefined, ReferenceValue } from "data/common";
 
 import "./index.scss"
-import Search from "antd/lib/input/Search";
 
 export interface FeatureViewProps {
     className?: string,
@@ -121,21 +120,21 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
             const whatIfShapValues = await getWhatIfSHAPValues({ subject_id, target });
             // level-1: individual features
             const L1Features: IDataFrame<number, Feature> = featureMeta.select(row => {
-                const {entityId, whereItem} = row;
+                const { entityId, whereItem } = row;
                 const whatifResults = whatIfShapValues(row['name']!);
                 let alias = row.alias;
-                if (whereItem.length > 0) {
-                    const itemName = whereItem[1];
-                    const itemLabel = itemDicts && entityId && itemDicts(entityId, itemName!)?.LABEL;
-                    alias = `${row.alias}(${itemLabel || itemName})`
-                }
+                // if (whereItem.length > 0) {
+                //     const itemName = whereItem[1];
+                //     const itemLabel = itemDicts && entityId && itemDicts(entityId, itemName!)?.LABEL;
+                //     alias = `${row.alias}(${itemLabel || itemName})`
+                // }
                 return {
                     ...row,
                     alias,
                     value: featureValues(row['name']!),
                     contribution: shapValues(row['name']!),
                     contributionIfNormal: whatifResults && whatifResults.shap,
-                    predictionIfNormal: whatifResults && whatifResults.prediction
+                    predictionIfNormal: whatifResults && whatifResults.prediction,
                 };
             });
             // level-2: group-by item & period
@@ -260,36 +259,96 @@ export interface FeatureListProps {
     inspectFeatureInTable?: (feature: Feature) => void,
 }
 
+type VFeature = {
+    feature: Feature,
+    show: boolean,
+    children: VFeature[],
+    parent?: VFeature,
+}
+
+function buildShowState(feature: Feature, parent?: VFeature): VFeature {
+    const nodeState: VFeature = {
+        feature: feature,
+        show: false,
+        parent: parent,
+        children: feature.children?.select(f => buildShowState(f)).toArray() || []
+    };
+    return nodeState;
+}
+
+function extractSelfAndChildren(showState: VFeature): VFeature[] {
+    return [showState, ..._.flatten(showState.children.map(f => extractSelfAndChildren(f)))];
+}
+
+function buildShowStateList(features: Feature[]): VFeature[] {
+    const VFeatureTree: VFeature[] = features.map(f => buildShowState(f));
+    for (const vfeature of VFeatureTree){
+        vfeature.show = true;
+    }
+    const VFeatureList: VFeature[] = _.flatten(VFeatureTree.map(s => extractSelfAndChildren(s)));
+
+    return VFeatureList;
+}
+
 export interface FeatureListStates {
     // Contribution sorting order
     order?: 'ascending' | 'dscending',
     threshold?: [number, number],
+    VFeatureList: VFeature[],
 }
 
 export class FeatureList extends React.Component<FeatureListProps, FeatureListStates> {
     constructor(props: FeatureListProps) {
         super(props);
 
-        this.state = { order: 'dscending' };
+        this.state = { order: 'dscending', VFeatureList: buildShowStateList(props.features.toArray()) };
 
         this.onClick = this.onClick.bind(this);
         this.getContributions = this.getContributions.bind(this);
         this.sortFeatures = this.sortFeatures.bind(this);
         this.getContributionXScale = this.getContributionXScale.bind(this);
+        this.flipShowState = this.flipShowState.bind(this);
     }
 
     private onClick(newOrder?: 'ascending' | 'dscending') {
         this.setState({ order: newOrder })
     }
 
-    private getContributions(features: IDataFrame<number, Feature>, colName: string = 'contribution'): number[] {
-        let contributions = features.getSeries(colName).toArray();
-        for (const feature of features) {
-            if (feature.children) {
-                contributions = [...contributions, ...this.getContributions(feature.children)]
+    componentDidUpdate(prevProps: FeatureListProps){
+        if (prevProps.features != this.props.features) {
+            this.setState({VFeatureList: buildShowStateList(this.props.features.toArray())});
+        }
+    }
+
+    // private getContributions(features: IDataFrame<number, Feature>, colName: string = 'contribution'): number[] {
+    //     let contributions = features.getSeries(colName).toArray();
+    //     for (const feature of features) {
+    //         if (feature.children) {
+    //             contributions = [...contributions, ...this.getContributions(feature.children)]
+    //         }
+    //     }
+    //     return contributions
+    // }
+    private getContributions(features: VFeature[], colName: string = 'contribution'): number[] {
+        let contributions = features.map(f => f.feature.contribution);
+        return contributions
+    }
+
+    private flipShowState(feature: Feature) {
+        const { VFeatureList } = this.state;
+        // const VFeature = VFeatureList.find(d => d.feature === feature);
+        // if (VFeature) {
+        //     VFeature.show = !VFeature.show;
+        //     VFeature.children.forEach(c => c.show = !c.show);
+        // }
+        for (const vFeature of VFeatureList) {
+            if (vFeature.feature.name === feature.name){
+                vFeature.show = !vFeature.show;
+                vFeature.children.forEach(f => f.show = !f.show);
             }
         }
-        return contributions
+        console.log(VFeatureList.filter(d => d.show));
+        this.setState({ VFeatureList });
     }
 
     private sortFeatures(features: IDataFrame<number, any>): IDataFrame<number, any> {
@@ -310,10 +369,13 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
     }
 
     private getContributionXScale() {
-        const { features, cellWidth } = this.props;
+        const { cellWidth } = this.props;
+        const { VFeatureList } = this.state;
+        const features = VFeatureList.filter(f => f.show);
         const contributions = this.getContributions(features, 'contribution').map(v => Math.abs(v));
         const whatIfContributions = this.getContributions(features, 'contributionIfNormal').map(v => Math.abs(v));
         const maxAbsCont = _.max([...contributions, ...whatIfContributions]) as number;
+        console.log(maxAbsCont);
         return getScaleLinear(0, cellWidth(2), undefined, [-maxAbsCont, maxAbsCont]);
         // return getScaleLinear(0, cellWidth(2), contributions);
     }
@@ -374,6 +436,7 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
                             cellWidth={cellWidth}
                             key={row.name || row.alias}
                             threshold={threshold}
+                            onCollapse={this.flipShowState}
                         />
                     )}
                 </div>
@@ -401,6 +464,7 @@ export interface FeatureBlockProps {
 
     inspectFeatureInSignal?: (feature: Feature) => void,
     inspectFeatureInTable?: (feature: Feature) => void,
+    onCollapse?: (feature: Feature) => void;
 }
 export interface FeatureBlockStates {
     collapsed: boolean,
@@ -441,7 +505,10 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
     }
 
     protected onClickButton() {
+        const { onCollapse, feature } = this.props;
         this.setState({ collapsed: !this.state.collapsed });
+
+        window.setTimeout(() => onCollapse && onCollapse(feature), 500);
     }
 
     protected onClickDiv() {
@@ -513,8 +580,8 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                     {children && <CaretRightOutlined className="right-button"
                         onClick={this.onClickButton} rotate={collapsed ? 0 : 90} />}
                 </div>
-                <div className={`feature-block ${showState}` + ((depth === 0) ? " feature-top-block" : "" 
-                + collapsed ? "" : " expanded"
+                <div className={`feature-block ${showState}` + ((depth === 0) ? " feature-top-block" : ""
+                    + collapsed ? "" : " expanded"
                 )}
                     id={id}
                     style={{
@@ -525,7 +592,7 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                     <div className={`feature-block-inner`}>
                         <Tooltip title={alias}>
                             <div className="feature-block-cell feature-name" style={{ width: cellWidth(0) - 10 * depth }}>
-                                <span className={"feature-block-cell-text"}>{beautifulPrinter(alias, 20)}</span>
+                                <span className={"feature-block-cell-text"}>{showDistibution ? alias : beautifulPrinter(alias, 22)}</span>
                             </div>
                         </Tooltip>
                         <div className={"feature-block-cell" + (isLeaf ? " feature-value" : "")}
@@ -556,27 +623,34 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                         // onClick={() => this.setState({ showWhatIf: !showWhatIf })}
                         >
                             <div>
-                                {SHAPContributions({ feature, x, showWhatIf, height: 14, rectStyle: { opacity: !collapsed ? 0.3 : undefined } })}
+                                {/* {SHAPContributions({ feature, x, showWhatIf, height: 14, rectStyle: { opacity: !collapsed ? 0.3 : undefined } })} */}
+                                {SHAPContributions({
+                                    feature, x, showWhatIf, height: 14,
+                                    posRectStyle: { fill: !collapsed ? '#f8a3bf' : undefined },
+                                    negRectStyle: { fill: !collapsed ? '#9abce4' : undefined }
+                                })}
+                                {(contribution > x.domain()[1]) && <ArrowRightOutlined className="overflow-notation-right"/>}
+                                {(contribution < x.domain()[0]) && <ArrowLeftOutlined className="overflow-notation-left"/>}
                             </div>
                             {/* {showWhatIf && whatIfValue && <div className={"what-if-content"}>
                                 <span> After {(whatIfValue > (value as number))?'inceasing':'decreasing'} to {beautifulPrinter(whatIfValue)}</span>
                             </div>} */}
                             {showWhatIf && predictionIfNormal && whatIfValue && <div className={"what-if-label"}>
-                                <div className={"label-circle"} style={{backgroundColor: defaultCategoricalColor(Math.round(prediction))}}>
-                                    {prediction > 0.5 ?'Has C.':'No C.'}
+                                <div className={"label-circle"} style={{ backgroundColor: defaultCategoricalColor(Math.round(prediction)) }}>
+                                    {prediction > 0.5 ? 'Has C.' : 'No C.'}
                                 </div>
                                 <ArrowRightOutlined />
-                                <div className={"label-circle"} style={{backgroundColor: defaultCategoricalColor(Math.round(predictionIfNormal))}}>
-                                {predictionIfNormal > 0.5 ?'Has C.':'No C.'}
+                                <div className={"label-circle"} style={{ backgroundColor: defaultCategoricalColor(Math.round(predictionIfNormal)) }}>
+                                    {predictionIfNormal > 0.5 ? 'Has C.' : 'No C.'}
                                 </div>
                             </div>}
                         </div>
                     </div>
                 </div>
-                <span className={`feature-block-annote ${showState}`} style={{
+                {(isLeaf || collapsed) && <span className={`feature-block-annote ${showState}`} style={{
                     backgroundColor: entityCategoricalColor && entityCategoricalColor(entityId),
                     height: heigth
-                }} />
+                }} />}
                 <Button size="small" type="primary" shape="circle"
                     icon={<LineChartOutlined />} onClick={() => inspectFeatureInSignal && inspectFeatureInSignal(feature)}
                     className={"feature-button-linechart"}
@@ -608,14 +682,16 @@ const SHAPContributions = (params: {
     x: d3.ScaleLinear<number, number>,
     showWhatIf: boolean,
     height: number,
-    rectStyle?: React.CSSProperties
+    posRectStyle?: React.CSSProperties,
+    negRectStyle?: React.CSSProperties
 }) => {
-    const { feature, x, height, rectStyle, showWhatIf } = params;
+    const { feature, x, height, posRectStyle, negRectStyle, showWhatIf } = params;
     const cont = feature.contribution;
     const whatifcont = feature.contributionIfNormal;
     const posSegValue = _.range(0, 3).fill(0);
     const negSegValue = _.range(0, 3).fill(0);
     const width = x.range()[1] - x.range()[0];
+    console.log(x.domain());
     if (cont > 0) posSegValue[0] = cont;
     else negSegValue[0] = -cont;
     if (whatifcont !== undefined && showWhatIf) {
@@ -633,20 +709,20 @@ const SHAPContributions = (params: {
         // negative differences: b - a
         negSegValue[2] = (whatifcont < 0) ? Math.max(0, (-whatifcont) - Math.max(0, (-cont))) : 0;
     }
-    return <svg className={"contribution-svg"} height={height+4}>
-        <rect className="contribution-background" width={width} height={height+2} x={x.range()[0]} y={0}/>
-        {negSegValue[0] > 0 && <rect className="neg-feature a-and-b" style={rectStyle}
+    return <svg className={"contribution-svg"} height={height + 4}>
+        <rect className="contribution-background" width={width} height={height + 2} x={x.range()[0]} y={0} />
+        {negSegValue[0] > 0 && <rect className="neg-feature a-and-b" style={negRectStyle}
             width={x(negSegValue[0]) - x(0)} y={1} height={height} transform={`translate(${x(-negSegValue[0])}, 0)`} />}
-        {negSegValue[1] > 0 && <rect className="neg-feature a-sub-b" style={rectStyle}
+        {negSegValue[1] > 0 && <rect className="neg-feature a-sub-b" style={negRectStyle}
             width={x(negSegValue[1]) - x(0)} y={1} height={height} transform={`translate(${x(-negSegValue[1] - negSegValue[0])}, 0)`} />}
-        {negSegValue[2] > 0 && <rect className="neg-feature b-sub-a" style={rectStyle}
+        {negSegValue[2] > 0 && <rect className="neg-feature b-sub-a" style={negRectStyle}
             width={x(negSegValue[2]) - x(0)} y={1} height={height} transform={`translate(${x(-negSegValue[2] - negSegValue[0])}, 0)`} />}
 
-        {posSegValue[0] > 0 && <rect className="pos-feature a-and-b" style={rectStyle}
+        {posSegValue[0] > 0 && <rect className="pos-feature a-and-b" style={posRectStyle}
             width={x(posSegValue[0]) - x(0)} y={1} height={height} transform={`translate(${x(0)}, 0)`} />}
-        {posSegValue[1] > 0 && <rect className="pos-feature a-sub-b" style={rectStyle}
+        {posSegValue[1] > 0 && <rect className="pos-feature a-sub-b" style={posRectStyle}
             width={x(posSegValue[1]) - x(0)} y={1} height={height} transform={`translate(${x(posSegValue[0])}, 0)`} />}
-        {posSegValue[2] > 0 && <rect className="pos-feature b-sub-a" style={rectStyle}
+        {posSegValue[2] > 0 && <rect className="pos-feature b-sub-a" style={posRectStyle}
             width={x(posSegValue[2]) - x(0)} y={1} height={height} transform={`translate(${x(posSegValue[0])}, 0)`} />}
         <defs>
             <pattern id="pattern-stripe"

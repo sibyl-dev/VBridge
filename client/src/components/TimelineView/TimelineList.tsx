@@ -6,6 +6,7 @@ import { defaultMargin, getMargin, IMargin, MarginType } from "visualization/com
 import { drawTimeline } from "visualization/timeline";
 import { drawTimelineList } from "visualization/timeline3";
 import { color } from "echarts";
+import { LineChartOutlined, TableOutlined } from "@ant-design/icons";
 
 export interface TimelineStyle {
     width: number,
@@ -32,7 +33,7 @@ export interface TimelineListProps {
     color: (id: number) => string,
     margin: IMargin,
     // size: number,
-    calculateNewTime?: (time: Date) => Date|undefined,
+    calculateNewTime?: (time: Date) => Date | undefined,
 }
 
 export interface TimelineListStates {
@@ -44,6 +45,7 @@ export class TimelineList extends React.Component<TimelineListProps, TimelineLis
     private ref: React.RefObject<SVGSVGElement> = React.createRef();
     private shouldPaint: boolean = true;
     private selectedX: ([Date, Date] | undefined)[];
+    private focusedId: number = 0;
 
     constructor(props: TimelineListProps) {
         super(props);
@@ -82,8 +84,9 @@ export class TimelineList extends React.Component<TimelineListProps, TimelineLis
     private onSelectEvents(id: number, startDate: Date, endDate: Date, update: boolean) {
         const { onSelectEvents } = this.props;
         this.selectedX[id] = [startDate, endDate];
+        this.focusedId = id;
         // console.log('here onSelectEvents', startDate, endDate)
-        onSelectEvents && update && onSelectEvents(id, startDate, endDate);
+        // onSelectEvents && update && onSelectEvents(id, startDate, endDate);
     }
 
     private onMouseOver(id: number) {
@@ -132,24 +135,44 @@ export class TimelineList extends React.Component<TimelineListProps, TimelineLis
     }
 
     public render() {
-        const { className, titles, timeScale, margin, events, color } = this.props;
+        const { className, titles, timeScale, margin, events, color, onSelectEvents } = this.props;
         const { showButton, buttonRow } = this.state;
         const style = { ...defaultTimelineStyle, ...this.props.timelineStyle };
-        const buttonXPos = (buttonRow !== undefined) && timeScale && (timeScale(this.selectedX[buttonRow]![1]) + margin.left + 40);
+        const selectedX = this.selectedX;
+        const focusedId = this.focusedId;
+        const buttonXPos = (buttonRow !== undefined) && timeScale && (timeScale(this.selectedX[buttonRow]![1]) + margin.left + 25);
         const buttonYPos = (buttonRow !== undefined) && (style.height * (1 / 2 + buttonRow) + margin.top) - 5;
         const height = style.height * events.length + margin.top + margin.bottom;
 
         return <div className={"timeline-list" + (className ? ` ${className}` : "")}>
             <div className={"timeline-title-list"}>
-                {titles?.map((title, i) => <div className={"timeline-title"} 
-                style={{ height: style.height, borderLeftColor: color(i), borderLeftWidth: 4 }} key={title}>{title}</div>)}
+                {titles?.map((title, i) => <div className={"timeline-title"}
+                    style={{ height: style.height, borderLeftColor: color(i), borderLeftWidth: 4 }} key={title}>{title}</div>)}
             </div>
             <div className={"timeline-content"}>
-                {buttonXPos && buttonYPos && <Button style={{
+                {/* {buttonXPos && buttonYPos && <Button style={{
                     position: 'absolute', display: _.sum(showButton) > 0 ? 'block' : 'none',
                     left: buttonXPos, top: buttonYPos
                 }}
-                    type="primary" shape="round" size="small" className="detail-button">Details</Button>}
+                    type="primary" shape="round" size="small" className="detail-button">Details</Button>} */}
+                {buttonXPos && buttonYPos && selectedX && <Button size="small" type="primary" shape="circle"
+                    icon={<LineChartOutlined />}
+                    onClick={() => onSelectEvents && onSelectEvents(focusedId, selectedX[focusedId]![0], selectedX[focusedId]![1])}
+                    style={{
+                        position: 'absolute', display: _.sum(showButton) > 0 ? 'block' : 'none',
+                        left: buttonXPos, top: buttonYPos - 23
+                    }}
+                    className={"feature-button-linechart"}
+                />}
+                {buttonXPos && buttonYPos && <Button size="small" type="primary" shape="circle"
+                    icon={<TableOutlined />}
+                    // onClick={() => inspectFeatureInTable && inspectFeatureInTable(feature)}
+                    style={{
+                        position: 'absolute', display: _.sum(showButton) > 0 ? 'block' : 'none',
+                        left: buttonXPos, top: buttonYPos + 8
+                    }}
+                    className={"feature-button-table"}
+                />}
                 <svg ref={this.ref} className={"timeline-svg"} style={{ height: height }} />
             </div>
         </div>

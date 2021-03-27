@@ -84,7 +84,6 @@ def get_available_ids():
 
     # subjects_ids = fm.index
 
-
     # count the abnormality
     tmp_fm = fm[(fm['complication'] == 1) & (fm.index.isin(subjects_ids))]
     healthy = fm[fm['complication'] == 0]
@@ -112,7 +111,6 @@ def get_available_ids():
 
     # df = es["SURGERY_INFO"].df
     # subjects_ids1 = df[(df['complication'] == 1) & (df['SUBJECT_ID'].isin(subjects_ids))]["SUBJECT_ID"].values[:30].tolist()
-    # return jsonify(subjects_ids1)
 
     # return jsonify([5856, 11300, 12332, 10515, 4632, 10363])
     # return jsonify([5856, 11300, 6754, 8276, 9217, 11743, 13286])
@@ -125,7 +123,8 @@ def get_individual_records():
     subject_id = int(request.args.get('subject_id'))
     es = current_app.es
     cutoff_times = current_app.cutoff_times
-    records = get_patient_records(es, table_name, subject_id, cutoff_times=cutoff_times)
+    records = get_patient_records(
+        es, table_name, subject_id, cutoff_times=cutoff_times)
 
     return Response(records.to_csv(), mimetype="text/csv")
 
@@ -138,15 +137,18 @@ def get_patient_meta():
     hadm_df = es["ADMISSIONS"].df
     surgery_df = es["SURGERY_INFO"].df
     # print('hadm_df', hadm_df[hadm_df['SUBJECT_ID'] == subject_id])
-    info['AdmitTime'] = str(hadm_df[hadm_df['SUBJECT_ID'] == subject_id]['ADMITTIME'].values[0])
+    info['AdmitTime'] = str(
+        hadm_df[hadm_df['SUBJECT_ID'] == subject_id]['ADMITTIME'].values[0])
     info['SurgeryEndTime'] = str(
         surgery_df[surgery_df['SUBJECT_ID'] == subject_id]['SURGERY_END_TIME'].values[0])
     info['SurgeryBeginTime'] = str(
         surgery_df[surgery_df['SUBJECT_ID'] == subject_id]['SURGERY_BEGIN_TIME'].values[0])
 
     patient_df = es["PATIENTS"].df
-    info['GENDER'] = patient_df[patient_df['SUBJECT_ID'] == subject_id]['GENDER'].values[0]
-    info['DOB'] = str(patient_df[patient_df['SUBJECT_ID'] == subject_id]['DOB'].values[0])
+    info['GENDER'] = patient_df[patient_df['SUBJECT_ID']
+                                == subject_id]['GENDER'].values[0]
+    info['DOB'] = str(patient_df[patient_df['SUBJECT_ID']
+                                 == subject_id]['DOB'].values[0])
     info['days'] = 0
 
     return jsonify(info)
@@ -185,7 +187,8 @@ def get_record_filterrange():
         if filter_name == 'GENDER':
             info[filter_name] = ['F', 'M']
         elif filter_name == 'Age':
-            info[filter_name] = ['< 1 month', '< 1 year', '1-3 years',  '> 3 years']
+            info[filter_name] = ['< 1 month',
+                                 '< 1 year', '1-3 years',  '> 3 years']
             all_records = list(set(fm[filter_name]))
             info['age'] = [min(all_records), max(all_records)]
         elif filter_name == 'SURGERY_NAME':
@@ -235,9 +238,11 @@ def get_patient_group():
                     if '< 1 month' in value:
                         filter_flag = filter_flag | (df[item] <= 1)
                     if '1-3 years' in value:
-                        filter_flag = filter_flag | (df[item] >= 12) & (df[item] <= 36)
+                        filter_flag = filter_flag | (
+                            df[item] >= 12) & (df[item] <= 36)
                     if '< 1 year' in value:
-                        filter_flag = filter_flag | (df[item] >= 1) & (df[item] <= 12)
+                        filter_flag = filter_flag | (
+                            df[item] >= 1) & (df[item] <= 12)
                     if '> 3 years' in value:
                         filter_flag = filter_flag | (df[item] >= 36)
                     df = df[filter_flag]
@@ -251,7 +256,8 @@ def get_patient_group():
                 elif item == 'GENDER':
                     df = df[df[item].isin(value)]
                 else:
-                    raise UserWarning("Condition: {} will not be considered.".format(item))
+                    raise UserWarning(
+                        "Condition: {} will not be considered.".format(item))
 
         subject_idG = df['SUBJECT_ID'].drop_duplicates().values.tolist()
 
@@ -297,7 +303,8 @@ def get_record_meta():
 def get_table_names():
     # table_names = ['LABEVENTS', 'SURGERY_VITAL_SIGNS', 'CHARTEVENTS', 'PRESCRIPTIONS',
     #                'MICROBIOLOGYEVENTS', 'INPUTEVENTS', 'OUTPUTEVENTS']
-    table_names = ['LABEVENTS', 'SURGERY_VITAL_SIGNS', 'CHARTEVENTS', 'PRESCRIPTIONS']
+    table_names = ['LABEVENTS', 'SURGERY_VITAL_SIGNS',
+                   'CHARTEVENTS', 'PRESCRIPTIONS']
     return jsonify(table_names)
 
 
@@ -329,8 +336,8 @@ def get_feature_meta():
         leve2_leaf_node = get_level2_leaf(f)
         info = {
             'name': f.get_name(),
-            'whereItem': leve2_leaf_node.where.get_name().split(' = ') \
-                if leve2_leaf_node and ('where' in leve2_leaf_node.__dict__) else [],
+            'whereItem': leve2_leaf_node.where.get_name().split(' = ')
+            if leve2_leaf_node and ('where' in leve2_leaf_node.__dict__) else [],
             'primitive': leve2_leaf_node and leve2_leaf_node.primitive.name,
             'entityId': leaf_node.entity_id,
             'columnName': leaf_node.get_name(),
@@ -408,7 +415,8 @@ def get_feature_values():
 def get_shap_values():
     subject_id = int(request.args.get('subject_id'))
     target = request.args.get('target')
-    shap_values = current_app.model_manager.explain(id=subject_id, target=target)
+    shap_values = current_app.model_manager.explain(
+        id=subject_id, target=target)
     return jsonify(shap_values.loc[0].to_dict())
 
 
@@ -437,30 +445,32 @@ def get_what_if_shap_values():
     high_features = [f for f in high_features if f not in targets]
     if len(high_features) > 0:
         high_fm = pd.DataFrame(
-            target_fv.values.repeat(len(high_features)).reshape(-1, len(high_features)),
+            target_fv.values.repeat(
+                len(high_features)).reshape(-1, len(high_features)),
             columns=high_features, index=fm.columns)
         for feature in high_features:
             high_fm.loc[feature, feature] = stat.loc[feature]['high']
         explanations = model_manager.explain(X=high_fm.T, target=target)
         predictions = model_manager.predict_proba(X=high_fm.T)[target]
         for i, feature in enumerate(high_features):
-            shap_values[feature] = {'shap': explanations.loc[i, feature], 
-            'prediction': predictions[i]}
+            shap_values[feature] = {'shap': explanations.loc[i, feature],
+                                    'prediction': predictions[i]}
 
     # What-if analysis on out-of-distribution low values
     low_features = target_fv[target_fv < stat['low']].index
     low_features = [f for f in low_features if f not in targets]
     if len(low_features) > 0:
         low_fm = pd.DataFrame(
-            target_fv.values.repeat(len(low_features)).reshape(-1, len(low_features)),
+            target_fv.values.repeat(
+                len(low_features)).reshape(-1, len(low_features)),
             columns=low_features, index=fm.columns)
         for feature in low_features:
             low_fm.loc[feature, feature] = stat.loc[feature]['low']
         explanations = model_manager.explain(X=low_fm.T, target=target)
         predictions = model_manager.predict_proba(X=low_fm.T)[target]
         for i, feature in enumerate(low_features):
-            shap_values[feature] = {'shap': explanations.loc[i, feature], 
-            'prediction': predictions[i]}
+            shap_values[feature] = {'shap': explanations.loc[i, feature],
+                                    'prediction': predictions[i]}
 
     return jsonify(shap_values)
 
@@ -483,12 +493,10 @@ def get_item_dict():
 def get_reference_value():
     table_name = request.args.get('table_name')
     column_name = request.args.get('column_name')
-    group_ids = request.args.get('group_ids')
     table_info = META_INFO[table_name]
     references = {}
     df = current_app.es[table_name].df
     filter_df = df[df['SUBJECT_ID'].isin(current_app.subject_idG)]
-    print('get_reference_value',len(filter_df), 'subject_idG', len(current_app.subject_idG))
     for group in filter_df.groupby(table_info.get('item_index')):
         item_name = group[0]
         mean, count, std = group[1][column_name].agg(['mean', 'count', 'std'])
@@ -504,6 +512,7 @@ def get_reference_value():
     # print('final reference_value', references)
     return jsonify(references)
 
+
 @api.route('/explain_signal', methods=['GET'])
 def get_explain_signal():
     subject_id = int(request.args.get('subject_id'))
@@ -511,20 +520,29 @@ def get_explain_signal():
     # primitive_list = request.args.get('items')
     # start_time = request.args.get('start_time', None)
     # end_time = request.args.get('end_time', None)
+    fm = current_app.fm
+    if current_app.subject_idG is not None:
+        reference_fm = fm.loc[current_app.subject_idG]
+        reference_fm = reference_fm[reference_fm['complication'] == 0]
     important_segs = []
     for primitive in ['mean', 'std', 'trend']:
         if primitive.lower() == 'mean':
             primitive_fn = ft.primitives.Mean()
-            feature_name = "in-surgery#MEAN(SURGERY_VITAL_SIGNS.VALUE WHERE ITEMID = %s)" % (item_id)
+            feature_name = "in-surgery#MEAN(SURGERY_VITAL_SIGNS.VALUE WHERE ITEMID = %s)" % (
+                item_id)
         elif primitive.lower() == 'std':
             primitive_fn = ft.primitives.Std()
-            feature_name = "in-surgery#STD(SURGERY_VITAL_SIGNS.VALUE WHERE ITEMID = %s)" % (item_id)
+            feature_name = "in-surgery#STD(SURGERY_VITAL_SIGNS.VALUE WHERE ITEMID = %s)" % (
+                item_id)
         elif primitive.lower() == 'trend':
             primitive_fn = ft.primitives.Trend()
-            feature_name = "in-surgery#TREND(SURGERY_VITAL_SIGNS.VALUE, MONITOR_TIME WHERE ITEMID = %s)" % (item_id)
+            feature_name = "in-surgery#TREND(SURGERY_VITAL_SIGNS.VALUE, MONITOR_TIME WHERE ITEMID = %s)" % (
+                item_id)
+        mean = reference_fm[feature_name].mean()
         important_segs.append({
             'featureName': feature_name,
-            'segments': current_app.ex.occlusion_explain(item_id, "SURGERY_VITAL_SIGNS", 
-            primitive_fn, subject_id, lower_threshold=True)})
-    
+            'segments': current_app.ex.occlusion_explain(item_id, "SURGERY_VITAL_SIGNS",
+                                                         primitive_fn, subject_id, lower_threshold=True, 
+                                                         flip=fm.loc[subject_id, feature_name] < mean)})
+
     return jsonify(important_segs)

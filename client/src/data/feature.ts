@@ -1,7 +1,7 @@
 import { IDataFrame } from "data-forge";
 
 export interface FeatureMeta {
-    name?: string,
+    name: string,
     alias: string,
     primitive?: string,
     entityId?: string,
@@ -18,5 +18,9 @@ export interface Feature extends FeatureMeta {
     contribution: number,
     contributionIfNormal?: number,
     predictionIfNormal?: number,
-    children?: IDataFrame<number, Feature>
+    children?: IDataFrame<number, Feature>,
+}
+
+export interface VFeature extends Feature {
+    show: boolean
 }

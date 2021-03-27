@@ -245,7 +245,7 @@ console.log(margin);
             .attr("width", d => t(new Date(d.endTime)) - t(new Date(d.startTime)) + 2 * padding)
             .attr("y", d => y(d.maxValue) - 5)
             .attr("height", d => y(d.minValue) - y(d.maxValue) + 10)
-            .attr("rx", 5);
+            .attr("rx", 2);
             // .attr("y", 0)
             // .attr("height", height);
     }
@@ -307,7 +307,7 @@ export default class LineChart extends React.PureComponent<LineChartProps> {
                 <defs>
                     <marker id="arrowhead" markerWidth="10" markerHeight="10" viewBox="0 0 20 20"
                         refX="0" refY="5" orient="auto">
-                        <polygon points="0 0, 10 5, 0 10" fill="#3c89e1a8" />
+                        <polygon points="0 0, 10 5, 0 10" fill="#e13c60" />
                     </marker>
                     {/* <marker id="arrowhead" viewBox="64 64 896 896"
                         orient="auto">
