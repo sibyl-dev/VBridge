@@ -80,7 +80,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
             if (selectedVectors?.length == 0) {
                 alert("No patient in the selection.");
             }
-            else if(selectedVectors&&!selectedVectors.includes(undefined)){
+            else if(selectedVectors){
                 console.log('selectedVectors', selectedVectors, selectedVectors&&selectedVectors[0]?'true':'false')
                 const selectedMatrix = selectedVectors && selectedVectors[0] ? new DataFrame(selectedVectors) : featureMatrix;
                 const selectedMatWithDesiredOutputs = selectedMatrix.where(row => row['complication'] === 0);
@@ -89,7 +89,9 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                 else {
                     const referenceValues = new DataFrame({
                         index: featureNames,
-                        values: featureNames.map(name => getReferenceValue(selectedMatWithDesiredOutputs.getSeries(name).toArray()))
+                        values: featureNames.map(name => 
+                             getReferenceValue(selectedMatWithDesiredOutputs.getSeries(name).toArray())
+                            )
                     })
                     this.setState({ selectedMatrix, selectedMatWithDesiredOutputs, selectedMatWithoutDesiredOutputs, referenceValues });
                 }
