@@ -496,8 +496,8 @@ def get_reference_value():
             'mean': 0 if np.isnan(mean) else mean,
             'std': 0 if np.isnan(std) else std,
             'count': 0 if np.isnan(count) else count,
-            'ci95': [0 if np.isnan(mean - 1.960 * std) else (mean - 1.960 * std),
-                     0 if np.isnan(mean + 1.960 * std) else (mean + 1.960 * std)]
+            'ci95': [0 if np.isnan(mean - 1.760 * std) else (mean - 1.760 * std),
+                     0 if np.isnan(mean + 1.760 * std) else (mean + 1.760 * std)]
             # 'ci95': [0 if np.isnan(mean - std) else (mean - std),
             #          0 if np.isnan(mean + std) else (mean + std)]
         }
@@ -530,11 +530,13 @@ def get_explain_signal():
             primitive_fn = ft.primitives.Trend()
             feature_name = "in-surgery#TREND(SURGERY_VITAL_SIGNS.VALUE, MONITOR_TIME WHERE ITEMID = %s)" % (
                 item_id)
-        mean = reference_fm[feature_name].mean()
-        important_segs.append({
-            'featureName': feature_name,
-            'segments': current_app.ex.occlusion_explain(item_id, "SURGERY_VITAL_SIGNS",
-                                                         primitive_fn, subject_id, lower_threshold=True, 
-                                                         flip=fm.loc[subject_id, feature_name] < mean)})
+        mean, std = reference_fm[feature_name].agg(['mean', 'std'])
+        target_value = fm.loc[subject_id, feature_name]
+        if abs(target_value - mean) > std * 0.1:
+            important_segs.append({
+                'featureName': feature_name,
+                'segments': current_app.ex.occlusion_explain(item_id, "SURGERY_VITAL_SIGNS",
+                                                            primitive_fn, subject_id, lower_threshold=True, 
+                                                            flip=target_value < mean)})
 
     return jsonify(important_segs)
