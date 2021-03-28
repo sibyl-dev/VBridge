@@ -635,11 +635,11 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                             </div>} */}
                             {showWhatIf && predictionIfNormal && whatIfValue && <div className={"what-if-label"}>
                                 <div className={"label-circle"} style={{ backgroundColor: defaultCategoricalColor(Math.round(prediction)) }}>
-                                    {prediction > 0.5 ? 'Has C.' : 'No C.'}
+                                    {prediction > 0.5 ? 'High' : 'Low'}
                                 </div>
                                 <ArrowRightOutlined />
                                 <div className={"label-circle"} style={{ backgroundColor: defaultCategoricalColor(Math.round(predictionIfNormal)) }}>
-                                    {predictionIfNormal > 0.5 ? 'Has C.' : 'No C.'}
+                                    {predictionIfNormal > 0.5 ? 'High' : 'Low'}
                                 </div>
                             </div>}
                         </div>
@@ -684,12 +684,11 @@ const SHAPContributions = (params: {
     negRectStyle?: React.CSSProperties
 }) => {
     const { feature, x, height, posRectStyle, negRectStyle, showWhatIf } = params;
-    const cont = feature.contribution;
+    const cont = Math.max(feature.contribution, x.domain()[1]);
     const whatifcont = feature.contributionIfNormal;
     const posSegValue = _.range(0, 3).fill(0);
     const negSegValue = _.range(0, 3).fill(0);
     const width = x.range()[1] - x.range()[0];
-    console.log(x.domain());
     if (cont > 0) posSegValue[0] = cont;
     else negSegValue[0] = -cont;
     if (whatifcont !== undefined && showWhatIf) {
