@@ -45,9 +45,9 @@ export async function getTableNames(): Promise<string[]> {
     const url = `${API}/table_names`;
     const response = await axios.get(url);
     let tableNames = checkResponse(response, []);
-    let tmp3 = tableNames[3]
-    tableNames[3] = tableNames[1]
-    tableNames[1] = tmp3
+    // let tmp3 = tableNames[3]
+    // tableNames[3] = tableNames[1]
+    // tableNames[1] = tmp3
     return tableNames;
 }
 

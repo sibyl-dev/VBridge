@@ -120,6 +120,8 @@ class App extends React.Component<AppProps, AppStates>{
 
     this.paintLink = this.paintLink.bind(this);
     this.removeLink = this.removeLink.bind(this);
+
+    this.tableNamesChange = this.tableNamesChange.bind(this)
   }
 
   componentDidMount() {
@@ -412,6 +414,17 @@ class App extends React.Component<AppProps, AppStates>{
     this.setState({ visible })
     // console.log('onClose', this.state.filterConditions)
   };
+  private tableNamesChange(name: string){
+    if(name == 'LABEVENTS')
+      return 'Lab Tests'
+    if(name == 'SURGERY_VITAL_SIGNS')
+      return 'Vital Signs'
+    if(name == 'CHARTEVENTS')
+      return 'Chart Signs'
+    return 'Prescriptions'
+
+  }
+
 
   private entityCategoricalColor(entityName?: string) {
     const { tableNames } = this.state;
@@ -554,22 +567,22 @@ class App extends React.Component<AppProps, AppStates>{
                       {tableNames && tableNames.map(name =>
                         <div className="legend-block" key={name}>
                           <div className='legend-rect' style={{ backgroundColor: this.entityCategoricalColor(name) }} />
-                          <span className='legend-name'>{name.toLocaleLowerCase()}</span>
+                          <span className='legend-name'>{this.tableNamesChange(name)}</span>
                         </div>
                       )}
                       <div className="legend-block">
                         <div className='legend-rect' style={{ backgroundColor: this.entityCategoricalColor('Admission') }} />
-                        <span className='legend-name'>{"Patient Info & Surgery Info"}</span>
+                        <span className='legend-name'>{"Patient & Surgery info"}</span>
                       </div>
                     </div>
                   <div className='healthy-legend'>
                     <div className="legend-block">
                         <div className='legend-rect' style={{ backgroundColor: 'rgb(242, 142, 44)'}} />
-                        <span className='legend-name'>{"With complication"}</span>
+                        <span className='legend-name'>{"High Risk"}</span>
                       </div>
                       <div className="legend-block">
                         <div className='legend-rect' style={{ backgroundColor: 'rgb(78, 121, 167)'}} />
-                        <span className='legend-name'>{"Without complication"}</span>
+                        <span className='legend-name'>{"Low Risk"}</span>
                       </div>
                   </div>
                   </div>

@@ -194,16 +194,9 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
         return (
             <div style={{ height: "100%", width: "100%" }}>
                 <div className='timeline-legend'>
-                    <div className="abnormal">
-                      <span> Less Abnormal Items </span>
-                      <div className='legend-rect' style={{ backgroundColor: '#919191',height:'10px', width:'10px'}} />
-                      <div className='legend-rect' style={{ backgroundColor: '#919191',height:'13px', width:'13px'}} />
-                      <div className='legend-rect' style={{ backgroundColor: '#919191',height:'16px', width:'16px'}} />
-                      <span> More Abnormal Items </span>
-                    </div>
                     <div className="eventsNumber">
                       <span> Less Records </span>
-                      <svg className="colorLegend" style={{ height:'10px', width:'90px' }}>
+                      <svg className="colorLegend" style={{ height:'16px', width:'150px' }}>
                           <defs>
                             <linearGradient id="gradient">
                               <stop offset="0%" stop-color={d3.interpolateBlues(0)}></stop>
@@ -214,6 +207,14 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
                         </svg>
                        {/*<svg ref={this.ref} className={"colorLegend"} style={{ height:'10px', width:'90px' }} />*/}
                       <span> More Records </span>
+                    </div>
+                    <div className="abnormal">
+                      <span> Less Abnormal Items </span>
+                          <div className='legend-rect' style={{ backgroundColor: '#919191',height:'13px', width:'13px'}} />
+                          <div className='legend-rect' style={{ backgroundColor: '#919191',height:'16px', width:'16px'}} />
+                          <div className='legend-rect' style={{ backgroundColor: '#919191',height:'19px', width:'19px'}} />
+
+                      <span> More Abnormal Items </span>
                     </div>
                 </div>
                 {tableRecords && eventBins && startDate && endDate && <div ref={this.ref} className={"timeline-view-content"}>
