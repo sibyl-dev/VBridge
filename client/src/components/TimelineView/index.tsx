@@ -6,6 +6,8 @@ import { Entity } from "data/table";
 import { defaultCategoricalColor, getScaleTime, IMargin, calIntervalsByQuarter, getRefinedStartEndTime, getIdbyQuarter } from "visualization/common";
 import { IEvent, IEventBin } from "data/event";
 import { TimelineAxis } from "./TimelineAxis";
+import  {drawLegend} from 'visualization/legend'
+
 // import { Timeline } from "./Timeline";
 
 import "./index.scss"
@@ -55,7 +57,18 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
 
     public componentDidMount() {
         this.init()
+        // this.paint()
     }
+    // private paint(){
+    //     const node = this.ref.current;
+    //     // if (node) {
+    //     //     drawLegend({
+    //     //         node: node,
+    //     //         height: 10,
+    //     //         width: 90,
+    //     //     });
+    //     // }
+    // }
     public init() {
         const { patientMeta } = this.props
         let startDate = patientMeta && patientMeta.AdmitTime;
@@ -190,7 +203,16 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
                     </div>
                     <div className="eventsNumber">
                       <span> Less Records </span>
-                      <div className='colorLegend' style={{ backgroundColor: '#919191',height:'10px', width:'50px'}} />
+                      <svg className="colorLegend" style={{ height:'10px', width:'90px' }}>
+                          <defs>
+                            <linearGradient id="gradient">
+                              <stop offset="0%" stop-color={d3.interpolateBlues(0)}></stop>
+                              <stop offset="100%" stop-color={d3.interpolateBlues(1)}></stop>
+                            </linearGradient>
+                          </defs>
+                          <rect height="20" width="150" style={{fill: "url('#gradient')"}}></rect>
+                        </svg>
+                       {/*<svg ref={this.ref} className={"colorLegend"} style={{ height:'10px', width:'90px' }} />*/}
                       <span> More Records </span>
                     </div>
                 </div>
