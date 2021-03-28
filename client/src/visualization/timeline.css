@@ -39,3 +39,13 @@
 .timeline-cell-inner {
     fill: rgb(145, 145, 145);
 }
+
+.time-tick-text {
+    font-size: 12px;
+    fill: rgb(71, 71, 71);
+    /* stroke: #aaa; */
+}
+
+.time-tick {
+    stroke: rgb(71, 71, 71);
+}

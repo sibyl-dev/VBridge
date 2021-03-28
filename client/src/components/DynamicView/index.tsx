@@ -60,6 +60,7 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
         };
 
         this.onPin = this.onPin.bind(this);
+        this.tableNamesChange = this.tableNamesChange.bind(this);
     }
     componentDidMount() {
         this.initSignals();
@@ -98,6 +99,17 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
         }
     }
 
+    private tableNamesChange(name: string){
+        if(name == 'LABEVENTS')
+          return 'Lab Tests'
+        if(name == 'SURGERY_VITAL_SIGNS')
+          return 'Vital Signs'
+        if(name == 'CHARTEVENTS')
+          return 'Chart Events'
+        return 'Prescriptions'
+    
+      }
+
     private onPin(signal: SignalMeta) {
         const { updatePinnedFocusedFeatures, pinSignal } = this.props;
         updatePinnedFocusedFeatures && updatePinnedFocusedFeatures(signal.relatedFeatureNames);
@@ -119,7 +131,7 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
             <div>
                 <div>
                     {signalGroups.map(group => <div key={group.first().tableName}>
-                        <Divider>{group.first().tableName}</Divider>
+                        <Divider>{this.tableNamesChange(group.first().tableName)}</Divider>
                         {group.toArray().map((signal, i) =>
                             <DynamicCard
                                 className={className}
@@ -261,7 +273,7 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
                     data={data}
                     referenceValue={referenceValues && referenceValues(itemName)}
                     segments={explain ? segmentExplanation && _.flatten(segmentExplanation.map(d => d.segments)) : []}
-                    height={expand ? height : 30}
+                    height={expand ? height : 32}
                     width={width}
                     xScale={xScale}
                     margin={expand ? margin : { ...margin, top: 4, bottom: 0}}

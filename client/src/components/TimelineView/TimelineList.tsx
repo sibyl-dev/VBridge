@@ -34,6 +34,7 @@ export interface TimelineListProps {
     margin: IMargin,
     // size: number,
     calculateNewTime?: (time: Date) => Date | undefined,
+    intervalByQuarter?: number,
 }
 
 export interface TimelineListStates {
@@ -104,7 +105,7 @@ export class TimelineList extends React.Component<TimelineListProps, TimelineLis
     }
 
     private paint() {
-        const { timeScale, color, metaEvents } = this.props;
+        const { timeScale, color, metaEvents, intervalByQuarter } = this.props;
         const style = { ...defaultTimelineStyle, ...this.props.timelineStyle };
         const { width, height, margin } = style;
         const node = this.ref.current;
@@ -129,6 +130,7 @@ export class TimelineList extends React.Component<TimelineListProps, TimelineLis
                 onMouseOver: this.onMouseOver,
                 onMouseLeave: this.onMouseLeave,
                 calculateNewTime: this.props.calculateNewTime,
+                intervalByQuarter: intervalByQuarter
             });
         }
         this.shouldPaint = false;
@@ -147,7 +149,8 @@ export class TimelineList extends React.Component<TimelineListProps, TimelineLis
         return <div className={"timeline-list" + (className ? ` ${className}` : "")}>
             <div className={"timeline-title-list"}>
                 {titles?.map((title, i) => <div className={"timeline-title"}
-                    style={{ height: style.height, borderLeftColor: color(i), borderLeftWidth: 4 }} key={title}>{title}</div>)}
+                    style={{ height: style.height, borderLeftColor: color(i), borderLeftWidth: 4 }} key={title}>
+                        <span className={"timeline-title-text"}>{title}</span></div>)}
             </div>
             <div className={"timeline-content"}>
                 {/* {buttonXPos && buttonYPos && <Button style={{
@@ -160,7 +163,7 @@ export class TimelineList extends React.Component<TimelineListProps, TimelineLis
                     onClick={() => onSelectEvents && onSelectEvents(focusedId, selectedX[focusedId]![0], selectedX[focusedId]![1])}
                     style={{
                         position: 'absolute', display: _.sum(showButton) > 0 ? 'block' : 'none',
-                        left: buttonXPos, top: buttonYPos - 23
+                        left: buttonXPos, top: buttonYPos - 3
                     }}
                     className={"feature-button-linechart"}
                 />}
@@ -169,7 +172,7 @@ export class TimelineList extends React.Component<TimelineListProps, TimelineLis
                     // onClick={() => inspectFeatureInTable && inspectFeatureInTable(feature)}
                     style={{
                         position: 'absolute', display: _.sum(showButton) > 0 ? 'block' : 'none',
-                        left: buttonXPos, top: buttonYPos + 8
+                        left: buttonXPos, top: buttonYPos + 28
                     }}
                     className={"feature-button-table"}
                 />}

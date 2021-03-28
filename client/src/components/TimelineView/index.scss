@@ -25,6 +25,7 @@
     flex-direction: column;
     width: 80px;
     margin-left: 20px;
+    margin-top: 20px;
 }
 
 .timeline-title {
@@ -35,7 +36,7 @@
     font-size: 10px;
     font-weight: bold;
     display: flex;
-    justify-content: center;
+    // justify-content: center;
     align-items: center;
     border-radius: 2px;
     /*padding-top:21px;*/
@@ -43,6 +44,13 @@
     border-left-width: 4px;
     border: 0px #eee solid;
     border-top-width: 1px;
+}
+
+.timeline-title-text {
+    float: left;
+    margin-left: 5px;
+    // float: right;
+    // margin-right: 5px;
 }
 
 .timeline-content {
@@ -78,6 +86,39 @@ rect.selection {
     font-size: 10px;
 }
 
+.timeline-legend {
+    width: 100%;
+    height: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+    margin-right: 20px;
+    font-size: 10px;
+    .abnormal {
+        display: flex;
+        align-items: center;
+        float: right;
+        margin-right: 40px;
+        .legend-rect {
+            margin-left: 5px;
+        }
+        span {
+            margin-left: 5px;
+        }
+    }
+    .eventsNumber {
+        margin-right: 30px;
+        display: flex;
+        align-items: center;
+        float: right;
+        .colorLegend {
+            margin-left: 5px;
+            margin-right: 5px;
+        }
+    }
+}
+
+
+/*
 .category-legend-container {
     width: 100%;
     display: flex;
@@ -93,6 +134,7 @@ rect.selection {
         .legend-rect {
             width: 10px;
             height: 10px;
+
             // margin-top: 5px;
         }
         .legend-name {
@@ -101,4 +143,4 @@ rect.selection {
             margin-right: 10px;
         }
     }
-}
+}*/

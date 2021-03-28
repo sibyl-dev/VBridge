@@ -194,6 +194,7 @@ class Explainer:
         # anomaly_list += find_anomalies(pos_v, index, anomaly_padding=0, lower_threshold=False).tolist()
         # anomaly_list += find_anomalies(neg_v, index, anomaly_padding=0, lower_threshold=False).tolist()
         print(v)
+        v = np.array([max(0, i) for i in v])
         anomaly_list = find_anomalies(v, index, anomaly_padding=0, lower_threshold=False).tolist()
         for anomaly in anomaly_list:
             # value means sum of the contributions

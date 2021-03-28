@@ -120,6 +120,8 @@ class App extends React.Component<AppProps, AppStates>{
 
     this.paintLink = this.paintLink.bind(this);
     this.removeLink = this.removeLink.bind(this);
+
+    this.tableNamesChange = this.tableNamesChange.bind(this)
   }
 
   componentDidMount() {
@@ -412,6 +414,17 @@ class App extends React.Component<AppProps, AppStates>{
     this.setState({ visible })
     // console.log('onClose', this.state.filterConditions)
   };
+  private tableNamesChange(name: string){
+    if(name == 'LABEVENTS')
+      return 'Lab Tests'
+    if(name == 'SURGERY_VITAL_SIGNS')
+      return 'Vital Signs'
+    if(name == 'CHARTEVENTS')
+      return 'Chart Events'
+    return 'Prescriptions'
+
+  }
+
 
   private entityCategoricalColor(entityName?: string) {
     const { tableNames } = this.state;
@@ -547,20 +560,32 @@ class App extends React.Component<AppProps, AppStates>{
             <span className='system-name'>VBridge</span>
             <div className='system-info'>
               <div className='system-widget'>
-                {/* <div className='legend-area'>
-                  <div className="category-legend-container" style={{ height: '17px' }}>
-                    <div className="legend-block">
-                      <div className='legend-rect' style={{ backgroundColor: this.entityCategoricalColor('Admission') }} />
-                      <span className='legend-name'>{"Patient Info & Surgery Info"}</span>
-                    </div>
-                    {tableNames && tableNames.map(name =>
-                      <div className="legend-block" key={name}>
-                        <div className='legend-rect' style={{ backgroundColor: this.entityCategoricalColor(name) }} />
-                        <span className='legend-name'>{name.toLocaleLowerCase()}</span>
+                 
+                   <div className='legend-area'>
+                    <div className="category-legend-container">
+                      
+                      {tableNames && tableNames.map(name =>
+                        <div className="legend-block" key={name}>
+                          <div className='legend-rect' style={{ backgroundColor: this.entityCategoricalColor(name) }} />
+                          <span className='legend-name'>{this.tableNamesChange(name)}</span>
+                        </div>
+                      )}
+                      <div className="legend-block">
+                        <div className='legend-rect' style={{ backgroundColor: this.entityCategoricalColor('Admission') }} />
+                        <span className='legend-name'>{"Patient & Surgery info"}</span>
                       </div>
-                    )}
+                    </div>
+                  <div className='healthy-legend'>
+                    <div className="legend-block">
+                        <div className='legend-rect' style={{ backgroundColor: 'rgb(242, 142, 44)'}} />
+                        <span className='legend-name'>{"High Risk"}</span>
+                      </div>
+                      <div className="legend-block">
+                        <div className='legend-rect' style={{ backgroundColor: 'rgb(78, 121, 167)'}} />
+                        <span className='legend-name'>{"Low Risk"}</span>
+                      </div>
                   </div>
-                </div> */}
+                  </div>
                 <span className='header-name'>Patient: </span>
                 <div className='header-content'>
                   <Select style={{ width: 120 }} onChange={this.selectPatientId} className="patient-selector">
@@ -581,10 +606,10 @@ class App extends React.Component<AppProps, AppStates>{
                   )}
                 </div>
 
-                <span className='header-name'>#Comparative Group:</span>
-                {/* <span className="header-name"> {`${patientGroup && patientGroup.ids ? patientGroup.ids.length : 0}
-                    (${patientGroup ? patientGroup.labelCounts[5] : 0})`} </span> */}
-                <span className="header-name group-count"> {`${patientGroup && patientGroup.ids ? patientGroup.ids.length : 0}`} </span>
+                <span className='header-name'>#Group:</span>
+                <span className="header-name"> {`${patientGroup && patientGroup.ids ? patientGroup.ids.length : 0}
+                    (${patientGroup ? patientGroup.labelCounts[5] : 0})`} </span>
+                {/* <span className="header-name group-count"> {`${patientGroup && patientGroup.ids ? patientGroup.ids.length : 0}`} </span> */}
                 <Tooltip title="Filter">
                   <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={this.showDrawer} style={{ zIndex: 1 }} />
                 </Tooltip>
@@ -627,7 +652,7 @@ class App extends React.Component<AppProps, AppStates>{
               title={<div className="view-title">
                 <span className="view-title-text">Timeline View</span>
               </div>}>
-              {featureMeta && tableNames && tableRecords && <TimelineView
+              {featureMeta && tableNames && tableRecords && referenceValues && <TimelineView
                 tableNames={tableNames}
                 patientMeta={patientMeta}
                 featureMeta={featureMeta}

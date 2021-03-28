@@ -50,11 +50,11 @@
 }
 
 .predictions {
-    margin-right: 50px;
+    margin-right: 40px;
 }
 
 .group-count {
-    margin-right: 20px
+    margin-right: 10px
 }
 
 .widget {
@@ -88,13 +88,14 @@
     color: white;
     font-size: 20px;
     text-align: right;
+    margin-right: 15px;
 }
 
 .header-content {
     font-style: bold;
     color: white;
     font-size: 20px;
-    padding-left: 20px;
+    padding-left: 10px;
 }
 
 .prediction-icon {
@@ -201,15 +202,80 @@
     opacity: 0.4;
 }
 
-.legend-area {
-    width: 300px;
-    height: calc(100% - 20px);
-    max-height: 40px;
-    background-color: #fff;
-    margin-right: 50px;
+.healthy-legend {
+    width: 120px;
+    height: 100%;
+    /*height: calc(100% - 20px);*/
+    /*max-height: 40px;*/
+    /*background-color: #fff;*/
     border-radius: 2px;
     justify-content: center;
     align-items: center;
+    float: left;
+    padding-left: 15px;
+    border-left: #fff 2px solid;
+    /*border-right: #fff 2px solid;*/
+}
+
+.category-legend-container {
+    width: 305px;
+    height: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    height: calc(100% - 20px);
+    max-height: 40px;
+    /*justify-content: center;*/
+    /*align-items: center;*/
+    float: left;
+    /*border-right: #ffffff solid 2px;*/
+}
+
+.legend-block {
+    display: flex;
+    /*justify-content: center;*/
+    align-items: center;
+    line-height: 26px;
+}
+
+.legend-rect {
+    width: 14px;
+    height: 14px;
+    /* border: 1px solid #fff; */
+    border-radius: 2px;
+}
+
+.healthy-legend .legend-rect {
+    border: none;
+    border-radius: 7.5px;
+}
+
+.legend-name {
+    font-size: 14px;
+    margin-left: 5px;
+    margin-right: 10px;
+    line-height: 20px;
+}
+
+
+/*.category-legend-container .legend-rect{
+    width: 10px;
+    height: 10px;
+    border: 1px solid #fff;
+}*/
+
+.legend-area {
+    width: 460px;
+    /*height: calc(100% - 20px);*/
+    /*height: 100%;*/
+    /*margin-top: -10px;*/
+    /*max-height: 40px;*/
+    /*background-color: #fff;*/
+    color: #fff;
+    /*margin-right: 50px;*/
+    border-radius: 2px;
+    justify-content: center;
+    align-items: center;
+    text-align: left;
 }
 
 .ant-divider {

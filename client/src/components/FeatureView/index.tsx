@@ -80,8 +80,8 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
             if (selectedVectors?.length == 0) {
                 alert("No patient in the selection.");
             }
-            else if (selectedVectors && !selectedVectors.includes(undefined)) {
-                // console.log('selectedVectors', selectedVectors, selectedVectors && selectedVectors[0] ? 'true' : 'false')
+            else if(selectedVectors){
+                console.log('selectedVectors', selectedVectors, selectedVectors&&selectedVectors[0]?'true':'false')
                 const selectedMatrix = selectedVectors && selectedVectors[0] ? new DataFrame(selectedVectors) : featureMatrix;
                 const selectedMatWithDesiredOutputs = selectedMatrix.where(row => row['complication'] === 0);
                 const selectedMatWithoutDesiredOutputs = selectedMatrix.where(row => row['complication'] !== 0);
@@ -89,7 +89,9 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                 else {
                     const referenceValues = new DataFrame({
                         index: featureNames,
-                        values: featureNames.map(name => getReferenceValue(selectedMatWithDesiredOutputs.getSeries(name).toArray()))
+                        values: featureNames.map(name => 
+                             getReferenceValue(selectedMatWithDesiredOutputs.getSeries(name).toArray())
+                            )
                     })
                     this.setState({ selectedMatrix, selectedMatWithDesiredOutputs, selectedMatWithoutDesiredOutputs, referenceValues });
                 }
@@ -684,7 +686,7 @@ const SHAPContributions = (params: {
     negRectStyle?: React.CSSProperties
 }) => {
     const { feature, x, height, posRectStyle, negRectStyle, showWhatIf } = params;
-    const cont = Math.max(feature.contribution, x.domain()[1]);
+    const cont = Math.min(feature.contribution, x.domain()[1]);
     const whatifcont = feature.contributionIfNormal;
     const posSegValue = _.range(0, 3).fill(0);
     const negSegValue = _.range(0, 3).fill(0);

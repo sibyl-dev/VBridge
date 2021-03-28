@@ -6,6 +6,8 @@ import { Entity } from "data/table";
 import { defaultCategoricalColor, getScaleTime, IMargin, calIntervalsByQuarter, getRefinedStartEndTime, getIdbyQuarter } from "visualization/common";
 import { IEvent, IEventBin } from "data/event";
 import { TimelineAxis } from "./TimelineAxis";
+import  {drawLegend} from 'visualization/legend'
+
 // import { Timeline } from "./Timeline";
 
 import "./index.scss"
@@ -55,7 +57,18 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
 
     public componentDidMount() {
         this.init()
+        // this.paint()
     }
+    // private paint(){
+    //     const node = this.ref.current;
+    //     // if (node) {
+    //     //     drawLegend({
+    //     //         node: node,
+    //     //         height: 10,
+    //     //         width: 90,
+    //     //     });
+    //     // }
+    // }
     public init() {
         const { patientMeta } = this.props
         let startDate = patientMeta && patientMeta.AdmitTime;
@@ -180,19 +193,30 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
 
         return (
             <div style={{ height: "100%", width: "100%" }}>
-                {entityCategoricalColor && <div className="category-legend-container" style={{ height: '17px' }}>
-                    <div className="legend-block">
-                        <div className='legend-rect' style={{ backgroundColor: entityCategoricalColor('Admission') }} />
-                        <span className='legend-name'>{"Patient Info & Surgery Info"}</span>
+                <div className='timeline-legend'>
+                    <div className="eventsNumber">
+                      <span> Less Records </span>
+                      <svg className="colorLegend" style={{ height:'16px', width:'150px' }}>
+                          <defs>
+                            <linearGradient id="gradient">
+                              <stop offset="0%" stop-color={d3.interpolateBlues(0.2)}></stop>
+                              <stop offset="100%" stop-color={d3.interpolateBlues(0.5)}></stop>
+                            </linearGradient>
+                          </defs>
+                          <rect height="20" width="150" style={{fill: "url('#gradient')"}}></rect>
+                        </svg>
+                       {/*<svg ref={this.ref} className={"colorLegend"} style={{ height:'10px', width:'90px' }} />*/}
+                      <span> More Records </span>
                     </div>
-                    {tableNames && tableNames.map(name =>
-                        <div className="legend-block" key={name}>
-                            <div className='legend-rect' style={{ backgroundColor: entityCategoricalColor(name) }} />
-                            <span className='legend-name'>{name.toLocaleLowerCase()}</span>
-                        </div>
-                    )}
-                </div>}
+                    <div className="abnormal">
+                      <span> Less Abnormal Items </span>
+                          <div className='legend-rect' style={{ backgroundColor: '#919191',height:'13px', width:'13px'}} />
+                          <div className='legend-rect' style={{ backgroundColor: '#919191',height:'16px', width:'16px'}} />
+                          <div className='legend-rect' style={{ backgroundColor: '#919191',height:'19px', width:'19px'}} />
 
+                      <span> More Abnormal Items </span>
+                    </div>
+                </div>
                 {tableRecords && eventBins && startDate && endDate && <div ref={this.ref} className={"timeline-view-content"}>
                     <TimelineList
                         // metaEvents={metaEvents}
@@ -207,6 +231,7 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
                             onSelectEvents && onSelectEvents(tableRecords[id].name!, startDate, endDate)}
                         color={this.color}
                         margin={{ top: 0, bottom: 0, left: 0, right: 0 }}
+                        intervalByQuarter={intervalByQuarter}
                     />
                 </div>}
                 {/* {tableRecords && intervalByQuarter && startDate && endDate && <TimelineAxis

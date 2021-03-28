@@ -245,7 +245,7 @@ console.log(margin);
             .attr("width", d => t(new Date(d.endTime)) - t(new Date(d.startTime)) + 2 * padding)
             .attr("y", d => y(d.maxValue) - 5)
             .attr("height", d => y(d.minValue) - y(d.maxValue) + 10)
-            .attr("rx", 2);
+            .attr("rx", 2)
             // .attr("y", 0)
             // .attr("height", height);
     }
