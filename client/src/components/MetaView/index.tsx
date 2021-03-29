@@ -27,24 +27,47 @@ export type MetaItems = {
 export default class MetaView extends React.PureComponent<MetaViewProps, MetaViewStates> {
 
     private metaItems: MetaItems[];
-    private layout: number[] = [0, 11, 1, 12, 0];
+    private leftMetaItems: MetaItems[];
+    private rightMetaItems: MetaItems[];
+    private layout: number[] = [1, 10, 1, 11, 1];
 
     constructor(props: MetaViewProps) {
         super(props);
         this.metaItems = [
             {
                 name: 'Demographic',
-                itemNames: ['Age', 'GENDER', 'Height', 'Weight', 'LANGUAGE', 'ETHNICITY']
+                itemNames: ['Age', 'GENDER', 'Height', 'Weight', 'ETHNICITY']
             },
             {
                 name: 'Admission',
-                itemNames: ['ADMISSION_DEPARTMENT', 'DIAGNOSIS', 'ICD10_CODE_CN', 'INSURANCE']
+                itemNames: ['ADMISSION_DEPARTMENT', 'DIAGNOSIS', 'ICD10_CODE_CN']
             },
             {
                 name: 'Surgery',
-                itemNames: ['SURGERY_NAME', 'SURGERY_POSITION', 'ANES_METHOD',
+                itemNames: ['SURGERY_NAME', 'SURGERY_POSITION',
                     // 'ANES_START_TIME', 'ANES_END_TIME', 'SURGERY_BEGIN_TIME', 'SURGERY_END_TIME',
-                    'Surgical time (minutes)', 'CPB time (minutes)', 'Aortic cross-clamping time (times)'
+                    'Surgical time (minutes)', 'CPB time (minutes)'
+                ]
+            }
+        ]
+
+        this.leftMetaItems = [
+            {
+                name: 'Patient Info',
+                itemNames: ['Age', 'GENDER', 'Height', 'Weight', 'ADMISSION_DEPARTMENT', 'DIAGNOSIS', 'ICD10_CODE_CN']
+            },
+            // {
+            //     name: 'Admission',
+            //     itemNames: ['ADMISSION_DEPARTMENT', 'DIAGNOSIS', 'ICD10_CODE_CN']
+            // },
+        ]
+        this.rightMetaItems = [
+           
+            {
+                name: 'Surgery Info',
+                itemNames: ['SURGERY_NAME', 'SURGERY_POSITION',
+                    // 'ANES_START_TIME', 'ANES_END_TIME', 'SURGERY_BEGIN_TIME', 'SURGERY_END_TIME',
+                    'Surgical time (minutes)', 'CPB time (minutes)'
                 ]
             }
         ]
@@ -77,43 +100,83 @@ export default class MetaView extends React.PureComponent<MetaViewProps, MetaVie
         const featureAlias = featureMeta.getSeries('alias').toArray();
         return (
             <div className={"meta-view"}>
-                {patientInfoMeta && this.metaItems.map(metaItem => <div key={metaItem.name}>
-                    <Divider className='metaInfoTitle' orientation="center"> {metaItem.name} </Divider>
-                    {metaItem.itemNames.map(name => {
-                        var value = patientInfoMeta[name]
-                        if (name.indexOf("TIME") != -1) {
-                            // console.log('TIME', name);
-                            value = value.substr(11, 8);
-                        }
-                        // if(name.indexOf('(minutes)'))
-                        //     name = name.replace(/minutes/g, 'mins')
-                        if (name == 'Height')
-                            name = name + ' (cm)'
-                        if (name == 'Weight')
-                            name = name + ' (kg)'
-                        if (name == 'Age' && days) {
-                            let y = Math.floor(days / 360)
-                            let m = Math.floor((days % 360) / 30)
-                            let d = (days % 360 % 30)
-                            value = (y ? y + 'Y ' : '') + (m || y ? m + 'M ' : '') + d + 'D'
-                        }
+                {/* <div className={"left-container"} style={{width: '50%'}}> */}
+                <Row>
+                    <Col span={12}>
+                        {patientInfoMeta && this.leftMetaItems.map(metaItem => <div key={metaItem.name}>
+                            <Divider className='metaInfoTitle' orientation="center" style={{ margin: 6 }}> {metaItem.name} </Divider>
+                            {metaItem.itemNames.map(name => {
+                                var value = patientInfoMeta[name]
+                                if (name.indexOf("TIME") != -1) {
+                                    // console.log('TIME', name);
+                                    value = value.substr(11, 8);
+                                }
+                                // if(name.indexOf('(minutes)'))
+                                //     name = name.replace(/minutes/g, 'mins')
+                                if (name == 'Height')
+                                    name = name + ' (cm)'
+                                if (name == 'Weight')
+                                    name = name + ' (kg)'
+                                if (name == 'Age' && days) {
+                                    let y = Math.floor(days / 360)
+                                    let m = Math.floor((days % 360) / 30)
+                                    let d = (days % 360 % 30)
+                                    value = (y ? y + 'Y ' : '') + (m || y ? m + 'M ' : '') + d + 'D'
+                                }
 
-                        return <MetaItem
-                            className={className}
-                            category={metaItem.name}
-                            name={name}
-                            key={name}
-                            value={value}
-                            featureAlias={featureAlias}
-                            layout={this.layout}
-                            onHover={() => this.onHover(name)}
-                            onLeave={this.onLeave}
-                            onPin={() => this.onPin(name)}
-                            entityCategoricalColor={entityCategoricalColor}
-                        />
-                    })}
-                </div>
-                )}
+                                return <MetaItem
+                                    className={className}
+                                    category={metaItem.name}
+                                    name={name}
+                                    key={name}
+                                    value={value}
+                                    featureAlias={featureAlias}
+                                    layout={this.layout}
+                                    onHover={() => this.onHover(name)}
+                                    onLeave={this.onLeave}
+                                    onPin={() => this.onPin(name)}
+                                    entityCategoricalColor={entityCategoricalColor}
+                                />
+                            })}
+                        </div>
+                        )}
+                    </Col>
+                    <Col span={12}>
+                        {patientInfoMeta && this.rightMetaItems.map(metaItem => <div key={metaItem.name}>
+                            <Divider className='metaInfoTitle' orientation="center" style={{ margin: 6 }}> {metaItem.name} </Divider>
+                            {metaItem.itemNames.map(name => {
+                                var value = patientInfoMeta[name]
+                                if (name.indexOf("TIME") != -1) {
+                                    // console.log('TIME', name);
+                                    value = value.substr(11, 8);
+                                }
+                                // if(name.indexOf('(minutes)'))
+                                //     name = name.replace(/minutes/g, 'mins')
+
+                                return <MetaItem
+                                    className={className}
+                                    category={metaItem.name}
+                                    name={name}
+                                    key={name}
+                                    value={value}
+                                    featureAlias={featureAlias}
+                                    layout={this.layout}
+                                    onHover={() => this.onHover(name)}
+                                    onLeave={this.onLeave}
+                                    onPin={() => this.onPin(name)}
+                                    entityCategoricalColor={entityCategoricalColor}
+                                />
+                            })}
+                        </div>
+                        )}
+
+                    </Col>
+
+                    {/* </div>
+                <div className={"left-container"} style={{width: '50%'}}>
+
+                </div> */}
+                </Row>
             </div>
         )
     }
@@ -153,6 +216,11 @@ export class MetaItem extends React.PureComponent<MetaItemProps, MetaItemStates>
     public render() {
         const { category, name, value, featureAlias, layout, onHover, onLeave, className, entityCategoricalColor } = this.props;
         const { pinned } = this.state;
+        let displayName = name.replace(/_/g, " ");
+        if (!['CPB time (minutes)', 'ICD10 CODE CN'].includes(displayName)){
+            displayName = displayName.toLocaleLowerCase();
+            displayName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
+        }
 
         return <Row className={'meta-item'} id={`${className}-${name}`}
             style={{
@@ -162,7 +230,7 @@ export class MetaItem extends React.PureComponent<MetaItemProps, MetaItemStates>
             onMouseOver={onHover} onMouseOut={onLeave}>
             <Col span={layout[0]} />
             <Col span={layout[1]}>
-                <span className="details-title"> {name.replace(/_/g, " ")}: </span>
+                <span className="details-title"> {displayName}: </span>
             </Col>
             <Col span={layout[2]} />
             <Col span={layout[3]}>

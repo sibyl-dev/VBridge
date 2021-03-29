@@ -131,7 +131,7 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
             <div>
                 <div>
                     {signalGroups.map(group => <div key={group.first().tableName}>
-                        <Divider>{this.tableNamesChange(group.first().tableName)}</Divider>
+                        <Divider style={{margin: 8}}>{this.tableNamesChange(group.first().tableName)}</Divider>
                         {group.toArray().map((signal, i) =>
                             <DynamicCard
                                 className={className}

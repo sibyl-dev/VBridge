@@ -79,7 +79,7 @@ interface AppStates {
 }
 
 class App extends React.Component<AppProps, AppStates>{
-  private layout = { featureViewWidth: 520, ProfileWidth: 280, timelineViewHeight: 260, headerHeight: 64, xPadding: 15, yPadding: 5 };
+  private layout = { featureViewWidth: 520, ProfileWidth: 280, timelineViewHeight: 220, headerHeight: 64, xPadding: 15, yPadding: 5 };
   private abnormalityColorScale = d3.scaleSequential(d3.interpolateRdYlGn).domain([2.5 + 0.5, 1 - 0.5]);
   private ref: React.RefObject<SVGSVGElement> = React.createRef();
   private paintId: any = undefined;
@@ -428,7 +428,7 @@ class App extends React.Component<AppProps, AppStates>{
 
   private entityCategoricalColor(entityName?: string) {
     const { tableNames } = this.state;
-    if (entityName && ['Demographic', 'Admission', 'Surgery', 
+    if (entityName && ['Demographic', 'Admission', 'Surgery', 'Patient Info', 'Surgery Info',
     'SURGERY_INFO', 'ADMISSIONS', 'PATIENTS'].includes(entityName))
       return defaultCategoricalColor(8);
     else if (tableNames && entityName) {
@@ -606,19 +606,18 @@ class App extends React.Component<AppProps, AppStates>{
                   )}
                 </div>
 
-                <span className='header-name'>#Group:</span>
+                {/* <span className='header-name'>#Group:</span>
                 <span className="header-name"> {`${patientGroup && patientGroup.ids ? patientGroup.ids.length : 0}
                     (${patientGroup ? patientGroup.labelCounts[5] : 0})`} </span>
-                {/* <span className="header-name group-count"> {`${patientGroup && patientGroup.ids ? patientGroup.ids.length : 0}`} </span> */}
                 <Tooltip title="Filter">
                   <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={this.showDrawer} style={{ zIndex: 1 }} />
-                </Tooltip>
+                </Tooltip> */}
               </div>
             </div>
           </Header>
           <Content>
             <Panel initialWidth={featureViewWidth}
-              initialHeight={window.innerHeight - headerHeight - yPadding * 2} x={xPadding} y={yPadding}
+              initialHeight={window.innerHeight - headerHeight - yPadding * 3 - 250} x={xPadding} y={yPadding*2 + 280}
               title={<div className="view-title">
                 <span className="view-title-text">Feature View</span>
                 <div className="widget">
@@ -695,10 +694,14 @@ class App extends React.Component<AppProps, AppStates>{
                 referenceValues={referenceValues}
               />}
             </Panel>
-            <Panel initialWidth={ProfileWidth} initialHeight={window.innerHeight - headerHeight - yPadding * 2}
-              x={window.innerWidth - ProfileWidth - xPadding} y={yPadding}
+            <Panel initialWidth={featureViewWidth} initialHeight={280}
+              x={xPadding} y={yPadding}
               title={<div className="view-title">
                 <span className="view-title-text">Patient's Profile</span>
+                <div className="widget">
+                    <span className="widget-text">link</span>
+                    <Switch onChange={e => this.setState({ dynamicViewLink: e })} checkedChildren="on" unCheckedChildren="off" />
+                  </div>
               </div>}>
               {tableNames && featureMeta && <MetaView
                 className={"meta-view-element"}

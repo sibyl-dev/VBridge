@@ -490,7 +490,7 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
         const { feature, focusedFeatures } = this.props;
         if (!arrayShallowCompare(prevProps.focusedFeatures, focusedFeatures)) {
             if (this.hasFeature(feature, focusedFeatures)) {
-                this.setState({ collapsed: false });
+                // this.setState({ collapsed: false });
             }
         }
     }

@@ -304,7 +304,7 @@ def get_table_names():
     # table_names = ['LABEVENTS', 'SURGERY_VITAL_SIGNS', 'CHARTEVENTS', 'PRESCRIPTIONS',
     #                'MICROBIOLOGYEVENTS', 'INPUTEVENTS', 'OUTPUTEVENTS']
     table_names = ['LABEVENTS', 'SURGERY_VITAL_SIGNS',
-                   'CHARTEVENTS', 'PRESCRIPTIONS']
+                   'CHARTEVENTS']
     return jsonify(table_names)
 
 
