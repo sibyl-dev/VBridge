@@ -95,8 +95,8 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
             defaultValue['Age'] = filterRange['Age']
 
         }
-        if (patientInfoMeta)
-            defaultValue['Age'] = new Array(this.judgeTheAge(patientInfoMeta['Age']))
+        // if (patientInfoMeta)
+        //     defaultValue['Age'] = new Array(this.judgeTheAge(patientInfoMeta['Age']))
 
 
         if (filterPatients)

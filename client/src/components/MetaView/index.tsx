@@ -36,17 +36,17 @@ export default class MetaView extends React.PureComponent<MetaViewProps, MetaVie
         this.metaItems = [
             {
                 name: 'Demographic',
-                itemNames: ['Age', 'GENDER', 'Height', 'Weight', 'ETHNICITY']
+                itemNames: ['Age', 'GENDER', 'Height', 'Weight', 'LANGUAGE', 'ETHNICITY']
             },
             {
                 name: 'Admission',
-                itemNames: ['ADMISSION_DEPARTMENT', 'DIAGNOSIS', 'ICD10_CODE_CN']
+                itemNames: ['ADMISSION_DEPARTMENT', 'DIAGNOSIS', 'ICD10_CODE_CN', 'INSURANCE']
             },
             {
                 name: 'Surgery',
-                itemNames: ['SURGERY_NAME', 'SURGERY_POSITION',
+                itemNames: ['SURGERY_NAME', 'SURGERY_POSITION', 'ANES_METHOD',
                     // 'ANES_START_TIME', 'ANES_END_TIME', 'SURGERY_BEGIN_TIME', 'SURGERY_END_TIME',
-                    'Surgical time (minutes)', 'CPB time (minutes)'
+                    'Surgical time (minutes)', 'CPB time (minutes)', 'Aortic cross-clamping time (times)'
                 ]
             }
         ]
@@ -62,7 +62,7 @@ export default class MetaView extends React.PureComponent<MetaViewProps, MetaVie
             // },
         ]
         this.rightMetaItems = [
-           
+
             {
                 name: 'Surgery Info',
                 itemNames: ['SURGERY_NAME', 'SURGERY_POSITION',
@@ -100,83 +100,43 @@ export default class MetaView extends React.PureComponent<MetaViewProps, MetaVie
         const featureAlias = featureMeta.getSeries('alias').toArray();
         return (
             <div className={"meta-view"}>
-                {/* <div className={"left-container"} style={{width: '50%'}}> */}
-                <Row>
-                    <Col span={12}>
-                        {patientInfoMeta && this.leftMetaItems.map(metaItem => <div key={metaItem.name}>
-                            <Divider className='metaInfoTitle' orientation="center" style={{ margin: 6 }}> {metaItem.name} </Divider>
-                            {metaItem.itemNames.map(name => {
-                                var value = patientInfoMeta[name]
-                                if (name.indexOf("TIME") != -1) {
-                                    // console.log('TIME', name);
-                                    value = value.substr(11, 8);
-                                }
-                                // if(name.indexOf('(minutes)'))
-                                //     name = name.replace(/minutes/g, 'mins')
-                                if (name == 'Height')
-                                    name = name + ' (cm)'
-                                if (name == 'Weight')
-                                    name = name + ' (kg)'
-                                if (name == 'Age' && days) {
-                                    let y = Math.floor(days / 360)
-                                    let m = Math.floor((days % 360) / 30)
-                                    let d = (days % 360 % 30)
-                                    value = (y ? y + 'Y ' : '') + (m || y ? m + 'M ' : '') + d + 'D'
-                                }
+                {patientInfoMeta && this.metaItems.map(metaItem => <div key={metaItem.name}>
+                    <Divider className='metaInfoTitle' orientation="center" style={{ margin: 6 }}> {metaItem.name} </Divider>
+                    {metaItem.itemNames.map(name => {
+                        var value = patientInfoMeta[name]
+                        if (name.indexOf("TIME") != -1) {
+                            // console.log('TIME', name);
+                            value = value.substr(11, 8);
+                        }
+                        // if(name.indexOf('(minutes)'))
+                        //     name = name.replace(/minutes/g, 'mins')
+                        if (name == 'Height')
+                            name = name + ' (cm)'
+                        if (name == 'Weight')
+                            name = name + ' (kg)'
+                        if (name == 'Age' && days) {
+                            let y = Math.floor(days / 360)
+                            let m = Math.floor((days % 360) / 30)
+                            let d = (days % 360 % 30)
+                            value = (y ? y + 'Y ' : '') + (m || y ? m + 'M ' : '') + d + 'D'
+                        }
 
-                                return <MetaItem
-                                    className={className}
-                                    category={metaItem.name}
-                                    name={name}
-                                    key={name}
-                                    value={value}
-                                    featureAlias={featureAlias}
-                                    layout={this.layout}
-                                    onHover={() => this.onHover(name)}
-                                    onLeave={this.onLeave}
-                                    onPin={() => this.onPin(name)}
-                                    entityCategoricalColor={entityCategoricalColor}
-                                />
-                            })}
-                        </div>
-                        )}
-                    </Col>
-                    <Col span={12}>
-                        {patientInfoMeta && this.rightMetaItems.map(metaItem => <div key={metaItem.name}>
-                            <Divider className='metaInfoTitle' orientation="center" style={{ margin: 6 }}> {metaItem.name} </Divider>
-                            {metaItem.itemNames.map(name => {
-                                var value = patientInfoMeta[name]
-                                if (name.indexOf("TIME") != -1) {
-                                    // console.log('TIME', name);
-                                    value = value.substr(11, 8);
-                                }
-                                // if(name.indexOf('(minutes)'))
-                                //     name = name.replace(/minutes/g, 'mins')
-
-                                return <MetaItem
-                                    className={className}
-                                    category={metaItem.name}
-                                    name={name}
-                                    key={name}
-                                    value={value}
-                                    featureAlias={featureAlias}
-                                    layout={this.layout}
-                                    onHover={() => this.onHover(name)}
-                                    onLeave={this.onLeave}
-                                    onPin={() => this.onPin(name)}
-                                    entityCategoricalColor={entityCategoricalColor}
-                                />
-                            })}
-                        </div>
-                        )}
-
-                    </Col>
-
-                    {/* </div>
-                <div className={"left-container"} style={{width: '50%'}}>
-
-                </div> */}
-                </Row>
+                        return <MetaItem
+                            className={className}
+                            category={metaItem.name}
+                            name={name}
+                            key={name}
+                            value={value}
+                            featureAlias={featureAlias}
+                            layout={this.layout}
+                            onHover={() => this.onHover(name)}
+                            onLeave={this.onLeave}
+                            onPin={() => this.onPin(name)}
+                            entityCategoricalColor={entityCategoricalColor}
+                        />
+                    })}
+                </div>
+                )}
             </div>
         )
     }
@@ -217,9 +177,12 @@ export class MetaItem extends React.PureComponent<MetaItemProps, MetaItemStates>
         const { category, name, value, featureAlias, layout, onHover, onLeave, className, entityCategoricalColor } = this.props;
         const { pinned } = this.state;
         let displayName = name.replace(/_/g, " ");
-        if (!['CPB time (minutes)', 'ICD10 CODE CN'].includes(displayName)){
+        if (!['CPB time (minutes)', 'ICD10 CODE CN'].includes(displayName)) {
             displayName = displayName.toLocaleLowerCase();
             displayName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
+        }
+        if (name === 'Aortic cross-clamping time (times)') {
+            displayName = 'Aortic cross-clamping time (minutes)';
         }
 
         return <Row className={'meta-item'} id={`${className}-${name}`}
@@ -234,7 +197,7 @@ export class MetaItem extends React.PureComponent<MetaItemProps, MetaItemStates>
             </Col>
             <Col span={layout[2]} />
             <Col span={layout[3]}>
-                <div className={`value ${category}`} >{value}</div>
+                <div className={`value ${category}`} >{displayName === 'Diagnosis' ? 'CHD' : value}</div>
             </Col>
             <Col span={layout[4]}>
                 {(featureAlias.includes(name)) && <Button size="small" type="primary"

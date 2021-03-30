@@ -50,7 +50,7 @@
 }
 
 .predictions {
-    /* margin-right: 40px; */
+    margin-right: 40px;
 }
 
 .group-count {
@@ -264,7 +264,7 @@
 }*/
 
 .legend-area {
-    width: 440px;
+    width: 460px;
     /*height: calc(100% - 20px);*/
     /*height: 100%;*/
     /*margin-top: -10px;*/

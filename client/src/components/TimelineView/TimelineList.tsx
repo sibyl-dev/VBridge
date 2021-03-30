@@ -150,7 +150,7 @@ export class TimelineList extends React.Component<TimelineListProps, TimelineLis
             <div className={"timeline-title-list"}>
                 {titles?.map((title, i) => <div className={"timeline-title"}
                     style={{ height: style.height, borderLeftColor: color(i), borderLeftWidth: 4 }} key={title}>
-                        <span className={"timeline-title-text"}>{title}</span></div>)}
+                        <span className={"timeline-title-text"}>{title==='Chart Signs'?'Chart Events':title}</span></div>)}
             </div>
             <div className={"timeline-content"}>
                 {/* {buttonXPos && buttonYPos && <Button style={{
@@ -176,7 +176,7 @@ export class TimelineList extends React.Component<TimelineListProps, TimelineLis
                     }}
                     className={"feature-button-table"}
                 />}
-                <svg ref={this.ref} className={"timeline-svg"} style={{ height: height }} />
+                <svg ref={this.ref} className={"timeline-svg"} style={{ height: height+20 }} />
             </div>
         </div>
     }

@@ -80,8 +80,8 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
             if (selectedVectors?.length == 0) {
                 alert("No patient in the selection.");
             }
-            else if(selectedVectors){
-                console.log('selectedVectors', selectedVectors, selectedVectors&&selectedVectors[0]?'true':'false')
+            else if (selectedVectors) {
+                console.log('selectedVectors', selectedVectors, selectedVectors && selectedVectors[0] ? 'true' : 'false')
                 const selectedMatrix = selectedVectors && selectedVectors[0] ? new DataFrame(selectedVectors) : featureMatrix;
                 const selectedMatWithDesiredOutputs = selectedMatrix.where(row => row['complication'] === 0);
                 const selectedMatWithoutDesiredOutputs = selectedMatrix.where(row => row['complication'] !== 0);
@@ -89,9 +89,9 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                 else {
                     const referenceValues = new DataFrame({
                         index: featureNames,
-                        values: featureNames.map(name => 
-                             getReferenceValue(selectedMatWithDesiredOutputs.getSeries(name).toArray())
-                            )
+                        values: featureNames.map(name =>
+                            getReferenceValue(selectedMatWithDesiredOutputs.getSeries(name).toArray())
+                        )
                     })
                     this.setState({ selectedMatrix, selectedMatWithDesiredOutputs, selectedMatWithoutDesiredOutputs, referenceValues });
                 }
@@ -282,7 +282,7 @@ function extractSelfAndChildren(showState: VFeature): VFeature[] {
 
 function buildShowStateList(features: Feature[]): VFeature[] {
     const VFeatureTree: VFeature[] = features.map(f => buildShowState(f));
-    for (const vfeature of VFeatureTree){
+    for (const vfeature of VFeatureTree) {
         vfeature.show = true;
     }
     const VFeatureList: VFeature[] = _.flatten(VFeatureTree.map(s => extractSelfAndChildren(s)));
@@ -314,9 +314,9 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
         this.setState({ order: newOrder })
     }
 
-    componentDidUpdate(prevProps: FeatureListProps){
+    componentDidUpdate(prevProps: FeatureListProps) {
         if (prevProps.features != this.props.features) {
-            this.setState({VFeatureList: buildShowStateList(this.props.features.toArray())});
+            this.setState({ VFeatureList: buildShowStateList(this.props.features.toArray()) });
         }
     }
 
@@ -342,7 +342,7 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
         //     VFeature.children.forEach(c => c.show = !c.show);
         // }
         for (const vFeature of VFeatureList) {
-            if (vFeature.feature.name === feature.name){
+            if (vFeature.feature.name === feature.name) {
                 vFeature.show = !vFeature.show;
                 vFeature.children.forEach(f => f.show = !f.show);
             }
@@ -416,6 +416,7 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
                             />} */}
                             <div style={{ width: 160, height: 20 }} onMouseDown={(event) => event.stopPropagation()}>
                                 {shapValues && <Slider
+                                    tipFormatter={null}
                                     range defaultValue={[_.sortBy(shapValues, d => d)[shapValues.length - 5], shapMax!]}
                                     min={shapMin!} max={shapMax!} step={(shapMax! - shapMin!) / 100}
                                     onAfterChange={(range) => this.setState({ threshold: range })}
@@ -629,8 +630,8 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                                     posRectStyle: { fill: !collapsed ? '#f8a3bf' : undefined },
                                     negRectStyle: { fill: !collapsed ? '#9abce4' : undefined }
                                 })}
-                                {(contribution > x.domain()[1]) && <ArrowRightOutlined className="overflow-notation-right"/>}
-                                {(contribution < x.domain()[0]) && <ArrowLeftOutlined className="overflow-notation-left"/>}
+                                {(contribution > x.domain()[1]) && <ArrowRightOutlined className="overflow-notation-right" />}
+                                {(contribution < x.domain()[0]) && <ArrowLeftOutlined className="overflow-notation-left" />}
                             </div>
                             {/* {showWhatIf && whatIfValue && <div className={"what-if-content"}>
                                 <span> After {(whatIfValue > (value as number))?'inceasing':'decreasing'} to {beautifulPrinter(whatIfValue)}</span>

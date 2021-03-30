@@ -204,7 +204,7 @@ class App extends React.Component<AppProps, AppStates>{
     const patientInfoMeta = await getPatientInfoMeta({ subject_id: subjectId });
     const tableRecords = await this.loadPatientRecords(subjectId);
     if (patientMeta) {
-      const subjectIdG = await getPatientGroup({ filterConditions: { 'Age': new Array(this.judgeTheAge(patientMeta.days)) }, subject_id: subjectId, setSubjectIdG: true })
+      const subjectIdG = await getPatientGroup({ filterConditions: { '': ''}, subject_id: subjectId, setSubjectIdG: true })
       this.setState({ patientGroup: subjectIdG })
     }
     const selected = 'lung complication'
@@ -330,7 +330,7 @@ class App extends React.Component<AppProps, AppStates>{
     const { item_index, time_index, value_indexes } = entity?.metaInfo!;
     if (entity && item_index && time_index && value_indexes && value_indexes.length > 0) {
       const selectedDf = entity.where(row => startTime < new Date(row[time_index]) && new Date(row[time_index]) < endTime)
-        .groupBy(row => (row[item_index]));
+        .groupBy(row => (row[item_index])).where(group => group.first()[item_index] !== 'SV1');
       let records: SignalMeta[] = [];
       for (const itemDf of selectedDf) {
         const itemRecords: SignalMeta[] = value_indexes.map(value_index => {
@@ -414,12 +414,12 @@ class App extends React.Component<AppProps, AppStates>{
     this.setState({ visible })
     // console.log('onClose', this.state.filterConditions)
   };
-  private tableNamesChange(name: string){
-    if(name == 'LABEVENTS')
+  private tableNamesChange(name: string) {
+    if (name == 'LABEVENTS')
       return 'Lab Tests'
-    if(name == 'SURGERY_VITAL_SIGNS')
+    if (name == 'SURGERY_VITAL_SIGNS')
       return 'Vital Signs'
-    if(name == 'CHARTEVENTS')
+    if (name == 'CHARTEVENTS')
       return 'Chart Events'
     return 'Prescriptions'
 
@@ -429,7 +429,7 @@ class App extends React.Component<AppProps, AppStates>{
   private entityCategoricalColor(entityName?: string) {
     const { tableNames } = this.state;
     if (entityName && ['Demographic', 'Admission', 'Surgery', 'Patient Info', 'Surgery Info',
-    'SURGERY_INFO', 'ADMISSIONS', 'PATIENTS'].includes(entityName))
+      'SURGERY_INFO', 'ADMISSIONS', 'PATIENTS'].includes(entityName))
       return defaultCategoricalColor(8);
     else if (tableNames && entityName) {
       let i = (tableNames?.indexOf(entityName) + 4);
@@ -555,37 +555,37 @@ class App extends React.Component<AppProps, AppStates>{
       <div className='App'>
 
         <Layout>
-          <Header className="app-header" id="header" style={{background: '#001529'}}>
+          <Header className="app-header" id="header" style={{ background: '#001529' }}>
 
             <span className='system-name'>VBridge</span>
             <div className='system-info'>
               <div className='system-widget'>
-                 
-                   <div className='legend-area'>
-                    <div className="category-legend-container">
-                      
-                      {tableNames && tableNames.map(name =>
-                        <div className="legend-block" key={name}>
-                          <div className='legend-rect' style={{ backgroundColor: this.entityCategoricalColor(name) }} />
-                          <span className='legend-name'>{this.tableNamesChange(name)}</span>
-                        </div>
-                      )}
-                      <div className="legend-block">
-                        <div className='legend-rect' style={{ backgroundColor: this.entityCategoricalColor('Admission') }} />
-                        <span className='legend-name'>{"Patient & Surgery info"}</span>
+
+                <div className='legend-area'>
+                  <div className="category-legend-container">
+
+                    {tableNames && tableNames.map(name =>
+                      <div className="legend-block" key={name}>
+                        <div className='legend-rect' style={{ backgroundColor: this.entityCategoricalColor(name) }} />
+                        <span className='legend-name'>{this.tableNamesChange(name)}</span>
                       </div>
+                    )}
+                    <div className="legend-block">
+                      <div className='legend-rect' style={{ backgroundColor: this.entityCategoricalColor('Admission') }} />
+                      <span className='legend-name'>{"Patient & Surgery info"}</span>
                     </div>
+                  </div>
                   <div className='healthy-legend'>
                     <div className="legend-block">
-                        <div className='legend-rect' style={{ backgroundColor: 'rgb(242, 142, 44)'}} />
-                        <span className='legend-name'>{"High Risk"}</span>
-                      </div>
-                      <div className="legend-block">
-                        <div className='legend-rect' style={{ backgroundColor: 'rgb(78, 121, 167)'}} />
-                        <span className='legend-name'>{"Low Risk"}</span>
-                      </div>
+                      <div className='legend-rect' style={{ backgroundColor: 'rgb(242, 142, 44)' }} />
+                      <span className='legend-name'>{"High Risk"}</span>
+                    </div>
+                    <div className="legend-block">
+                      <div className='legend-rect' style={{ backgroundColor: 'rgb(78, 121, 167)' }} />
+                      <span className='legend-name'>{"Low Risk"}</span>
+                    </div>
                   </div>
-                  </div>
+                </div>
                 <span className='header-name'>Patient: </span>
                 <div className='header-content'>
                   <Select style={{ width: 120 }} onChange={this.selectPatientId} className="patient-selector">
@@ -606,18 +606,18 @@ class App extends React.Component<AppProps, AppStates>{
                   )}
                 </div>
 
-                {/* <span className='header-name'>#Group:</span>
+                <span className='header-name'>#Group:</span>
                 <span className="header-name"> {`${patientGroup && patientGroup.ids ? patientGroup.ids.length : 0}
                     (${patientGroup ? patientGroup.labelCounts[5] : 0})`} </span>
                 <Tooltip title="Filter">
                   <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={this.showDrawer} style={{ zIndex: 1 }} />
-                </Tooltip> */}
+                </Tooltip>
               </div>
             </div>
           </Header>
           <Content>
             <Panel initialWidth={featureViewWidth}
-              initialHeight={window.innerHeight - headerHeight - yPadding * 3 - 250} x={xPadding} y={yPadding*2 + 280}
+              initialHeight={window.innerHeight - headerHeight - yPadding * 2} x={xPadding} y={yPadding}
               title={<div className="view-title">
                 <span className="view-title-text">Feature View</span>
                 <div className="widget">
@@ -694,14 +694,14 @@ class App extends React.Component<AppProps, AppStates>{
                 referenceValues={referenceValues}
               />}
             </Panel>
-            <Panel initialWidth={featureViewWidth} initialHeight={280}
-              x={xPadding} y={yPadding}
+            <Panel initialWidth={ProfileWidth} initialHeight={window.innerHeight - 2 * yPadding}
+              x={window.innerWidth - xPadding - ProfileWidth} y={yPadding}
               title={<div className="view-title">
                 <span className="view-title-text">Patient's Profile</span>
                 <div className="widget">
-                    <span className="widget-text">link</span>
-                    <Switch onChange={e => this.setState({ dynamicViewLink: e })} checkedChildren="on" unCheckedChildren="off" />
-                  </div>
+                  <span className="widget-text">link</span>
+                  <Switch onChange={e => this.setState({ dynamicViewLink: e })} checkedChildren="on" unCheckedChildren="off" />
+                </div>
               </div>}>
               {tableNames && featureMeta && <MetaView
                 className={"meta-view-element"}
