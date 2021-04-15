@@ -10,8 +10,6 @@ from flask import request, jsonify, Blueprint, current_app, Response
 from model.data import get_patient_records
 from model.modeler import Modeler
 from model.settings import interesting_variables, META_INFO, filter_variable, filter_variable1
-from engine.explanation import Explainer
-from engine.anomaly import find_anomalies
 
 api = Blueprint('api', __name__)
 
@@ -69,52 +67,8 @@ def handle_invalid_usage(error):
 
 @api.route('available_ids', methods=['GET'])
 def get_available_ids():
-    es = current_app.es
     fm = current_app.fm
-
-    df = es["SURGERY_INFO"].df
-    # subjects_ids = current_app.subject_idG
-    # print('SURGERY_NAME', (fm['SURGERY_NAME']), type(fm.loc[8665]['SURGERY_NAME'][0]), 'tetralogy of fallot repair' in fm.loc[8665]['SURGERY_NAME'])
-    # tmp_fm = fm[(fm['SURGERY_NAME']) & ('tetralogy of fallot repair' in fm['SURGERY_NAME'])]
-    # value = ['VSD repair']
-    value = []
-    tmp_fm = fm[fm.apply(lambda x: np.array([t in x['SURGERY_NAME'] for t in value]).all(),axis='columns')]
-    subjects_ids = tmp_fm.index
-
-
-    # subjects_ids = fm.index
-
-    # count the abnormality
-    tmp_fm = fm[(fm['complication'] == 1) & (fm.index.isin(subjects_ids))]
-    healthy = fm[fm['complication'] == 0]
-    stat = healthy.agg(['mean', 'count', 'std']).T
-    stat['ci95_low'] = stat['mean'] - stat['std'] * 1.96
-    stat['ci95_high'] = stat['mean'] + stat['std'] * 1.96
-    # tmp_fm['abnormalityCount'] = 
-    inters = np.array(['MEAN', 'STD', "TREND"])
-    columns = tmp_fm.columns
-
-    tmp_fm['abnormalityCount'] = [0 for index in range(len(tmp_fm))]
-    for col in columns:
-        if((('MEAN' in col) or ('STD' in col) or ("TREND" in col)) and ('in-surgery' in col) ):
-            referenceValue = stat.loc[col]
-            # print('referenceValue', referenceValue)
-            # print(tmp_fm.columns)
-            # print('tmp_fm[col]', tmp_fm[col])
-            x = (tmp_fm.apply(lambda x: 1 if x[col]>referenceValue.ci95_high or x[col]<referenceValue.ci95_low else 0,axis='columns'))
-            # print(x)
-            # print('tmp_fm[col]', tmp_fm)
-            tmp_fm['abnormalityCount'] = tmp_fm['abnormalityCount']  + x
-
-    tmp_fm = tmp_fm.sort_values(by=['abnormalityCount'], ascending = False)  
-    subjects_ids1 = tmp_fm.index.values[:30].tolist()  
-
-    # df = es["SURGERY_INFO"].df
-    # subjects_ids1 = df[(df['complication'] == 1) & (df['SUBJECT_ID'].isin(subjects_ids))]["SUBJECT_ID"].values[:30].tolist()
-
-    # return jsonify([5856, 11300, 12332, 10515, 4632, 10363])
-    # return jsonify([5856, 11300, 6754, 8276, 9217, 11743, 13286])
-    return jsonify([5856, 11300, 6560, 5281, 5392, 10007, 10398, 10515, 12332])
+    return jsonify(fm.index.to_list())
 
 
 @api.route('/individual_records', methods=['GET'])
@@ -136,7 +90,6 @@ def get_patient_meta():
     es = current_app.es
     hadm_df = es["ADMISSIONS"].df
     surgery_df = es["SURGERY_INFO"].df
-    # print('hadm_df', hadm_df[hadm_df['SUBJECT_ID'] == subject_id])
     info['AdmitTime'] = str(
         hadm_df[hadm_df['SUBJECT_ID'] == subject_id]['ADMITTIME'].values[0])
     info['SurgeryEndTime'] = str(
@@ -160,19 +113,14 @@ def get_patientinfo_meta():
 
     info = {'subjectId': subject_id}
     es = current_app.es
-    cutoff_times = current_app.cutoff_times
 
     table_names = ['PATIENTS', 'ADMISSIONS', 'SURGERY_INFO']
     for i, table_name in enumerate(table_names):
-        # print('table_names', table_name)
         hadm_df = es[table_name].df
         record = hadm_df[hadm_df['SUBJECT_ID'] == subject_id]
         column_names = interesting_variables[table_name]
-        # print('column_names', column_names)
         for i, col in enumerate(column_names):
             info[col] = str(record[col].values[0])
-    # print('patientinfo_meta', info)
-    # info['ageDays'] = info['']
 
     return jsonify(info)
 
@@ -188,14 +136,13 @@ def get_record_filterrange():
             info[filter_name] = ['F', 'M']
         elif filter_name == 'Age':
             info[filter_name] = ['< 1 month',
-                                 '< 1 year', '1-3 years',  '> 3 years']
+                                 '< 1 year', '1-3 years', '> 3 years']
             all_records = list(set(fm[filter_name]))
             info['age'] = [min(all_records), max(all_records)]
         elif filter_name == 'SURGERY_NAME':
             all_records = []
             for surgeryname in fm[filter_name]:
                 all_records = all_records + surgeryname
-            # print(filter_name, all_records)
             info[filter_name] = list(set(all_records))
         elif fm[filter_name].dtype == object:
             all_records = list(set(fm[filter_name]))
@@ -239,10 +186,10 @@ def get_patient_group():
                         filter_flag = filter_flag | (df[item] <= 1)
                     if '1-3 years' in value:
                         filter_flag = filter_flag | (
-                            df[item] >= 12) & (df[item] <= 36)
+                                df[item] >= 12) & (df[item] <= 36)
                     if '< 1 year' in value:
                         filter_flag = filter_flag | (
-                            df[item] >= 1) & (df[item] <= 12)
+                                df[item] >= 1) & (df[item] <= 12)
                     if '> 3 years' in value:
                         filter_flag = filter_flag | (df[item] >= 36)
                     df = df[filter_flag]
@@ -301,10 +248,7 @@ def get_record_meta():
 
 @api.route('/table_names', methods=['GET'])
 def get_table_names():
-    # table_names = ['LABEVENTS', 'SURGERY_VITAL_SIGNS', 'CHARTEVENTS', 'PRESCRIPTIONS',
-    #                'MICROBIOLOGYEVENTS', 'INPUTEVENTS', 'OUTPUTEVENTS']
-    table_names = ['LABEVENTS', 'SURGERY_VITAL_SIGNS',
-                   'CHARTEVENTS']
+    table_names = ['LABEVENTS', 'SURGERY_VITAL_SIGNS', 'CHARTEVENTS']
     return jsonify(table_names)
 
 
@@ -354,20 +298,6 @@ def get_feature_meta():
         else:
             info['period'] = 'others'
 
-        # if info['period'] == 'in-surgery':
-        #     feature_type = 'In-surgery Observations'
-        # elif info['period'] == 'pre-surgery':
-        #     if info['entityId'] == 'PRESCRIPTIONS':
-        #         feature_type = 'Pre-surgery Treatments'
-        #     else:
-        #         feature_type = 'Pre-surgery Observations'
-        # else:
-        #     if f.get_name() in ['Height', 'Weight', 'Age',
-        #                         'ADMISSIONS.ICD10_CODE_CN', 'ADMISSIONS.PATIENTS.GENDER']:
-        #         feature_type = 'Patient Information'
-        #     else:
-        #         feature_type = 'Surgery Information'
-
         if info['period'] == 'in-surgery':
             feature_type = 'In-surgery'
         elif info['period'] == 'pre-surgery':
@@ -393,13 +323,11 @@ def get_prediction_target():
 def get_prediction():
     subject_id = int(request.args.get('subject_id'))
     predictions = current_app.model_manager.predict_proba(subject_id)
-    # return jsonify([{'target': k, 'value': float(v)} for k, v in predictions.items()])
     return jsonify(predictions)
 
 
 @api.route('/feature_matrix', methods=['GET'])
 def get_feature_matrix():
-    # print('get_feature_matrix', len(current_app.subject_idG))
     return Response(current_app.fm[current_app.fm.index.isin(current_app.subject_idG)].to_csv(),
                     mimetype="text/csv")
 
@@ -434,13 +362,10 @@ def get_what_if_shap_values():
     stat = fm.agg(['mean', 'count', 'std']).T
     stat['low'] = stat['mean'] - stat['std'] * 1.96
     stat['high'] = stat['mean'] + stat['std'] * 1.96
-    # stat['ci95_low'] = stat['mean'] - stat['std']
-    # stat['ci95_high'] = stat['mean'] + stat['std']
 
     target_fv = current_app.fm.loc[subject_id]
 
     # What-if analysis on out-of-distribution high values
-
     high_features = target_fv[target_fv > stat['high']].index
     high_features = [f for f in high_features if f not in targets]
     if len(high_features) > 0:
@@ -504,12 +429,9 @@ def get_reference_value():
             'mean': 0 if np.isnan(mean) else mean,
             'std': 0 if np.isnan(std) else std,
             'count': 0 if np.isnan(count) else count,
-            'ci95': [0 if np.isnan(mean - 1.760 * std) else (mean - 1.760 * std),
-                     0 if np.isnan(mean + 1.760 * std) else (mean + 1.760 * std)]
-            # 'ci95': [0 if np.isnan(mean - std) else (mean - std),
-            #          0 if np.isnan(mean + std) else (mean + std)]
+            'ci95': [0 if np.isnan(mean - 1.96 * std) else (mean - 1.96 * std),
+                     0 if np.isnan(mean + 1.96 * std) else (mean + 1.96 * std)]
         }
-    # print('final reference_value', references)
     return jsonify(references)
 
 
@@ -517,13 +439,12 @@ def get_reference_value():
 def get_explain_signal():
     subject_id = int(request.args.get('subject_id'))
     item_id = request.args.get('item_id')
-    # primitive_list = request.args.get('items')
-    # start_time = request.args.get('start_time', None)
-    # end_time = request.args.get('end_time', None)
     fm = current_app.fm
     if current_app.subject_idG is not None:
         reference_fm = fm.loc[current_app.subject_idG]
         reference_fm = reference_fm[reference_fm['complication'] == 0]
+    else:
+        reference_fm = fm
     important_segs = []
     for primitive in ['mean', 'std', 'trend']:
         if primitive.lower() == 'mean':
@@ -538,13 +459,15 @@ def get_explain_signal():
             primitive_fn = ft.primitives.Trend()
             feature_name = "in-surgery#TREND(SURGERY_VITAL_SIGNS.VALUE, MONITOR_TIME WHERE ITEMID = %s)" % (
                 item_id)
+        else:
+            raise ValueError("Unsupported feature name")
         mean, std = reference_fm[feature_name].agg(['mean', 'std'])
         target_value = fm.loc[subject_id, feature_name]
-        if abs(target_value - mean) > std * 0.1:
-            important_segs.append({
-                'featureName': feature_name,
-                'segments': current_app.ex.occlusion_explain(item_id, "SURGERY_VITAL_SIGNS",
-                                                            primitive_fn, subject_id, lower_threshold=True, 
-                                                            flip=target_value < mean)})
+        important_segs.append({
+            'featureName': feature_name,
+            'segments': current_app.ex.occlusion_explain(item_id, "SURGERY_VITAL_SIGNS",
+                                                         primitive_fn, subject_id,
+                                                         lower_threshold=True,
+                                                         flip=target_value < mean)})
 
     return jsonify(important_segs)
