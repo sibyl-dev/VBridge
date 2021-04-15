@@ -1,5 +1,3 @@
-from functools import reduce
-
 import numpy as np
 import pandas as pd
 import featuretools as ft
@@ -24,38 +22,6 @@ def generate_cutoff_times(es, cutoffs='in-surgery'):
     cutoff_times['SUBJECT_ID'] = df.loc[cutoff_times['instance_id']]['SUBJECT_ID']
     cutoff_times['HADM_ID'] = df.loc[cutoff_times['instance_id']]['HADM_ID']
     return cutoff_times
-
-
-# prescription items with frequency > 5%
-interesting_prescription_items = [
-    '(4:1)Glucose and Sodium Chloride Injection',
-    'Sterile Water Injection', 'Enema Glycerini',
-    '10% Potassium Chloride Injection', 'Cefradine for Injection',
-    '5% Sodium Bicarbonate Injection',
-    '20% Albumin Prepared From Human Plasma Injection',
-    '25% Magnesium Sulfate Injection',
-    '10% Calcium Gluconate Injection',
-    'Methylprednisolone Sodium Succinate for Injection',
-    '20% Mannitol Injection',
-    'Creatine phosphate sodium for injection',
-    '0.9% Sodium Chloride Injection',
-    'Chloral hydrate powder for enema', 'Spironolactone Tablets',
-    'Hydrochlorothiazide Tablets', 'Vitamin C Injection',
-    'Ipratropium Bromide Solution for Inhalation',
-    '10% Chloral Hydrate Enemas',
-    'Phentolamine Mesylate for Injection'
-]
-
-ignore_features = [
-    'MEAN(SURGERY_VITAL_SIGNS.VALUE)',
-    'STD(SURGERY_VITAL_SIGNS.VALUE)',
-    'TREND(SURGERY_VITAL_SIGNS.VALUE, MONITOR_TIME)',
-    'ADMISSIONS.MEAN(CHARTEVENTS.VALUE)',
-    'ADMISSIONS.STD(CHARTEVENTS.VALUE)',
-    'ADMISSIONS.TREND(CHARTEVENTS.VALUE, CHARTTIME)',
-    'ADMISSIONS.MEAN(LABEVENTS.VALUENUM)',
-    'ADMISSIONS.EXISTS(PRESCRIPTIONS.DOSE_VAL_RX)'
-]
 
 
 class Exists(ft.primitives.AggregationPrimitive):
