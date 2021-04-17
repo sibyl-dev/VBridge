@@ -1,0 +1,146 @@
+.timeline-view-content {
+    /*height: calc(100% - 83px);*/
+    height: calc(100% - 20px);
+    overflow: scroll;
+}
+
+.timeline {
+    /* height: 80px; */
+    width: calc(100% - 20px);
+    position: relative;
+    margin-left: 10px;
+    margin-right: 10px;
+    float: left;
+    /* border: 1px solid rgba(220, 225, 230, 0.7); */
+    overflow: scroll;
+}
+
+.timeline-list {
+    display: flex;
+    position: relative;
+}
+
+.timeline-title-list {
+    display: flex;
+    flex-direction: column;
+    width: 80px;
+    margin-left: 20px;
+    margin-top: 20px;
+}
+
+.timeline-title {
+    /* height: 100%; */
+    width: 100px;
+    height: 45px;
+    float: right;
+    font-size: 10px;
+    font-weight: bold;
+    display: flex;
+    // justify-content: center;
+    align-items: center;
+    border-radius: 2px;
+    /*padding-top:21px;*/
+    line-height: 14px;
+    border-left-width: 4px;
+    border: 0px #eee solid;
+    border-top-width: 1px;
+}
+
+.timeline-title-text {
+    float: left;
+    margin-left: 5px;
+    // float: right;
+    // margin-right: 5px;
+}
+
+.timeline-content {
+    width: calc(100% - 110px);
+    /* float: left; */
+    position: absolute;
+    left: 100px;
+}
+
+.timeline-axis-content {
+    height: 60px;
+    width: calc(100% - 110px);
+    margin-left: 100px;
+    /*overflow: visible;*/
+}
+
+.timeline-svg {
+    height: 100%;
+    width: 100%;
+}
+
+.fix-on-bottom {
+    /* position: absolute; */
+    height: 60px;
+}
+
+rect.selection {
+    fill: #8dbefa;
+}
+
+.detail-button {
+    height: 20px;
+    font-size: 10px;
+}
+
+.timeline-legend {
+    width: 100%;
+    height: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+    margin-right: 20px;
+    font-size: 10px;
+    .abnormal {
+        display: flex;
+        align-items: center;
+        float: right;
+        margin-right: 40px;
+        .legend-rect {
+            margin-left: 5px;
+        }
+        span {
+            margin-left: 5px;
+        }
+    }
+    .eventsNumber {
+        margin-right: 30px;
+        display: flex;
+        align-items: center;
+        float: right;
+        .colorLegend {
+            margin-left: 5px;
+            margin-right: 5px;
+        }
+    }
+}
+
+
+/*
+.category-legend-container {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    // justify-content: space-around;
+    margin-bottom: 10px;
+    margin-right: 20px;
+    margin-left: 20px;
+    .legend-block {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        .legend-rect {
+            width: 10px;
+            height: 10px;
+
+            // margin-top: 5px;
+        }
+        .legend-name {
+            font-size: 10px;
+            margin-left: 5px;
+            margin-right: 10px;
+        }
+    }
+}*/

@@ -1,10 +1,12 @@
 import * as _ from "lodash"
 import { Button } from "antd";
-import { IEvent } from "data/event";
+import { IEvent, IEventBin, MetaEvent } from "data/event";
 import React from "react";
 import { defaultMargin, getMargin, IMargin, MarginType } from "visualization/common";
 import { drawTimeline } from "visualization/timeline";
 import { drawTimelineList } from "visualization/timeline3";
+import { color } from "echarts";
+import { LineChartOutlined, TableOutlined } from "@ant-design/icons";
 
 export interface TimelineStyle {
     width: number,
@@ -15,7 +17,7 @@ export interface TimelineStyle {
 
 export const defaultTimelineStyle: TimelineStyle = {
     width: 600,
-    height: 45,
+    height: 40,
     color: "#aaa",
     margin: defaultMargin,
 }
@@ -23,12 +25,16 @@ export const defaultTimelineStyle: TimelineStyle = {
 export interface TimelineListProps {
     className?: string,
     titles: (string | undefined)[],
-    events: IEvent[][],
+    events: IEventBin[][],
+    metaEvents?: MetaEvent[],
     timeScale?: d3.ScaleTime<number, number>,
     timelineStyle: Partial<TimelineStyle>,
     onSelectEvents?: (id: number, startDate: Date, endDate: Date) => void,
     color: (id: number) => string,
     margin: IMargin,
+    // size: number,
+    calculateNewTime?: (time: Date) => Date | undefined,
+    intervalByQuarter?: number,
 }
 
 export interface TimelineListStates {
@@ -40,6 +46,7 @@ export class TimelineList extends React.Component<TimelineListProps, TimelineLis
     private ref: React.RefObject<SVGSVGElement> = React.createRef();
     private shouldPaint: boolean = true;
     private selectedX: ([Date, Date] | undefined)[];
+    private focusedId: number = 0;
 
     constructor(props: TimelineListProps) {
         super(props);
@@ -78,7 +85,9 @@ export class TimelineList extends React.Component<TimelineListProps, TimelineLis
     private onSelectEvents(id: number, startDate: Date, endDate: Date, update: boolean) {
         const { onSelectEvents } = this.props;
         this.selectedX[id] = [startDate, endDate];
-        onSelectEvents && update && onSelectEvents(id, startDate, endDate);
+        this.focusedId = id;
+        // console.log('here onSelectEvents', startDate, endDate)
+        // onSelectEvents && update && onSelectEvents(id, startDate, endDate);
     }
 
     private onMouseOver(id: number) {
@@ -96,17 +105,18 @@ export class TimelineList extends React.Component<TimelineListProps, TimelineLis
     }
 
     private paint() {
-        const { timeScale, color } = this.props;
+        const { timeScale, color, metaEvents, intervalByQuarter } = this.props;
         const style = { ...defaultTimelineStyle, ...this.props.timelineStyle };
         const { width, height, margin } = style;
         const node = this.ref.current;
         let events = this.props.events;
-        if (timeScale) {
-            const extent = timeScale.domain();
-            events = events.map(es => es.filter(e => e.timestamp >= extent[0] && e.timestamp <= extent[1]));
-        }
+        // if (timeScale) {
+        //     const extent = timeScale.domain();
+        //     events = events.map(es => es.filter(e => e.timestamp >= extent[0] && e.timestamp < extent[1]));
+        // }
         if (node) {
             drawTimelineList({
+                metaEvents: metaEvents,
                 events: events,
                 node: node,
                 width: width,
@@ -116,33 +126,57 @@ export class TimelineList extends React.Component<TimelineListProps, TimelineLis
                 color: color,
                 timeScale: timeScale,
                 onBrush: this.onSelectEvents,
-                selectedX: this.selectedX,
+                // selectedX: this.selectedX,
                 onMouseOver: this.onMouseOver,
                 onMouseLeave: this.onMouseLeave,
+                calculateNewTime: this.props.calculateNewTime,
+                intervalByQuarter: intervalByQuarter
             });
         }
         this.shouldPaint = false;
     }
 
     public render() {
-        const { className, titles, timeScale, margin, events } = this.props;
+        const { className, titles, timeScale, margin, events, color, onSelectEvents } = this.props;
         const { showButton, buttonRow } = this.state;
         const style = { ...defaultTimelineStyle, ...this.props.timelineStyle };
-        const buttonXPos = (buttonRow !== undefined) && timeScale && (timeScale(this.selectedX[buttonRow]![1]) + margin.left + 40);
+        const selectedX = this.selectedX;
+        const focusedId = this.focusedId;
+        const buttonXPos = (buttonRow !== undefined) && timeScale && (timeScale(this.selectedX[buttonRow]![1]) + margin.left + 25);
         const buttonYPos = (buttonRow !== undefined) && (style.height * (1 / 2 + buttonRow) + margin.top) - 5;
         const height = style.height * events.length + margin.top + margin.bottom;
 
         return <div className={"timeline-list" + (className ? ` ${className}` : "")}>
             <div className={"timeline-title-list"}>
-                {titles?.map(title => <div className={"timeline-title"} style={{ height: style.height }} key={title}>{title}</div>)}
+                {titles?.map((title, i) => <div className={"timeline-title"}
+                    style={{ height: style.height, borderLeftColor: color(i), borderLeftWidth: 4 }} key={title}>
+                        <span className={"timeline-title-text"}>{title==='Chart Signs'?'Chart Events':title}</span></div>)}
             </div>
             <div className={"timeline-content"}>
-                {buttonXPos && buttonYPos && <Button style={{
+                {/* {buttonXPos && buttonYPos && <Button style={{
                     position: 'absolute', display: _.sum(showButton) > 0 ? 'block' : 'none',
                     left: buttonXPos, top: buttonYPos
                 }}
-                    type="primary" shape="round" size="small" className="detail-button">Details</Button>}
-                <svg ref={this.ref} className={"timeline-svg"} style={{ height: height }} />
+                    type="primary" shape="round" size="small" className="detail-button">Details</Button>} */}
+                {buttonXPos && buttonYPos && selectedX && <Button size="small" type="primary" shape="circle"
+                    icon={<LineChartOutlined />}
+                    onClick={() => onSelectEvents && onSelectEvents(focusedId, selectedX[focusedId]![0], selectedX[focusedId]![1])}
+                    style={{
+                        position: 'absolute', display: _.sum(showButton) > 0 ? 'block' : 'none',
+                        left: buttonXPos, top: buttonYPos - 3
+                    }}
+                    className={"feature-button-linechart"}
+                />}
+                {buttonXPos && buttonYPos && <Button size="small" type="primary" shape="circle"
+                    icon={<TableOutlined />}
+                    // onClick={() => inspectFeatureInTable && inspectFeatureInTable(feature)}
+                    style={{
+                        position: 'absolute', display: _.sum(showButton) > 0 ? 'block' : 'none',
+                        left: buttonXPos, top: buttonYPos + 28
+                    }}
+                    className={"feature-button-table"}
+                />}
+                <svg ref={this.ref} className={"timeline-svg"} style={{ height: height+20 }} />
             </div>
         </div>
     }

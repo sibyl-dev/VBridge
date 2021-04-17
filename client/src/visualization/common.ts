@@ -98,9 +98,74 @@ export function getScaleLinear(
   return d3
     .scaleLinear()
     .domain(_extent)
-    .nice()
+    // .nice()
     .range([x0, x1]);
 
+}
+
+export function calIntervalsCommon(
+  startDate: Date,
+  endDate: Date,
+): number {
+  let size = 9
+  const ONE_HOUR = 60
+  const ONE_MIN = 1
+  const ONE_DAY = 60 * 24
+  const ONE_MONTH = 60 * 24 * 30
+  const definedIntervalMins = [15 * ONE_MIN, 30 * ONE_MIN, ONE_HOUR, 2 * ONE_HOUR, 4 * ONE_HOUR, 6 * ONE_HOUR, 12 * ONE_HOUR,
+  1 * ONE_DAY, 2 * ONE_DAY, 3 * ONE_DAY, 5 * ONE_DAY, 6 * ONE_DAY, 10 * ONE_DAY, 15 * ONE_DAY,
+  1 * ONE_MONTH, 2 * ONE_MONTH, 3 * ONE_MONTH]
+
+  let mins = Math.round((endDate.valueOf() - startDate.valueOf()) / 1000 / 60)
+  let choseInterval = 0
+  for (let i = 0; i < definedIntervalMins.length; i++) {
+    for (size = 9; size <= 14; size++) {
+      if (choseInterval)
+        break
+      if (definedIntervalMins[i] * size >= mins) {
+        choseInterval = definedIntervalMins[i]
+        break
+      }
+    }
+    if (choseInterval)
+      break
+  }
+  return choseInterval
+}
+
+export function getIdbyQuarter(time: number) {
+  return Math.floor(time / (1000 * 60 * 15));
+}
+
+export function getRefinedStartEndTime(startTime: Date, endTime: Date, intervalInQuarter: number) {
+  const intervalInMilisecs = intervalInQuarter * 1000 * 60 * 15;
+  const refinedStartTime = new Date(Math.floor(startTime.getTime() / intervalInMilisecs) * intervalInMilisecs);
+  const refinedEndTime = new Date(Math.ceil(endTime.getTime() / intervalInMilisecs) * intervalInMilisecs);
+  return [refinedStartTime, refinedEndTime];
+}
+
+export function calIntervalsByQuarter(
+  startTime: Date,
+  endTime: Date,
+  minBins: number,
+  maxBins: number,
+  intervalOptions: number[],
+  range?: number,
+  width?: number,
+) {
+  // if (width && range) {
+  //   const binNum = Math.floor(range / width);
+  // }
+  // else {s
+    for (const interval of intervalOptions) {
+      const extent = getRefinedStartEndTime(startTime, endTime, interval);
+      const nBins = (extent[1].getTime() - extent[0].getTime()) / (1000 * 60 * 15 * interval);
+      if (nBins <= maxBins && nBins >= minBins) {
+        return interval;
+      }
+    }
+    return intervalOptions[intervalOptions.length - 1];
+  // }
 }
 
 export function getScaleTime(
@@ -121,8 +186,9 @@ export function getScaleTime(
   return d3
     .scaleTime()
     .domain(_extent)
-    .nice()
-    .range([x0, x1]);
+    // .nice()
+    .range([x0, x1])
+  // .ticks(d3.timeHour.every(size!/60));
 }
 
 export function countCategories(data: ArrayLike<string | number>, categories?: string[]) {

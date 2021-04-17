@@ -11,8 +11,10 @@ export interface TimelineAxisProps {
     startTime?: Date,
     endTime?: Date,
     color?: (id: number) => string,
+    size: number,
     timelineStyle: Partial<TimelineStyle>,
-    updateTimeScale?: (scale: d3.ScaleTime<number, number>) => void
+    updateTimeScale?: (scale: d3.ScaleTime<number, number>, startDate: Date, endDate: Date) => void,
+    formulateStartandEnd?:( startDate: Date, endDate: Date) => Date[]
 }
 
 export class TimelineAxis extends React.PureComponent<TimelineAxisProps>{
@@ -37,14 +39,15 @@ export class TimelineAxis extends React.PureComponent<TimelineAxisProps>{
     }
 
     private _draw() {
-        const { startTime, endTime, updateTimeScale, events, color } = this.props;
+        const { startTime, endTime, updateTimeScale, events, color, size, formulateStartandEnd } = this.props;
         const style = { ...defaultTimelineStyle, ...this.props.timelineStyle };
         const { width, height } = style;
         const margin = getMargin(style.margin);
         if (startTime && endTime) {
             const extend: [Date, Date] = [startTime, endTime];
             const timeScale = getScaleTime(0, width - margin.left - margin.right,
-                undefined, extend).nice();
+                undefined, extend)
+            // .nice();
             const node = this.ref.current;
             if (node) {
                 drawTimelineAxis({
@@ -57,6 +60,8 @@ export class TimelineAxis extends React.PureComponent<TimelineAxisProps>{
                     updateTimeScale: updateTimeScale,
                     drawAreaChart: true,
                     events: events,
+                    size: size,
+                    formulateStartandEnd: formulateStartandEnd,
                 })
             }
         }

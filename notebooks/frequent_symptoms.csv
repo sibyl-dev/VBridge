@@ -1,0 +1,39 @@
+,SYMPTOM_NAME_CN,SYMPTOM_NAME,FREQUENCY
+54391,心脏杂音,heart murmur,0.0854189336235038
+9944,腹软,abdominal soft,0.08487486398258977
+9943,心律齐,regular heart rhythm,0.08324265505984767
+9940,神志清,good spirit,0.08269858541893363
+9941,两肺干湿啰音,dry and moist rales,0.07997823721436344
+54404,肝脾肋下肿大,swelling of the spleen under the ribs,0.0794341675734494
+40718,三尖瓣反流,tricuspid regurgitation (TR),0.07834602829162132
+9945,咳嗽,cough,0.07834602829162132
+1045,心律失常,arrhythmia,0.07616974972796518
+206402,心跳骤停,cardiac arrest,0.0750816104461371
+206407,脱机困难,difficulty weaning from mechanical ventilation,0.07399347116430903
+206406,心脏复苏困难,difficulty in cardiopulmonary resuscitation,0.07399347116430903
+206409,语音障碍,voice disorders,0.07399347116430903
+375234,胸闷,chest tightness,0.07344940152339499
+54413,房间隔缺损,atrial septal defect (ASD),0.07290533188248095
+40721,气促发绀,anhelation and cyanosis,0.07290533188248095
+206404,血管神经损伤,vascular nerve injury,0.07236126224156691
+205400,胸廓畸形,pectus chest deformity,0.07181719260065289
+54401,浅表淋巴结肿大,superficial lymph node swelling,0.06637649619151251
+375242,出血,hemorrhage,0.06637649619151251
+226243,组织坏死,tissue necrosis,0.06311207834602829
+54411,缺损,defect,0.06311207834602829
+40801,咳嗽发热,cough and fever,0.06311207834602829
+226244,手术野污染,surgical field pollution,0.06311207834602829
+205398,低心排,low cardiac output,0.06256800870511425
+1049,皮疹,erythra,0.060935799782372145
+54400,巩膜皮肤黄染,skin jaundice,0.06039173014145811
+1035,感染,infection,0.06039173014145811
+54403,咽红肿,pharyngeal red,0.058759521218716
+375240,水肿,edema,0.056583242655059846
+54408,全身皮疹,whole body rash,0.056583242655059846
+54407,腹反跳痛,abdominal rebound tenderness,0.05603917301414581
+54406,腹压痛,abdominal tenderness,0.05603917301414581
+54399,颜面部黄染,facial jaundice,0.05603917301414581
+32542,室间隔缺损,ventricular septal defect (VSD),0.05495103373231774
+14239,抽搐,twitching,0.0544069640914037
+226246,意识障碍,disturbance of consciousness,0.05386289445048966
+14238,尿频,frequent micturition,0.051686615886833515

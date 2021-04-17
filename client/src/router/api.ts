@@ -7,7 +7,8 @@ import { Entity, ItemDict } from "data/table";
 import { ROOT_URL, DEV_MODE } from "./env";
 import { patientInfoMeta } from 'data/metaInfo';
 import { filterType } from 'data/filterType';
-import { ReferenceValue } from "data/common";
+import { ReferenceValue, ReferenceValueDict } from "data/common";
+import { SegmentExplanation } from "data/event";
 
 
 const API = `${ROOT_URL}/api`;
@@ -43,7 +44,10 @@ export async function getPatientRecords(params: {
 export async function getTableNames(): Promise<string[]> {
     const url = `${API}/table_names`;
     const response = await axios.get(url);
-    const tableNames = checkResponse(response, []);
+    let tableNames = checkResponse(response, []);
+    // let tmp3 = tableNames[3]
+    // tableNames[3] = tableNames[1]
+    // tableNames[1] = tmp3
     return tableNames;
 }
 
@@ -91,6 +95,8 @@ export async function getPatientMeta(params: {
     meta.SurgeryBeginTime = new Date(meta.SurgeryBeginTime);
     meta.SurgeryEndTime = new Date(meta.SurgeryEndTime);
     meta.AdmitTime = new Date(meta.AdmitTime);
+    meta.DOB = new Date(meta.DOB)
+    meta.days = Math.round((meta.SurgeryBeginTime.valueOf() - meta.DOB.valueOf())/1000/60/60/24)
     return meta;
 }
 
@@ -119,8 +125,8 @@ export async function getFeatureMatrix(): Promise<dataForge.IDataFrame<number, a
     const url = `${API}/feature_matrix`;
     const response = await axios.get(url);
     const checked = checkResponse(response, []);
-    const fm = dataForge.fromCSV(checked);
-    return fm;
+    const fm = dataForge.fromCSV(checked, { dynamicTyping: true }).setIndex('SUBJECT_ID');
+    return fm.setIndex('SUBJECT_ID');
 }
 
 export async function getFeatureValues(params: {
@@ -145,7 +151,7 @@ export async function getSHAPValues(params: {
 export async function getWhatIfSHAPValues(params: {
     subject_id: number,
     target: string,
-}): Promise<(featureName: string) => number | undefined> {
+}): Promise<(featureName: string) => {prediction: number, shap: number} | undefined> {
     const url = `${API}/what_if_shap_values`;
     const response = await axios.get(url, { params });
     const checked = checkResponse(response, []);
@@ -170,7 +176,8 @@ export async function getItemDict(): Promise<ItemDict> {
 export async function getReferenceValues(params: {
     table_name: string,
     column_name: string,
-}): Promise<(itemName: string) => (ReferenceValue | undefined)> {
+    group_ids?: number[]
+}): Promise<ReferenceValueDict> {
     const url = `${API}/reference_value`
     const response = await axios.get(url, { params });
     const checked = checkResponse(response, []);
@@ -184,16 +191,12 @@ export async function getReferenceValues(params: {
     }
 }
 
-// export async function getRangeDistribution(): Promise<(itemName: string) => (referenceValue|undefined)> {
-//     const url = `${API}/reference_value`
-//     const response = await axios.get(url, {params});
-//     const checked = checkResponse(response, []);
-//     return (itemName: string) => {
-//         var res = checked
-
-//         if (_.has(res, itemName)){
-//             return res[itemName];
-//         }
-//         return undefined;
-//     }
-// }
+export async function getSegmentExplanation(params: {
+    subject_id: number,
+    item_id: number | string,
+}): Promise<SegmentExplanation[]> {
+    const url = `${API}/explain_signal`
+    const response = await axios.get(url, { params });
+    const checked = checkResponse(response, []);
+    return checked;
+}

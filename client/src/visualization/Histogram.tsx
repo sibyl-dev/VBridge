@@ -14,6 +14,7 @@ import {
 import { shallowCompare, number2string, transMax } from '../data/common';
 import { defaultCategoricalColor } from './common';
 import "./Histogram.scss";
+import { start } from "node:repl";
 
 function isArrays<T>(a: T[] | T[][]): a is T[][] {
     return a.length > 0 && Array.isArray(a[0]);
@@ -21,7 +22,10 @@ function isArrays<T>(a: T[] | T[][]): a is T[][] {
 
 export interface IHistogramOptions extends ChartOptions {
     innerPadding?: number;
-    drawAxis?: boolean,
+    drawLeftAxis?: boolean,
+    drawBottomAxis?: boolean,
+    areaChart?: boolean,
+    binColor?: (x: number) => string,
     rectStyle?: CSSPropertiesFn<SVGRectElement, d3.Bin<number, number>>;
     onRectMouseOver?: d3.ValueFn<any, d3.Bin<number, number>, void>;
     // onRectMouseMove?: d3.ValueFn<any, d3.Bin<number, number>, void>;
@@ -43,6 +47,7 @@ export const defaultOptions = {
     margin: 0,
     innerPadding: 1,
     drawAxis: false,
+    drawBottomAxis: true,
 };
 
 export function getNBinsRange(width: number, minWidth: number = 7, maxWidth: number = 9): [number, number] {
@@ -54,17 +59,20 @@ export type IHistogramProps = (IHistogramOptions | IGHistogramOptions) & {
     allData?: number[] | number[][];
     dmcData?: number[] | number[][];
     referenceValue?: number,
+    whatIfValue?: number,
     style?: React.CSSProperties;
     svgStyle?: React.CSSProperties;
     className?: string;
     extent?: [number, number];
     drawRange?: boolean;
+    mode?: 'side-by-side' | 'stacked';
     onHoverRange?: (range?: [number, number]) => any;
 }
 
 const defaultProps = {
     ...defaultOptions,
-    drawAxis: false,
+    drawLeftAxis: false,
+    drawBottomAxis: true,
     drawRange: false
 }
 
@@ -72,10 +80,10 @@ export interface IHistogramState {
     hoveredBin: [number, number] | null;
 }
 
-export class Histogram extends React.PureComponent<
+export default class Histogram extends React.PureComponent<
     IHistogramProps,
     IHistogramState
-    > {
+> {
     static defaultProps = { ...defaultProps };
     private svgRef: React.RefObject<SVGSVGElement> = React.createRef();
     private shouldPaint: boolean = false;
@@ -96,11 +104,12 @@ export class Histogram extends React.PureComponent<
     public paint(svg: SVGSVGElement | null = this.svgRef.current) {
         if (svg) {
             console.debug("paint histogram");
-            const { data, allData, dmcData, className, style, svgStyle, height, drawRange, referenceValue, ...rest } = this.props;
+            const { data, allData, dmcData, className, style, svgStyle, height, drawRange, referenceValue, whatIfValue, ...rest } = this.props;
             const xScale = rest.xScale || this.getXScale();
             const chartHeight = drawRange ? (height - 24) : (height - 4);
             drawGroupedHistogram({
-                root: svg, data, allData, dmcData, referenceValue, options: {
+                root: svg, data, allData, dmcData, referenceValue, whatIfValue,
+                options: {
                     height: chartHeight,
                     ...rest,
                     xScale,
@@ -141,7 +150,7 @@ export class Histogram extends React.PureComponent<
     };
 
     public render() {
-        const { style, svgStyle, className, width, height, drawAxis, drawRange, extent } = this.props;
+        const { style, svgStyle, className, width, height, drawRange, extent } = this.props;
         const { hoveredBin } = this.state;
         return (
             <div className={(className || "") + " histogram"} style={style}>
@@ -237,15 +246,17 @@ export function drawGroupedHistogram(param: {
     allData?: number[] | number[][],
     dmcData?: number[] | number[][],
     referenceValue?: number,
+    whatIfValue?: number,
     options?: Partial<IGHistogramOptions>
 }
 ) {
-    const { root, data, allData, dmcData, options, referenceValue } = param;
-    const opts: Partial<IGHistogramOptions> & Pick<IGHistogramOptions, keyof typeof defaultOptions> = { ...defaultOptions, ...options };
+    const { root, data, allData, dmcData, options, referenceValue, whatIfValue } = param;
+    const opts = { ...defaultOptions, ...options };
     const {
         width,
         height,
         rectStyle,
+        binColor,
         innerPadding,
         onRectMouseOver,
         // onRectMouseMove,
@@ -258,12 +269,14 @@ export function drawGroupedHistogram(param: {
         selectedRange,
         rangeSelector,
         direction,
-        drawAxis,
+        drawLeftAxis: drawAxis,
+        drawBottomAxis,
         drawBand,
         bandValueFn,
         key,
         snapping,
-        twisty
+        twisty,
+        areaChart
     } = opts;
     const mode = opts.mode ? opts.mode : "side-by-side";
     const nGroups = data.length;
@@ -348,28 +361,66 @@ export function drawGroupedHistogram(param: {
             `translate(${margin.left}, ${margin.top})`
         )
 
-    const gs = current.selectAll<SVGGElement, BarLayout[]>("g.groups")
-        .data(bins)
-        .join<SVGGElement>(enter => {
-            return enter
-                .append("g")
-                .attr("class", "groups");
-        })
-        .attr("fill", (d, i) => color(i));
+    if (areaChart) {
+        const area = d3.area<BarLayout>()
+            .x(d => d.x)
+            .y0(d => d.y)
+            .y1(d => d.y + d.height)
+            .curve(d3.curveMonotoneX);
+        const gs = current.selectAll<SVGGElement, BarLayout[]>("path.area")
+            .data(bins)
+            .join(enter => {
+                return enter
+                    .append("path")
+                    .attr("class", "area");
+            })
+            .attr("fill", (d, i) => color(i))
+            .attr("d", d => area(d));
+    }
+    else {
+        const gs = current.selectAll<SVGGElement, BarLayout[]>("g.groups")
+            .data(bins)
+            .join<SVGGElement>(enter => {
+                return enter
+                    .append("g")
+                    .attr("class", "groups");
+            })
+            .attr("fill", (d, i) => color(i));
+        const merged = gs
+            .selectAll("rect.bar")
+            .data(d => d)
+            .join<SVGRectElement>(enter => {
+                return enter
+                    .append("rect")
+                    .attr("class", "bar");
+            })
+            .attr("transform", (d, i) => `translate(${d.x}, ${d.y})`)
+            .attr("width", d => d.width)
+            .attr("height", d => d.height)
+        // .append("title")
+        // .text(d => d.length);
+        if (binColor) {
+            // merged.attr("fill", d => binColor(xScale?.invert(d.x || 0)!))
+            merged.attr("fill", d => {
+                const startColor = binColor(xScale?.invert(d.x || 0)!);
+                const endColor = binColor(xScale?.invert(d.x + d.width || 0)!);
+                if (startColor === endColor)
+                    return startColor
+                else
+                    return '#fff'
+            });
+        }
 
-    const merged = gs
-        .selectAll("rect.bar")
-        .data(d => d)
-        .join<SVGRectElement>(enter => {
-            return enter
-                .append("rect")
-                .attr("class", "bar");
-        })
-        .attr("transform", (d, i) => `translate(${d.x}, ${d.y})`)
-        .attr("width", d => d.width)
-        .attr("height", d => d.height)
-        .append("title")
-        .text(d => d.length);
+        if (rectStyle) {
+            Object.keys(rectStyle).forEach(key => {
+                merged.style(
+                    key,
+                    (rectStyle[key as keyof typeof rectStyle] || null) as null
+                );
+            });
+        }
+    }
+
 
     referenceValue && xScale && getChildOrAppend<SVGLineElement, SVGGElement>(base, "line", "reference-line")
         .attr("x1", xScale(referenceValue))
@@ -377,15 +428,40 @@ export function drawGroupedHistogram(param: {
         .attr("y1", 0)
         .attr("y2", yRange[1])
 
+    // referenceValue && xScale && getChildOrAppend<SVGTextElement, SVGGElement>(base, "text", "reference-line-text")
+    //     .attr("x", xScale(referenceValue))
+    //     .attr("y", yRange[1])
+    //     .attr("dy", 10)
+    //     .attr("dx", -10)
+    //     .text(referenceValue)
+    // .append("title")
+    // .text(referenceValue.toFixed(2));
+
+    xScale && getChildOrAppend<SVGLineElement, SVGGElement>(base, "line", "reference-line-whatif")
+        .attr("x1", xScale(whatIfValue || 0))
+        .attr("x2", xScale(whatIfValue || 0))
+        .attr("y1", 0)
+        .attr("y2", yRange[1])
+        .style("display", (whatIfValue !== undefined) ? 'block' : 'none')
+    // .append("title")
+    // .text((whatIfValue || 0).toFixed(2));
+
+    // referenceValue && xScale && getChildOrAppend<SVGTextElement, SVGGElement>(base, "text", "reference-text")
+    //     .attr("transform", `translate(${xScale(referenceValue)}, 0)`)
+    //     .attr("dy", 8)
+    //     .attr("dx", 2)
+    //     .text(referenceValue.toFixed(2));
+
     const yreverse = d3.scaleLinear().domain(layout.y.domain()).range([layout.y.range()[1], layout.y.range()[0]])
 
     if (drawAxis) {
-        base.call(d3.axisLeft(yreverse).ticks(2));
+        base.call(d3.axisLeft(yreverse).ticks(4));
     }
 
     xScale && getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "x-axis-base")
         .attr("transform", `translate(0, ${yRange[1]})`)
-        .call(d3.axisBottom(xScale).ticks(2));
+        .attr("display", drawBottomAxis ? 'block' : 'none')
+        .call(d3.axisBottom(xScale).ticks(5));
 
     // Render the shades for highlighting selected regions
     if (rangeSelector === 'bin-wise') {
@@ -434,6 +510,42 @@ export function drawGroupedHistogram(param: {
         };
 
         const merged2 = renderShades();
+        merged2
+            .on("mouseover", (event, d) => {
+                // onRectMouseOver && onRectMouseOver(bins.map(bs => bs[idx]), idx, groups);
+                if (brushing && rangeBrushing) {
+                    const idx = _.findIndex(bins[0], bin => bin.x == d.x);
+                    rangeBrushing[1] = idx;
+                    renderShades();
+                }
+            })
+            // .on("mousemove", (onRectMouseMove || null) as null)
+            .on("mouseleave", (onRectMouseLeave || null) as null);
+
+        merged2
+            .on("mousedown", function (event, d) {
+                brushing = true;
+                const idx = _.findIndex(bins[0], bin => bin.x == d.x);
+                if (rangeBrushing === null) rangeBrushing = [idx, idx];
+                else rangeBrushing = null;
+                console.debug("brushing start", rangeBrushing);
+                event.stopPropagation();
+            })
+            .on("mouseup", function (event, d) {
+                if (rangeBrushing) {
+                    const idx = _.findIndex(bins[0], bin => bin.x == d.x);
+                    rangeBrushing[1] = idx;
+                    const x0 = bins[0][Math.min(...rangeBrushing)].x0,
+                        x1 = bins[0][Math.max(...rangeBrushing)].x1;
+                    console.log("select range:", x0, x1, d3.max(_.flatten(data)));
+                    onSelectRange && onSelectRange([x0 as number, x1 as number]);
+                } else {
+                    onSelectRange && onSelectRange();
+                }
+                brushing = false;
+                renderShades();
+                console.debug("brushing end");
+            });
     }
     else if (rangeSelector === 'as-a-whole') {
         const selectorBase = getChildOrAppend<SVGGElement, SVGElement>(_root, "g", "selector-base")
@@ -464,18 +576,7 @@ export function drawGroupedHistogram(param: {
 
         updateSelectorBox(_selectedRange);
     }
-
-    if (rectStyle) {
-        Object.keys(rectStyle).forEach(key => {
-            merged.style(
-                key,
-                (rectStyle[key as keyof typeof rectStyle] || null) as null
-            );
-        });
-    }
 }
-
-export default Histogram;
 
 interface HistogramLayoutProps extends ChartOptions {
     data: number[] | number[][],
@@ -527,6 +628,9 @@ export class HistogramLayout {
         const [min, max] = mode === 'side-by-side' ? getNBinsRange(width, 10, 16) : getNBinsRange(width, 7, 9);
         const tickNum = Math.min(max, Math.max(min, d3.thresholdSturges(_.flatten(this._dmcData))))
         this._ticks = ticks ? ticks : this.x.ticks(tickNum);
+        // console.log(this._ticks, this.x.domain());
+        const interval = (this.x.domain()[1] - this.x.domain()[0]) / (tickNum + 1)
+        this._xScale.domain([this._ticks[0] - interval, this._ticks[this._ticks.length-1] + interval])
         this._yScale = this.getYScales(yScale);
     }
 
@@ -535,8 +639,9 @@ export class HistogramLayout {
         // return getScaleLinear(_.flatten(this._dmcData), ...this.xRange);
     }
 
-    private getYScales(xScale?: d3.ScaleLinear<number, number>, yScale?: d3.ScaleLinear<number, number>):
+    private getYScales(yScale?: d3.ScaleLinear<number, number>):
         d3.ScaleLinear<number, number> {
+        console.log(this._ticks.map(d => this.x(d)));
         const histogram = d3
             .bin()
             .domain(this.x.domain() as [number, number])

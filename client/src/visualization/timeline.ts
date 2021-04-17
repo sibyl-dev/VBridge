@@ -1,46 +1,47 @@
+import { colors } from "@material-ui/core";
 import * as d3 from "d3"
+import { IEventBin, MetaEvent } from "data/event";
 import { getChildOrAppend, getScaleLinear, getScaleTime, defaultCategoricalColor, IMargin, getMargin } from "./common";
 import "./timeline.css"
 
-export type Event = {
-    timestamp: Date,
-    count: number,
-}
-
 export function drawTimeline(params: {
-    events: Event[],
-    node: SVGElement|SVGGElement,
-
+    events: IEventBin[],
+    node: SVGElement | SVGGElement,
     width: number,
     height: number,
     margin?: IMargin,
     timeScale?: d3.ScaleTime<number, number>,
+    // rectMargin?: IMargin, 
     color?: string,
     onBrush?: (startDate: Date, endDate: Date, update: boolean) => void,
-    selectedX?: [Date, Date],
+    // selectedX?: [Date, Date],
     onMouseOver?: () => void;
     onMouseLeave?: () => void;
 }) {
-    const { color, events, node, timeScale, onBrush, selectedX, onMouseOver, onMouseLeave} = params
+    const { events, node, timeScale, onBrush, onMouseOver, onMouseLeave } = params
+    // console.log('drawTimeline', params)
     const root = d3.select(node);
     const margin = getMargin(params.margin || {});
     const height = params.height - margin.top - margin.bottom;
     const width = params.width - margin.left - margin.right;
+    const cellPadding = 1;
 
     const base = getChildOrAppend<SVGGElement, SVGElement>(root, "g", "base")
         .attr("transform", `translate(${margin.left}, ${margin.top})`);
     const axisBase = getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "axis-base")
-        .attr("transform", `translate(0, ${height / 2})`);
+        .attr("transform", `translate(0, ${height})`);
     const bubbleBase = getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "bubble-base")
-        .attr("transform", `translate(0, ${height / 2})`);
+
 
     const axis = getChildOrAppend<SVGLineElement, SVGGElement>(axisBase, "line", "axis-line")
         .attr("class", "axis-line")
         .attr("x2", width);
 
-    const t = timeScale || getScaleTime(0, width, events.map(e => e.timestamp));
-    const r = getScaleLinear(5, 10, events.map(d => d.count));
-
+    const t = timeScale || getScaleTime(0, width, [...events.map(e => e.binStartTime), ...events.map(e => e.binEndTime)]);
+    // const r = getScaleLinear(0, 30, events.map(d => d.count));
+    const colorScale = getScaleLinear(0.2, 0.5, undefined, [0, d3.max(events.map(d => d.count))!]);
+    // const color = (id: number) => d3.interpolateRgb('#B2FEFA', '#0ED2F7')(colorScale(id));
+    const color = (id: number) => d3.interpolateBlues(colorScale(id));
     // getChildOrAppend(base, "rect", "base-rect")
     //     .attr("width", width)
     //     .attr("height", height)
@@ -56,9 +57,9 @@ export function drawTimeline(params: {
 
     onMouseOver && base.select(".selection")
         .on("mouseover", onMouseOver);
-    
+
     onMouseLeave && base.select(".selection")
-    .on("mouseleave", onMouseLeave);
+        .on("mouseleave", onMouseLeave);
 
 
     const leftTimeAnno = getChildOrAppend(base, "text", "left-time-annotation");
@@ -67,24 +68,26 @@ export function drawTimeline(params: {
     function brushed(event: { selection: [number, number] }) {
         const { selection } = event;
         if (selection) {
-            const extent = selection.map(t.invert);
-            updateHandle(extent as [Date, Date]);
+            let extent = selection.map(t.invert);
+            // extent = calExtentRange(extent)
+            // updateHandle(extent as [Date, Date]);
             onBrush && onBrush(extent[0], extent[1], false);
         }
         else {
-            updateHandle();
+            // updateHandle();
         }
     }
 
     function brushend(event: { selection: [number, number] }) {
         const { selection } = event;
         if (selection) {
-            const extent = selection.map(t.invert);
-            updateHandle(extent as [Date, Date]);
+            let extent = selection.map(t.invert);
+            // extent = calExtentRange(extent)
+            // updateHandle(extent as [Date, Date]);
             onBrush && onBrush(extent[0], extent[1], true);
         }
         else {
-            updateHandle();
+            // updateHandle();
         }
     }
 
@@ -105,20 +108,63 @@ export function drawTimeline(params: {
         }
     }
 
-    bubbleBase.selectAll(".bubble")
+    bubbleBase.selectAll(".timeline-cell")
         .data(events)
-        .join<SVGCircleElement>(enter => {
+        .join<SVGRectElement>(enter => {
             return enter
-                .append("circle")
-                .attr("class", "bubble");
-
+                .append("rect")
+                .attr("class", "timeline-cell");
         }, update => update,
             exit => { exit.remove() })
-        .attr("cx", d => t(d.timestamp))
-        .attr("r", d => r(d.count))
-        .style("fill", color || defaultCategoricalColor(0));
+        .attr("x", d => t(d.binStartTime) + cellPadding)
+        .attr('y', cellPadding)
+        .attr("rx", 2)
+        .attr('width', d => t(d.binEndTime) - t(d.binStartTime) - cellPadding * 2)
+        .attr("height", height - cellPadding)
+        // .style("fill", defaultCategoricalColor(0))
+        // .style('opacity', d => colorScale(d.count))
+        .style("fill", d => color(d.count))
 
-    selectedX && base.call(brush.move, [t(selectedX[0]), t(selectedX[1])]);
-    updateHandle(selectedX);
+    // bubbleBase.selectAll(".timeline-cell-inner")
+    //     .data(events)
+    //     .join<SVGRectElement>(enter => {
+    //         return enter
+    //             .append("rect")
+    //             .attr("class", "timeline-cell-inner");
+    //     }, update => update,
+    //         exit => { exit.remove() })
+    //     .attr("x", d => t(d.binStartTime) + cellPadding +
+    //         (t(d.binEndTime) - t(d.binStartTime) - cellPadding * 2) * (d.abnormalItems!.length / d.items!.length) / 2)
+    //     .attr('y', d => cellPadding + ((height - cellPadding * 2)) * (d.abnormalItems!.length / d.items!.length) / 2)
+    //     .attr("rx", 2)
+    //     .attr('width', d => (t(d.binEndTime) - t(d.binStartTime) - cellPadding * 2) * (1 - d.abnormalItems!.length / d.items!.length))
+    //     .attr("height", d => (height - cellPadding * 2) * (1 - d.abnormalItems!.length / d.items!.length))
+    //     .style("fill", defaultCategoricalColor(0))
+    //     .style('opacity', d => opacity(d.count))
 
+    bubbleBase.selectAll(".timeline-cell-inner")
+    .data(events)
+    .join<SVGRectElement>(enter => {
+        return enter
+            .append("rect")
+            .attr("class", "timeline-cell-inner");
+    }, update => update,
+        exit => { exit.remove() })
+    .attr("x", d => t(d.binStartTime) + cellPadding +
+        (t(d.binEndTime) - t(d.binStartTime) - cellPadding * 2) * (1 - d.abnormalItems!.length / d.items!.length) / 2)
+    .attr('y', d => cellPadding + ((height - cellPadding * 2)) * (1 - d.abnormalItems!.length / d.items!.length) / 2)
+    .attr("rx", 2)
+    .attr('width', d => (t(d.binEndTime) - t(d.binStartTime) - cellPadding * 2) * (d.abnormalItems!.length / d.items!.length))
+    .attr("height", d => (height - cellPadding * 2) * (d.abnormalItems!.length / d.items!.length))
+    // .style("fill", color?color:defaultCategoricalColor(0))
+    // .style("fill", d3.schemeGreys[0])
+    // .style("fill", "#ccc")
+    // .style('opacity', d => opacity(d.count))
+
+    // .style('stroke', 'black')
+    // .style('stroke-width', '1px')
+    // .attr("transform", d=> `translate(0, ${height - r(d.count)})`);
+    // d => r(d.count)
+    // selectedX && base.call(brush.move, [t(selectedX[0]), t(selectedX[1])]);
+    // updateHandle(selectedX);
 }

@@ -1,9 +1,10 @@
 .ts-card {
-    border: 1px solid rgba(220, 225, 230, 0.7);
+    border: 2px solid rgba(220, 225, 230, 0.7);
     margin: 10px 20px 10px 20px;
-    // border-radius: 5px;
+    border-radius: 2px;
     position: relative;
     transition: all 0.5s ease;
+    // background-color: rgba(250, 250, 250, 0.959);
     .ts-title-float {
         button.ant-btn {
             // width: 20px;
@@ -17,7 +18,7 @@
 }
 
 .ts-card:hover {
-    border: 1px solid rgba(24, 144, 255, 0.5);
+    border: 2px solid rgba(24, 144, 255, 0.5);
     .ts-title-float {
         button.ant-btn {
             display: block;

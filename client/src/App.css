@@ -9,11 +9,19 @@
     color: #61dafb;
 }
 
+.app-header {
+    line-height: 38px;
+}
+
 .system-name {
     font-style: bold;
     color: white;
     float: left;
-    font-size: 30px;
+    font-size: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 7px;
 }
 
 .view-title {
@@ -24,7 +32,55 @@
 }
 
 .view-title-text {
-    float: left;
+    position: absolute;
+    color: #fff;
+    left: 10px;
+    top: 0px;
+}
+
+.system-info {
+    height: 100%;
+}
+
+.system-widget {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    height: 100%;
+}
+
+.predictions {
+    margin-right: 40px;
+}
+
+.group-count {
+    margin-right: 10px
+}
+
+.widget {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    right: 10px;
+    top: 0px;
+}
+
+.widget-text {
+    margin-left: 10px;
+    margin-right: 5px;
+    /* color: #7fa5ec; */
+    color: #fff;
+}
+
+.ant-switch-inner {
+    /* background-color: #001529;s */
+    justify-content: center;
+    align-items: center;
+}
+
+.ant-switch-checked {
+    background-color: #025caf;
 }
 
 .header-name {
@@ -32,17 +88,14 @@
     color: white;
     font-size: 20px;
     text-align: right;
+    margin-right: 10px;
 }
 
 .header-content {
     font-style: bold;
     color: white;
     font-size: 20px;
-    margin-left: 20px;
-}
-
-.app-header {
-    line-height: 38px;
+    padding-left: 10px;
 }
 
 .prediction-icon {
@@ -60,16 +113,31 @@
 }
 
 .prediction-icon.inactive {
-    background-color: #ccc;
+    /*background-color: #ccc;*/
+    /* border: #7fa5ec 3px solid; */
+    border: rgb(78, 121, 167) 3px solid;
+    /*color: #7fa5ec;*/
 }
 
 .prediction-icon.active {
-    background-color: #7fa5ec;
+    /*background-color: #7fa5ec;*/
+    /* border: #e8b27c 3px solid; */
+    border: rgb(242, 142, 44) 3px solid;
+    /*color: #e8b27c;*/
 }
 
-.prediction-icon.selected {
-    border: #ff4e78 2px solid;
+.prediction-icon.selected.inactive {
+    /*border: #ff4e78 2px solid;*/
     /* color: #ff4e78; */
+    /* background-color: #7fa5ec; */
+    background-color: rgb(78, 121, 167);
+}
+
+.prediction-icon.selected.active {
+    /*border: #ff4e78 2px solid;*/
+    /* color: #ff4e78; */
+    /* background-color: #e8b27c; */
+    background-color: rgb(242, 142, 44);
 }
 
 #Filter {
@@ -96,7 +164,7 @@
     font-size: 18px;
     font-weight: bold;
     line-height: 30px;
-    margin-right: 20px;
+    margin-right: 10px;
 }
 
 .complication-title {
@@ -104,7 +172,7 @@
     font-size: 14px;
     font-weight: bold;
     line-height: 20px;
-    margin-right: 20px;
+    margin-right: 10px;
 }
 
 .ant-select-item-option-content {
@@ -123,13 +191,93 @@
 
 .between-view-link {
     stroke: #fff;
-    stroke-width: 1px;
+    stroke-width: 2px;
     fill: none;
-    opacity: 0.4;
+    opacity: 0.6;
 }
 
 .between-view-dot {
     /* stroke: #fff; */
     /* stroke-width: 1px; */
     opacity: 0.4;
+}
+
+.healthy-legend {
+    width: 120px;
+    height: 100%;
+    /*height: calc(100% - 20px);*/
+    /*max-height: 40px;*/
+    /*background-color: #fff;*/
+    border-radius: 2px;
+    justify-content: center;
+    align-items: center;
+    float: left;
+    padding-left: 15px;
+    border-left: #fff 2px solid;
+    /*border-right: #fff 2px solid;*/
+}
+
+.category-legend-container {
+    width: 305px;
+    height: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    height: calc(100% - 20px);
+    max-height: 40px;
+    /*justify-content: center;*/
+    /*align-items: center;*/
+    float: left;
+    /*border-right: #ffffff solid 2px;*/
+}
+
+.legend-block {
+    display: flex;
+    /*justify-content: center;*/
+    align-items: center;
+    line-height: 26px;
+}
+
+.legend-rect {
+    width: 14px;
+    height: 14px;
+    /* border: 1px solid #fff; */
+    border-radius: 2px;
+}
+
+.healthy-legend .legend-rect {
+    border: none;
+    border-radius: 7.5px;
+}
+
+.legend-name {
+    font-size: 14px;
+    margin-left: 5px;
+    margin-right: 10px;
+    line-height: 20px;
+}
+
+
+/*.category-legend-container .legend-rect{
+    width: 10px;
+    height: 10px;
+    border: 1px solid #fff;
+}*/
+
+.legend-area {
+    width: 460px;
+    /*height: calc(100% - 20px);*/
+    /*height: 100%;*/
+    /*margin-top: -10px;*/
+    /*max-height: 40px;*/
+    /*background-color: #fff;*/
+    color: #fff;
+    /*margin-right: 50px;*/
+    border-radius: 2px;
+    justify-content: center;
+    align-items: center;
+    text-align: left;
+}
+
+.ant-divider {
+    margin: 8px;
 }

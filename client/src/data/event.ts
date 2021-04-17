@@ -2,10 +2,29 @@ import * as d3 from "d3";
 import { DataFrame } from "data-forge";
 import { Entity } from "./table";
 
+export type MetaEvent = {
+    name: string,
+    timestamp: Date,
+}
+
 export type IEvent = {
     entityName: string,
     timestamp: Date,
-    count: number
+    count: number,
+    abnormalyCount?: number,
+    items?: string[],
+    abnormalItems?: string[]
+}
+
+export interface IEventBin {
+    entityName: string,
+    binId: number,
+    binStartTime: Date,
+    binEndTime: Date,
+    count: number,
+    abnormalyCount?: number,
+    items?: string[],
+    abnormalItems?: string[]
 }
 
 export type EventGroup = {
@@ -13,6 +32,19 @@ export type EventGroup = {
     endTime: Date,
     count: number,
     items: any[]
+}
+
+export type Segment = {
+    startTime: Date,
+    endTime: Date,
+    contriSum: number,
+    maxValue: number,
+    minValue: number
+}
+
+export type SegmentExplanation = {
+    featureName: string,
+    segments: Segment[]
 }
 
 export function groupEvents(entity: Entity<number, any>, deltaHour: number) {

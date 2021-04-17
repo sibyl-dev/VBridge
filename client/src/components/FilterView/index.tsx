@@ -95,8 +95,8 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
             defaultValue['Age'] = filterRange['Age']
 
         }
-        if (patientInfoMeta)
-            defaultValue['Age'] = new Array(this.judgeTheAge(patientInfoMeta['Age']))
+        // if (patientInfoMeta)
+        //     defaultValue['Age'] = new Array(this.judgeTheAge(patientInfoMeta['Age']))
 
 
         if (filterPatients)
@@ -133,16 +133,16 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
             this.setState({ cancel: false });
     }
     public judgeTheAge(age: number) {
-        if (age < 1) return '< 1 month'
-        else if (age <= 3) return '1-3 months'
-        else if (age <= 12) return '3 months-1 year'
-        else return '> 1 year'
+        if (age <= 1) return '< 1 month'
+        else if (age <= 12) return '< 1 year'
+        else if (age <= 36) return '1-3 years'
+        else return '> 3 years'
     }
     public async distributionRes() {
         const { tmpConditions } = this.state
         const subjectIdGFilter = await getPatientGroup({ filterConditions: tmpConditions ? tmpConditions : { '': '' }, subject_id: 0, setSubjectIdG: false })
         const distributionFilter: number[] = Object.assign([], subjectIdGFilter.labelCounts)
-        const allPatientNumber: number = subjectIdGFilter.labelCounts.length
+        const allPatientNumber: number = subjectIdGFilter.ids.length
         this.setState({ distributionFilter, allPatientNumber }, () => { console.log(this.state.distributionFilter) })
     }
 
@@ -268,7 +268,7 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
                     else {
                         const max = Math.ceil(filterRange[name][1])
                         const min = Math.floor(filterRange[name][0])
-                        var series = featureMatrix?.getSeries(name).parseFloats().toArray();
+                        var series = featureMatrix?.getSeries(name).toArray();
                         return (<>
                             <Divider orientation="left" />
                             <RangeChose filterName={name}
