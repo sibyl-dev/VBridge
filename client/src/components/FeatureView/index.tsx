@@ -2,14 +2,13 @@ import { Feature, FeatureMeta } from "data/feature";
 import { PatientMeta } from "data/patient";
 import * as React from "react";
 import * as d3 from "d3";
-import { Button, Divider, Tooltip, Input, Popover, Slider } from "antd"
+import { Button, Tooltip, Popover, Slider } from "antd"
 import { getFeatureMatrix, getFeatureValues, getSHAPValues, getWhatIfSHAPValues } from "router/api";
 import { DataFrame, IDataFrame } from "data-forge";
 import * as _ from "lodash"
 import { getScaleLinear, beautifulPrinter, defaultCategoricalColor } from "visualization/common";
 import {
     ArrowDownOutlined, ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, CaretRightOutlined, FilterOutlined, LineChartOutlined,
-    QuestionCircleFilled,
     QuestionOutlined,
     SortAscendingOutlined, TableOutlined
 } from "@ant-design/icons"
@@ -195,34 +194,6 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
 
         return (
             <div className="feature-view">
-                {/* <div className="legend-container">
-                    {entityCategoricalColor && <div className="category-legend-container">
-                        <div className="legend-block">
-                            <div className='legend-rect' style={{ backgroundColor: entityCategoricalColor(undefined) }} />
-                            <span className='legend-name'>{"Patient Info & Surgery Info"}</span>
-                        </div>
-                        {tableNames && tableNames.map(name =>
-                            <div className="legend-block" key={name}>
-                                <div className='legend-rect' style={{ backgroundColor: entityCategoricalColor(name) }} />
-                                <span className='legend-name'>{name.toLocaleLowerCase()}</span>
-                            </div>
-                        )}
-                    </div>}
-                    {abnormalityColor && <div className="abnormality-legend-container">
-                        <span className="legend-anno">Normal</span>
-                        <div className="legend-color-bar"
-                            // style={{backgroundColor: `linear-gradient(${abnormalityColor(1)}, ${abnormalityColor(1.75)}, ${abnormalityColor(2.5)})`}}/>
-                            style={{
-                                backgroundImage: `linear-gradient( to right, ${abnormalityColor(1)}, ${abnormalityColor(1.75)}, 
-                        ${abnormalityColor(2.5)})`
-                            }} />
-                        <span className="legend-anno">Abnormal</span>
-                    </div>}
-                </div> */}
-                {/* <div className="feature-view-search">
-                    <Search enterButton />
-                </div>
-                <Divider /> */}
                 {features && <FeatureList
                     {...rest}
                     shapValues={shapValues}
@@ -320,15 +291,6 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
         }
     }
 
-    // private getContributions(features: IDataFrame<number, Feature>, colName: string = 'contribution'): number[] {
-    //     let contributions = features.getSeries(colName).toArray();
-    //     for (const feature of features) {
-    //         if (feature.children) {
-    //             contributions = [...contributions, ...this.getContributions(feature.children)]
-    //         }
-    //     }
-    //     return contributions
-    // }
     private getContributions(features: VFeature[], colName: string = 'contribution'): number[] {
         let contributions = features.map(f => f.feature.contribution);
         return contributions
@@ -336,11 +298,6 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
 
     private flipShowState(feature: Feature) {
         const { VFeatureList } = this.state;
-        // const VFeature = VFeatureList.find(d => d.feature === feature);
-        // if (VFeature) {
-        //     VFeature.show = !VFeature.show;
-        //     VFeature.children.forEach(c => c.show = !c.show);
-        // }
         for (const vFeature of VFeatureList) {
             if (vFeature.feature.name === feature.name) {
                 vFeature.show = !vFeature.show;
@@ -384,12 +341,10 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
         const { features, cellWidth, shapValues, ...rest } = this.props;
         const { order, threshold } = this.state;
         const sortedFeatures = this.sortFeatures(features);
-        // shapValues && console.log([_.min(shapValues)!, _.sortBy(shapValues, d => d)[shapValues.length - 5]]);
         const shapMin = _.min(shapValues);
         const shapMax = _.max(shapValues);
 
         return <div style={{ width: "100%" }}>
-            {/* <Search placeholder="input search text" style={{ marginLeft: 10, marginRight: 10, width: "90%" }} enterButton /> */}
             <div style={{ width: "100%" }}>
                 <div className="feature-header">
                     <div className="feature-header-cell" style={{ width: cellWidth(0) }}>
@@ -557,7 +512,6 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                 if (showState !== 'focused') showState = 'none';
         }
 
-        // const heigth = collapsed ? (showDistibution ? 80 : 30) : 8;
         const heigth = showDistibution ? 80 : 30;
         const isLeaf = !feature.children || feature.children.count() === 0;
 
@@ -567,7 +521,6 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
         else if (collapsed) {
             const childrenNames = feature.children?.getSeries('name').where(d => d);
             if (childrenNames && childrenNames.count()) {
-                // id = _.reduce(childrenNames.toArray().map(n => `${className}-${n} `), (a, b) => a.concat(b));
                 id = `${className}-${childrenNames.first()}`;
             }
         }
@@ -633,9 +586,6 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                                 {(contribution > x.domain()[1]) && <ArrowRightOutlined className="overflow-notation-right" />}
                                 {(contribution < x.domain()[0]) && <ArrowLeftOutlined className="overflow-notation-left" />}
                             </div>
-                            {/* {showWhatIf && whatIfValue && <div className={"what-if-content"}>
-                                <span> After {(whatIfValue > (value as number))?'inceasing':'decreasing'} to {beautifulPrinter(whatIfValue)}</span>
-                            </div>} */}
                             {showWhatIf && predictionIfNormal && whatIfValue && <div className={"what-if-label"}>
                                 <div className={"label-circle"} style={{ backgroundColor: defaultCategoricalColor(Math.round(prediction)) }}>
                                     {prediction > 0.5 ? 'High' : 'Low'}
@@ -687,7 +637,7 @@ const SHAPContributions = (params: {
     negRectStyle?: React.CSSProperties
 }) => {
     const { feature, x, height, posRectStyle, negRectStyle, showWhatIf } = params;
-    const cont = Math.min(feature.contribution, x.domain()[1]);
+    const cont = Math.max(feature.contribution, Math.min(feature.contribution, x.domain()[1]), x.domain()[0]);
     const whatifcont = feature.contributionIfNormal;
     const posSegValue = _.range(0, 3).fill(0);
     const negSegValue = _.range(0, 3).fill(0);
