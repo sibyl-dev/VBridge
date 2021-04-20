@@ -3,9 +3,9 @@ import os
 import pandas as pd
 import pickle
 
-from model.modeler import Modeler
+from vbridge.modeling.modeler import Modeler
 
-ROOT = os.path.dirname(os.path.dirname(__file__))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 output_dir = os.path.join(ROOT, 'data/intermediate/')
 
 
@@ -48,7 +48,7 @@ class ModelManager:
             raise ValueError("id and X should not be both None.")
         return scores
 
-    def explain(self, id=None, X=None,target='complication'):
+    def explain(self, id=None, X=None, target='complication'):
         if id is not None:
             if id in self.X_train.index:
                 X = self.X_train.loc[id]
@@ -76,6 +76,6 @@ class ModelManager:
             path = os.path.join(output_dir, 'model_manager.pkl')
         with open(path, 'rb') as pickle_file:
             obj = pickle.load(pickle_file)
-        if not isinstance(obj, ModelManager):
-            raise ValueError('Serialized object is not a Modeler instance')
+        # if not isinstance(obj, ModelManager):
+        #     raise ValueError('Serialized object is not a Modeler instance')
         return obj

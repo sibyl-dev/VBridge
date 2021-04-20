@@ -1,14 +1,22 @@
 import argparse
+import sys
 
 from flask import Flask
 from flask_cors import CORS
 
-from server.api import api
-from model.data import load_pic
-from model.utils import load_entityset, load_fm
-from model.model_manager import ModelManager
-from model.featurization import generate_cutoff_times, Featurization
-from engine.explanation import Explainer
+from vbridge.router.api import api
+from vbridge.data_loader.data import load_pic
+from vbridge.data_loader.utils import load_entityset, load_fm
+from vbridge.modeling import model_manager, modeler
+from vbridge.featurization import featurization
+from vbridge.modeling.model_manager import ModelManager
+from vbridge.featurization.featurization import generate_cutoff_times, Featurization
+from vbridge.explainer.explanation import Explainer
+
+
+sys.modules['model.model_manager'] = model_manager
+sys.modules['model.modeler'] = modeler
+sys.modules['model.featurization'] = featurization
 
 def create_app():
     app = Flask(__name__)
@@ -29,8 +37,6 @@ def create_app():
         fm, fl = featurization.generate_features()
 
     fm['SURGERY_NAME'] = fm['SURGERY_NAME'].apply(lambda row: row.split('+'))
-    # fm = fm.set_index(es['SURGERY_INFO'].df['SUBJECT_ID'])
-    # fm['SUBJECT_ID'] = fm.index
     app.fm = fm
     app.fl = fl
 
