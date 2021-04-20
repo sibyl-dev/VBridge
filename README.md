@@ -13,7 +13,7 @@
 
 # VBridge
 
-Python Boilerplate contains all the boilerplate you need to create a Python package.
+VBridge is a visual analytics system that provides visual explanations to clinical prediction models built upon Electronic Healthcare Records.  
 
 - Documentation: https://DAI-Lab.github.io/vbridge
 - Homepage: https://github.com/DAI-Lab/vbridge
