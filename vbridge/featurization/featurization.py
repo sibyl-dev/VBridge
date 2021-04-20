@@ -4,9 +4,9 @@ import featuretools as ft
 from featuretools.selection import remove_low_information_features, \
     remove_highly_correlated_features, remove_highly_null_features
 
-from model.data import load_in_surgery_es, load_pre_surgery_es
-from model.settings import ignore_variables
-from model.utils import save_fm, load_fm, exist_fm
+from vbridge.data_loader.data import load_in_surgery_es, load_pre_surgery_es
+from vbridge.data_loader.settings import ignore_variables
+from vbridge.data_loader.utils import save_fm, load_fm, exist_fm
 
 
 def generate_cutoff_times(es, cutoffs='in-surgery'):

@@ -7,7 +7,7 @@ import shap
 from sklearn.model_selection import train_test_split
 from sklearn.utils import class_weight
 from sklearn.base import TransformerMixin
-from sklearn.impute import SimpleImputer, KNNImputer
+from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import MinMaxScaler
 from xgboost import XGBClassifier
 
@@ -59,6 +59,10 @@ class Modeler:
     @property
     def model(self):
         return self._model
+
+    @model.setter
+    def model(self, model):
+        self._model = model
 
     def fit(self, X, y, eval_set=None, target='complication', explain=True):
         y_train = y[target].values

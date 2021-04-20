@@ -4,8 +4,8 @@ from copy import deepcopy
 import pandas as pd
 import featuretools as ft
 
-from model.settings import interesting_variables, RELATIONSHIPS, META_INFO
-from model.utils import load_entityset, remove_nan_entries, save_entityset
+from vbridge.data_loader.settings import interesting_variables, RELATIONSHIPS, META_INFO
+from vbridge.data_loader.utils import load_entityset, remove_nan_entries, save_entityset
 
 
 ROOT = os.path.dirname(os.path.dirname(__file__))

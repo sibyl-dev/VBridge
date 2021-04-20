@@ -7,9 +7,9 @@ import featuretools as ft
 from flask.json import JSONEncoder
 from flask import request, jsonify, Blueprint, current_app, Response
 
-from model.data import get_patient_records
-from model.modeler import Modeler
-from model.settings import interesting_variables, META_INFO, filter_variable, filter_variable1
+from vbridge.data_loader.data import get_patient_records
+from vbridge.modeling.modeler import Modeler
+from vbridge.data_loader.settings import interesting_variables, META_INFO, filter_variable, filter_variable1
 
 api = Blueprint('api', __name__)
 
@@ -68,7 +68,8 @@ def handle_invalid_usage(error):
 @api.route('available_ids', methods=['GET'])
 def get_available_ids():
     fm = current_app.fm
-    return jsonify(fm.index.to_list())
+    # return jsonify(fm.index.to_list())
+    return jsonify([5856, 10007])
 
 
 @api.route('/individual_records', methods=['GET'])
@@ -457,8 +458,8 @@ def get_explain_signal():
                 item_id)
         elif primitive.lower() == 'trend':
             primitive_fn = ft.primitives.Trend()
-            feature_name = "in-surgery#TREND(SURGERY_VITAL_SIGNS.VALUE, MONITOR_TIME WHERE ITEMID = %s)" % (
-                item_id)
+            feature_name = "in-surgery#TREND(SURGERY_VITAL_SIGNS.VALUE, MONITOR_TIME WHERE " \
+                           "ITEMID = %s)" % item_id
         else:
             raise ValueError("Unsupported feature name")
         mean, std = reference_fm[feature_name].agg(['mean', 'std'])

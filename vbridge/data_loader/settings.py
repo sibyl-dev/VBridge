@@ -27,11 +27,6 @@ RELATIONSHIPS = [
     ('D_ICD_DIAGNOSES', 'ICD10_CODE_CN', 'DIAGNOSES_ICD', 'ICD10_CODE_CN'),
 ]
 
-complication_type = ['complication', 'lung complication','cardiac complication','arrhythmia complication','infectious complication','other complication']
-fm_category_name= [ 'SURGERY_NAME','SURGERY_POSITION',
-                    'ADMISSIONS.ADMISSION_DEPARTMENT','ADMISSIONS.INSURANCE','ADMISSIONS.LANGUAGE',
-                    'ADMISSIONS.RELIGION','ADMISSIONS.MARITAL_STATUS','ADMISSIONS.ETHNICITY',
-                    'ADMISSIONS.ICD10_CODE_CN','ADMISSIONS.HAS_CHARTEVENTS_DATA','ADMISSIONS.PATIENTS.GENDER',]
 META_INFO = {
     'PATIENTS': {
         'index': 'SUBJECT_ID',
@@ -156,10 +151,10 @@ META_INFO = {
 
 ignore_variables = {
     'PATIENTS': ['ROW_ID', 'EXPIRE_FLAG', 'DOD', 'SUBJECT_ID'],
-    'ADMISSIONS': ['ROW_ID', 'HADM_ID', 'SUBJECT_ID', 'HAS_CHARTEVENTS_DATA', 'LANGUAGE', 'RELIGION',
-                 'MARITAL_STATUS', 'ETHNICITY', 'ADMISSION_DEPARTMENT', 'INSURANCE'],
+    'ADMISSIONS': ['ROW_ID', 'HADM_ID', 'SUBJECT_ID', 'HAS_CHARTEVENTS_DATA', 'LANGUAGE',
+                   'RELIGION', 'MARITAL_STATUS', 'ETHNICITY', 'ADMISSION_DEPARTMENT', 'INSURANCE'],
     'ICUSTAYS': ['ROW_ID', 'HADM_ID', 'ICUSTAY_ID', 'SUBJECT_ID'],
-    'SURGERY_INFO': ['ROW_ID', 'HADM_ID', 'SUBJECT_ID', 'VISIT_ID', 'OPER_ID', 
+    'SURGERY_INFO': ['ROW_ID', 'HADM_ID', 'SUBJECT_ID', 'VISIT_ID', 'OPER_ID',
                      'Preoperative oxygen saturation (%)', 'Oxygen saturation (%)'],
     'DIAGNOSES_ICD': ['ROW_ID', 'HADM_ID', 'SUBJECT_ID'],
     'SURGERY_VITAL_SIGNS': ['ROW_ID', 'HADM_ID', 'SUBJECT_ID', 'VISIT_ID', 'OPER_ID', 'ITEM_NO'],
@@ -168,7 +163,8 @@ ignore_variables = {
     'MICROBIOLOGYEVENTS': ['ROW_ID', 'HADM_ID', 'SUBJECT_ID', 'AB_ITEMID', 'ORG_ITEMID',
                            'SPEC_ITEMID'],
     'OR_EXAM_REPORTS': ['ROW_ID', 'HADM_ID', 'SUBJECT_ID', 'REPORTTIME'],
-    'CHARTEVENTS': ['ROW_ID', 'SUBJECT_ID', 'HADM_ID', 'ICUSTAY_ID', 'VALUE', 'VALUEUOM', 'STORETIME'],
+    'CHARTEVENTS': ['ROW_ID', 'SUBJECT_ID', 'HADM_ID', 'ICUSTAY_ID', 'VALUE', 'VALUEUOM',
+                    'STORETIME'],
     'INPUTEVENTS': ['ROW_ID', 'HADM_ID', 'ICUSTAY_ID', 'SUBJECT_ID'],
     'OUTPUTEVENTS': ['ROW_ID', 'HADM_ID', 'ICUSTAY_ID', 'ITEMID', 'SUBJECT_ID'],
     'PRESCRIPTIONS': ['ROW_ID', 'HADM_ID', 'ICUSTAY_ID', 'SUBJECT_ID', 'DOSE_UNIT_RX',
@@ -178,59 +174,8 @@ ignore_variables = {
     'D_ICD_DIAGNOSES': ['ROW_ID']
 }
 
-identifier_variables = {
-    'PATIENTS': ['ROW_ID', 'SUBJECT_ID', 'EXPIRE_FLAG', 'DOD'],
-    'ADMISSIONS': ['ROW_ID', 'HADM_ID', 'SUBJECT_ID'],
-    'ICUSTAYS': ['ROW_ID', 'HADM_ID', 'ICUSTAY_ID', 'SUBJECT_ID'],
-    'SURGERY_INFO': ['ROW_ID', 'HADM_ID', 'SUBJECT_ID', 'VISIT_ID', 'OPER_ID', 'UNI_OPER_ID'],
-    'DIAGNOSES_ICD': ['ROW_ID', 'HADM_ID', 'SUBJECT_ID'],
-    'SURGERY_VITAL_SIGNS': ['ROW_ID', 'HADM_ID', 'SUBJECT_ID', 'VISIT_ID', 'OPER_ID',
-                            'UNI_OPER_ID'],
-    'EMR_SYMPTOMS': ['ROW_ID', 'HADM_ID', 'SUBJECT_ID', 'EMR_ID'],
-    'LABEVENTS': ['ROW_ID', 'HADM_ID', 'SUBJECT_ID', 'VALUENUM'],
-    'MICROBIOLOGYEVENTS': ['ROW_ID', 'HADM_ID', 'SUBJECT_ID'],
-    'OR_EXAM_REPORTS': ['ROW_ID', 'HADM_ID', 'SUBJECT_ID'],
-    'CHARTEVENTS': ['ROW_ID', 'SUBJECT_ID', 'HADM_ID', 'ICUSTAY_ID'],
-    'INPUTEVENTS': ['ROW_ID', 'SUBJECT_ID', 'HADM_ID', 'ICUSTAY_ID'],
-    'OUTPUTEVENTS': ['ROW_ID', 'SUBJECT_ID', 'HADM_ID', 'ICUSTAY_ID'],
-    'PRESCRIPTIONS': ['ROW_ID', 'SUBJECT_ID', 'HADM_ID', 'ICUSTAY_ID'],
-    'D_ITEMS': ['ROW_ID', 'ITEMID'],
-    'D_LABITEMS': ['ROW_ID', 'ITEMID'],
-    'D_ICD_DIAGNOSES': ['ROW_ID']
-}
-
-interesting_info_meta = {
-    'PATIENTS': ['Age', 'GENDER', 'Height', 'Weight', 'LANGUAGE', 'RELIGION', 'MARITAL_STATUS',
-                 'ETHNICITY'],
-    'ADMISSIONS': [
-        'ADMITTIME', 'ADMISSION_DEPARTMENT',
-        'INSURANCE', 'EDREGTIME', 'DIAGNOSIS', 'ICD10_CODE_CN'],
-    'SURGERY_INFO': ['ANES_START_TIME',
-                     'ANES_END_TIME',
-                     'SURGERY_BEGIN_TIME',
-                     'SURGERY_END_TIME',
-                     'SURGERY_NAME',
-                     'ANES_METHOD',
-                     'SURGERY_POSITION',
-                     # 'Height',
-                     # 'Weight',
-                     'Preoperative oxygen saturation (%)',
-                     'Oxygen saturation (%)',
-                     'Surgical time (minutes)',
-                     'CPB time (minutes)',
-                     'Aortic cross-clamping time (times)',
-                     'complication',
-                     'lung complication',
-                     'cardiac complication',
-                     'arrhythmia complication',
-                     'infectious complication',
-                     'other complication',
-                     # 'Age'
-                     ],
-}
-
-
-filter_variable = [ 'Height', 'Weight', 'Surgical time (minutes)', 'GENDER', 'Age', 'SURGERY_NAME',  ]
+filter_variable = ['Height', 'Weight', 'Surgical time (minutes)', 'GENDER', 'Age',
+                   'SURGERY_NAME', ]
 filter_variable1 = {
     'PATIENTS': ['GENDER'],
     'ADMISSIONS': ['LANGUAGE', 'RELIGION', 'MARITAL_STATUS', 'ETHNICITY', 'ADMISSION_DEPARTMENT',
@@ -284,7 +229,7 @@ interesting_variables = {'PATIENTS': ['GENDER', 'DOB'],
                          'EMR_SYMPTOMS': ['SYMPTOM_NAME_CN', 'SYMPTOM_NAME', 'SYMPTOM_ATTRIBUTE',
                                           'RECORDTIME'],
                          'LABEVENTS': ['ITEMID', 'VALUENUM', 'VALUEUOM', 'FLAG', 'CHARTTIME'],
-                        #  'LABEVENTS': ['ITEMID', 'VALUE', 'VALUEUOM', 'FLAG', 'CHARTTIME'],
+                         #  'LABEVENTS': ['ITEMID', 'VALUE', 'VALUEUOM', 'FLAG', 'CHARTTIME'],
                          'MICROBIOLOGYEVENTS': ['SPEC_ITEMID', 'SPEC_TYPE_DESC', 'ORG_ITEMID',
                                                 'ORG_NAME', 'AB_ITEMID', 'AB_NAME',
                                                 'DILUTION_TEXT', 'DILUTION_COMPARISON',
