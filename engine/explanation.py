@@ -1,20 +1,10 @@
 import pandas as pd
 import featuretools as ft
-import matplotlib.pyplot as plt
 import numpy as np
 
 from model import model_manager
 from model.settings import META_INFO
 from engine.anomaly import find_anomalies
-
-
-def visualize_signal(signal, c=None, vmin=None, vmax=None):
-    # Debugging functions, visualize the signal, colored by contribution
-    plt.plot(np.arange(len(signal)), signal, c="black", zorder=1)
-    plt.scatter(np.arange(len(signal)), signal, c=c, cmap="Reds_r", vmin=vmin, vmax=vmax,
-                zorder=2)
-    if c is not None:
-        plt.colorbar()
 
 
 def distribute_shap(shap_value, v):
