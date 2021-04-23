@@ -1,15 +1,9 @@
 import * as d3 from "d3"
 import { IEventBin, MetaEvent } from "data/event";
 import * as _ from "lodash"
-import { remove } from "lodash";
-import { getChildOrAppend, IMargin, getMargin } from "./common";
-import { drawTimeline } from "./timeline";
-import "./timeline.css"
-
-export type Event = {
-    timestamp: Date,
-    count: number,
-}
+import { getChildOrAppend, IMargin, getMargin, QUATER_IN_MILI } from "./common";
+import { drawTimeline } from "./Timeline";
+import "./Timeline.css"
 
 export function drawTimelineList(params: {
     events: IEventBin[][],
@@ -24,7 +18,6 @@ export function drawTimelineList(params: {
     timeScale?: d3.ScaleTime<number, number>,
     color?: (id: number) => string,
     onBrush?: (id: number, startDate: Date, endDate: Date, update: boolean) => void,
-    // selectedX?: ([Date, Date] | undefined)[],
     onMouseOver?: (id: number) => void;
     onMouseLeave?: (id: number) => void;
     calculateNewTime?: (time: Date) => Date | undefined,
@@ -44,49 +37,36 @@ export function drawTimelineList(params: {
     if (intervalByQuarter && timeScale) {
         const startTime = timeScale.domain()[0];
         const endTime = timeScale.domain()[1];
-        const binTime = (intervalByQuarter * 1000 * 60 * 15)
+        const binTime = (intervalByQuarter * QUATER_IN_MILI)
         const tickNum = Math.floor((endTime.getTime() - startTime.getTime()) / binTime) + 1;
         const tickBin = _.range(0, tickNum).map(t => new Date(startTime.getTime() + binTime * t));
-        const tickGroups = base.selectAll('.time-tick-text')
+
+        const tickGroups = base.selectAll('.time-tick-group')
             .data(tickBin)
+            .join(
+                enter => enter.append("g").attr("class", 'time-tick-group'),
+                update => update,
+                remove => remove.exit()
+            )
+            .attr("transform", d => `translate(${timeScale(d)}, 10)`);
+        tickGroups.selectAll('.time-tick-text')
+            .data(d => [d])
             .join(
                 enter => enter.append("text").attr("class", 'time-tick-text'),
                 update => update,
                 remove => remove.exit()
             )
-            .attr("transform", d => `translate(${timeScale(d)}, 10)`)
-        // tickGroups.select('.time-tick-text')
-        //     .datum(d => d)
-        //     .join(
-        //         enter => enter.append("text").attr("class", 'time-tick-text'),
-        //         update => update,
-        //         remove => remove.exit()
-        //     )
-            .text(d => (d.getHours() === 0)?`${d.getDate()}th`:`${d.getHours()}:00`)
-
-            base.selectAll('.time-tick')
-            .data(tickBin)
+            .text(d => (d.getHours() === 0) ? `${d.getDate()}th` : `${d.getHours()}:00`)
+        tickGroups.selectAll('.time-tick')
+            .data(d => [d])
             .join(
                 enter => enter.append("line").attr("class", 'time-tick'),
                 update => update,
                 remove => remove.exit()
             )
-            .attr("transform", d => `translate(${timeScale(d)+14}, 13)`)
-            .attr("x1", 0)
-            .attr("x2", 0)
-            .attr("y1", 0)
-            .attr("y2", 6)
-           
-    }
-
-
-    if (metaEvents) {
-        const metaEventBase = getChildOrAppend<SVGGElement, SVGGElement>(contentBase, "g", "meta-event-base");
-        getChildOrAppend<SVGLineElement, SVGGElement>(metaEventBase, "line", "meta-event-axis")
-            .attr("x1", 0)
-            .attr("x2", width)
-            .attr("y1", 30)
-            .attr("y2", 30);
+            .attr("transform", d => `translate(14, 0)`)
+            .attr("y1", 3)
+            .attr("y2", 9)
     }
 
     const rowBases = _.range(0, events.length).map(id => getChildOrAppend<SVGGElement, SVGGElement>(contentBase, "g", `row-base-${id}`));
@@ -101,22 +81,13 @@ export function drawTimelineList(params: {
                 height: rowHeight,
                 margin: rowMargin,
                 timeScale: timeScale,
-                color: color && color(i),
                 onBrush: onBrush && ((startDate: Date, endDate: Date, update: boolean) =>
                     onBrush(i, startDate, endDate, update)),
-                // selectedX: selectedX && selectedX[i],
                 onMouseOver: onMouseOver && (() => onMouseOver(i)),
-                // size: size,
                 onMouseLeave: onMouseLeave && (() => onMouseLeave(i)),
-                // calculateNewTime: calculateNewTime,
             })
         }
     })
-
-    // getChildOrAppend<SVGRectElement, SVGGElement>(base, "rect", `base-rec`)
-    //     .attr("width", width)
-    //     .attr("height", rowHeight * events.length)
-    //     .style("fill", "none");
 
     const subline = getChildOrAppend<SVGLineElement, SVGGElement>(base, "line", `subline`)
         .attr("y1", 0)

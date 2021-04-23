@@ -1,13 +1,8 @@
 import * as React from "react";
 import * as dataForge from "data-forge"
-import { Select, Table } from "antd"
-
-import Panel from "../Panel"
 import PureTable from "../Table"
-import { getPatientRecords } from "../../router/api"
 import { Entity, ItemDict } from "data/table";
 import { PatientMeta } from "data/patient";
-import { groupEvents } from "data/event";
 import { FeatureMeta } from "data/feature";
 
 import './index.css'

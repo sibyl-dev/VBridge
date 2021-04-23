@@ -8,19 +8,6 @@
     stroke-width: 2px;
 }
 
-.bubble {
-    opacity: 50%;
-    stroke-width: 1px;
-}
-
-.left-time-annotation,
-.right-time-annotation {
-    font-size: 10px;
-    fill: #777;
-    font-weight: bolder;
-    text-anchor: middle;
-}
-
 .handle {
     fill: rgb(119, 119, 119)
 }
@@ -38,6 +25,7 @@
 
 .timeline-cell-inner {
     fill: rgb(145, 145, 145);
+    stroke: none;
 }
 
 .time-tick-text {

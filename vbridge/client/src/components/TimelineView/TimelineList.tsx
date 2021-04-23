@@ -1,11 +1,9 @@
 import * as _ from "lodash"
 import { Button } from "antd";
-import { IEvent, IEventBin, MetaEvent } from "data/event";
+import { IEventBin, MetaEvent } from "data/event";
 import React from "react";
-import { defaultMargin, getMargin, IMargin, MarginType } from "visualization/common";
-import { drawTimeline } from "visualization/timeline";
+import { defaultMargin, IMargin } from "visualization/common";
 import { drawTimelineList } from "visualization/timeline3";
-import { color } from "echarts";
 import { LineChartOutlined, TableOutlined } from "@ant-design/icons";
 
 export interface TimelineStyle {
@@ -83,11 +81,8 @@ export class TimelineList extends React.Component<TimelineListProps, TimelineLis
 
 
     private onSelectEvents(id: number, startDate: Date, endDate: Date, update: boolean) {
-        const { onSelectEvents } = this.props;
         this.selectedX[id] = [startDate, endDate];
         this.focusedId = id;
-        // console.log('here onSelectEvents', startDate, endDate)
-        // onSelectEvents && update && onSelectEvents(id, startDate, endDate);
     }
 
     private onMouseOver(id: number) {
@@ -153,11 +148,6 @@ export class TimelineList extends React.Component<TimelineListProps, TimelineLis
                         <span className={"timeline-title-text"}>{title==='Chart Signs'?'Chart Events':title}</span></div>)}
             </div>
             <div className={"timeline-content"}>
-                {/* {buttonXPos && buttonYPos && <Button style={{
-                    position: 'absolute', display: _.sum(showButton) > 0 ? 'block' : 'none',
-                    left: buttonXPos, top: buttonYPos
-                }}
-                    type="primary" shape="round" size="small" className="detail-button">Details</Button>} */}
                 {buttonXPos && buttonYPos && selectedX && <Button size="small" type="primary" shape="circle"
                     icon={<LineChartOutlined />}
                     onClick={() => onSelectEvents && onSelectEvents(focusedId, selectedX[focusedId]![0], selectedX[focusedId]![1])}
@@ -169,7 +159,6 @@ export class TimelineList extends React.Component<TimelineListProps, TimelineLis
                 />}
                 {buttonXPos && buttonYPos && <Button size="small" type="primary" shape="circle"
                     icon={<TableOutlined />}
-                    // onClick={() => inspectFeatureInTable && inspectFeatureInTable(feature)}
                     style={{
                         position: 'absolute', display: _.sum(showButton) > 0 ? 'block' : 'none',
                         left: buttonXPos, top: buttonYPos + 28

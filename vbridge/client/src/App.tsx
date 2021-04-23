@@ -438,9 +438,6 @@ class App extends React.Component<AppProps, AppStates>{
     else {
       return "#aaa"
     }
-    // if (i === 1) i = 3;
-    // else if (i === 3) i = 1;
-
   }
 
   private abnormalityColor(abnormality: number) {
@@ -469,23 +466,6 @@ class App extends React.Component<AppProps, AppStates>{
           y1: (start.top + start.bottom) / 2,
           x2: end.left,
           y2: (end.top + end.bottom) / 2,
-          // path: d3.path()
-          // path: d3.line()([
-          //   [start.right + 8, start.top + 2],
-          //   [end.left, end.top + (end.bottom - end.top) * i / starts.length],
-          //   [end.left, end.top + (end.bottom - end.top) * (i + 1) / starts.length],
-          //   [start.right + 8, start.bottom - 2],
-          // ]),
-          // path: d3.line()([
-          //   [start.right, start.top],
-          //   [end.left, end.top],
-          //   [end.left, end.bottom],
-          //   [start.right, start.bottom],
-          // ]),
-          // path: d3.line()([
-          //   [start.right, (start.top + start.bottom) / 2],
-          //   [end.left, (end.top + end.bottom) / 2],
-          // ]),
           color: this.entityCategoricalColor(signal.tableName)
         }))
       }
@@ -651,12 +631,12 @@ class App extends React.Component<AppProps, AppStates>{
               title={<div className="view-title">
                 <span className="view-title-text">Timeline View</span>
               </div>}>
-              {featureMeta && tableNames && tableRecords && referenceValues && <TimelineView
+              {patientMeta && featureMeta && tableNames && tableRecords && referenceValues && <TimelineView
                 tableNames={tableNames}
                 patientMeta={patientMeta}
                 featureMeta={featureMeta}
                 tableRecords={tableRecords}
-                width={window.innerWidth - featureViewWidth - ProfileWidth - 160 - xPadding * 2}
+                width={window.innerWidth - featureViewWidth - ProfileWidth - xPadding * 4}
                 onSelectEvents={this.updateSignalFromTimeline}
                 entityCategoricalColor={this.entityCategoricalColor}
                 referenceValues={referenceValues}
@@ -727,7 +707,6 @@ class App extends React.Component<AppProps, AppStates>{
                 patientMeta={patientMeta}
                 tableNames={tableNames}
                 itemDicts={itemDicts}
-                // tableRecord={tableRecords ? tableRecords[0] : undefined}
                 tableMeta={tableViewMeta}
                 tableRecords={tableRecords}
               />}
