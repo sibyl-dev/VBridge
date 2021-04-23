@@ -114,11 +114,11 @@ export const QUATER_IN_MILI = 1000 * 60 * 15;
 const defaultIntervalOptions = [1, 2, HOUR_IN_QUATER, HOUR_IN_QUATER * 2, HOUR_IN_QUATER * 4, HOUR_IN_QUATER * 8,
   HOUR_IN_QUATER * 12, HOUR_IN_QUATER * 24, HOUR_IN_QUATER * 48];
 
-export function getQuarter(time: number) {
-  return Math.floor(time / QUATER_IN_MILI);
+export function getQuarter(time: Date) {
+  return Math.floor(time.getTime() / QUATER_IN_MILI);
 }
 
-export function getRefinedStartEndTime(startTime: Date, endTime: Date, intervalInQuarter: number) {
+export function getRefinedStartEndTime(startTime: Date, endTime: Date, intervalInQuarter: number): [Date, Date] {
   const intervalInMilisecs = intervalInQuarter * QUATER_IN_MILI;
   const refinedStartTime = new Date(Math.floor(startTime.getTime() / intervalInMilisecs) * intervalInMilisecs);
   const refinedEndTime = new Date(Math.ceil(endTime.getTime() / intervalInMilisecs) * intervalInMilisecs);
@@ -134,7 +134,7 @@ export function calIntervalsByQuarter(
 ) {
   for (const interval of intervalOptions) {
     const extent = getRefinedStartEndTime(startTime, endTime, interval);
-    const nBins = Math.ceil(getQuarter(extent[1].getTime() - extent[0].getTime()) / interval);
+    const nBins = Math.ceil((getQuarter(extent[1]) - getQuarter(extent[0])) / interval);
     if (nBins <= maxBins && nBins >= minBins) {
       return interval;
     }

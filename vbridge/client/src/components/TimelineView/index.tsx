@@ -5,7 +5,6 @@ import { PatientMeta } from "data/patient";
 import { Entity } from "data/table";
 import { QUATER_IN_MILI, defaultCategoricalColor, getScaleTime, IMargin, calIntervalsByQuarter, getRefinedStartEndTime, getQuarter } from "visualization/common";
 import { IEvent, IEventBin } from "data/event";
-import { TimelineList } from "./TimelineList";
 import { FeatureMeta } from "data/feature";
 import { IDataFrame, ISeries } from "data-forge";
 import { isDefined, ReferenceValueDict } from "data/common";
@@ -34,6 +33,9 @@ export interface TimelineViewStates {
 
 export default class TimelineView extends React.Component<TimelineViewProps, TimelineViewStates> {
     private ref: React.RefObject<HTMLDivElement> = React.createRef();
+    private margin: IMargin = { left: 0, right: 0, top: 0, bottom: 0 };
+    private titleWidth: number = 100;
+    private rowHeight: number = 40;
     constructor(props: TimelineViewProps) {
         super(props);
         this.state = {};
@@ -53,8 +55,10 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
         if (startDate && endDate) {
             const intervalByQuarter = calIntervalsByQuarter(startDate, endDate, 9, 16);
             const extent = getRefinedStartEndTime(startDate, endDate, intervalByQuarter);
-            this.setState({ startTime: extent[0], endTime: extent[1], intervalByQuarter }, () => this._extractEvents());
-            this._extractEvents();
+            const timeScale = getScaleTime(0, this.ref.current!.offsetWidth - this.margin.left
+                - this.margin.right - this.titleWidth, undefined, extent)
+            this.setState({ startTime: extent[0], endTime: extent[1], timeScale: timeScale, intervalByQuarter },
+                () => this._extractEvents());
         }
     }
 
@@ -90,7 +94,8 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
                                 const value_index = value_indexes[0];
                                 const referenceValue = referenceValueDict(item);
                                 if (referenceValue) {
-                                    const outOfRange = (row[value_index] > referenceValue?.ci95[1]) || (row[value_index] < referenceValue?.ci95[0]);
+                                    const outOfRange = (row[value_index] > referenceValue?.ci95[1]) ||
+                                        (row[value_index] < referenceValue?.ci95[0]);
                                     if (outOfRange) {
                                         abnormalItems.push(item);
                                     }
@@ -114,7 +119,7 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
                     .groupBy(row => Math.floor(row.timestamp.getTime() / (QUATER_IN_MILI * intervalByQuarter)))
                     .select(group => {
                         const sample = group.first();
-                        const binId = Math.floor(getQuarter(sample.timestamp.getTime() - startTime.getTime()) / intervalByQuarter);
+                        const binId = Math.floor((getQuarter(sample.timestamp) - getQuarter(startTime)) / intervalByQuarter);
                         const binStartTime = new Date(startTime.getTime() + binId * (QUATER_IN_MILI * intervalByQuarter));
                         const binEndTime = new Date(startTime.getTime() + (binId + 1) * (QUATER_IN_MILI * intervalByQuarter));
                         const groupArray = group.toArray();
@@ -146,39 +151,28 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
     }
 
     public render() {
-        const { patientMeta, tableRecords, onSelectEvents } = this.props;
+        const { tableRecords, onSelectEvents } = this.props;
         const { timeScale, eventBins, startTime, endTime, intervalByQuarter } = this.state;
-        const margin: IMargin = { left: 0, right: 0, top: 0, bottom: 0 };
-        const metaEvents = patientMeta ? [{
-            name: 'Admit to Hospital',
-            timestamp: patientMeta.AdmitTime
-        }, {
-            name: 'Surgery Begin',
-            timestamp: patientMeta.SurgeryBeginTime
-        }, {
-            name: 'Surgery End',
-            timestamp: patientMeta.SurgeryEndTime
-        }] : undefined;
 
         return (
             <div className="timeline-view-container" ref={this.ref}>
                 {timeLineLegend()}
                 {eventBins && eventBins.map((events, i) => {
                     const title = tableRecords[i].metaInfo?.alias;
-                    return <div className={"timeline-container"} style={{ borderLeftColor: this.color(i), borderLeftWidth: 4 }} key={i}>
+                    return <div className={"timeline-container"} key={i}>
                         <div className={"timeline-title"}
-                            style={{ height: 40, width: 100 }} key={title}>
+                            style={{ height: this.rowHeight, width: this.titleWidth, borderLeftColor: this.color(i) }} key={title}>
                             <span className={"timeline-title-text"}>{title === 'Chart Signs' ? 'Chart Events' : title}</span>
                         </div>
                         <Timeline
                             events={events}
-                            timeScale={timeScale || getScaleTime(0, this.ref.current!.offsetWidth - margin.left - margin.right - 100, undefined, [startTime!, endTime!])}
-                            width={this.ref.current!.offsetWidth - 100}
-                            margin={margin}
-                            height={40}
-                            style={{ position: 'absolute', 'left': 100 }}
-                        // onSelectEvents={(id: number, startDate: Date, endDate: Date) =>
-                        //     onSelectEvents && onSelectEvents(tableRecords[id].name!, startDate, endDate)}
+                            timeScale={timeScale}
+                            width={this.ref.current!.offsetWidth - this.titleWidth}
+                            margin={this.margin}
+                            height={this.rowHeight}
+                            style={{ position: 'absolute', 'left': this.titleWidth + 15 }}
+                            onSelectEvents={(startDate: Date, endDate: Date) =>
+                                onSelectEvents && onSelectEvents(tableRecords[i].name!, startDate, endDate)}
                         // intervalByQuarter={intervalByQuarter}
                         />
                     </div>

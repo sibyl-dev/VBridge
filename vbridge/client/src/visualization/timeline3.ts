@@ -81,8 +81,8 @@ export function drawTimelineList(params: {
                 height: rowHeight,
                 margin: rowMargin,
                 timeScale: timeScale,
-                onBrush: onBrush && ((startDate: Date, endDate: Date, update: boolean) =>
-                    onBrush(i, startDate, endDate, update)),
+                // onBrush: onBrush && ((startDate: Date, endDate: Date, update: boolean) =>
+                //     onBrush(i, startDate, endDate, update)),
                 onMouseOver: onMouseOver && (() => onMouseOver(i)),
                 onMouseLeave: onMouseLeave && (() => onMouseLeave(i)),
             })
