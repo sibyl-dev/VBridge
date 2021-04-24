@@ -3,7 +3,10 @@ import * as d3 from "d3";
 import * as _ from "lodash"
 import { PatientMeta } from "data/patient";
 import { Entity } from "data/table";
-import { QUATER_IN_MILI, defaultCategoricalColor, getScaleTime, IMargin, calIntervalsByQuarter, getRefinedStartEndTime, getQuarter } from "visualization/common";
+import {
+    QUATER_IN_MILI, defaultCategoricalColor, getScaleTime, IMargin, calIntervalsByQuarter,
+    getRefinedStartEndTime, getQuarter
+} from "visualization/common";
 import { IEvent, IEventBin } from "data/event";
 import { FeatureMeta } from "data/feature";
 import { IDataFrame, ISeries } from "data-forge";
@@ -20,7 +23,6 @@ export interface TimelineViewProps {
     onSelectEvents?: (entityName: string, startDate: Date, endDate: Date) => void,
     entityCategoricalColor?: (entityName?: string) => string,
     referenceValues?: (tableName: string) => ReferenceValueDict | undefined,
-    width: number,
 }
 
 export interface TimelineViewStates {
@@ -33,7 +35,7 @@ export interface TimelineViewStates {
 
 export default class TimelineView extends React.Component<TimelineViewProps, TimelineViewStates> {
     private ref: React.RefObject<HTMLDivElement> = React.createRef();
-    private margin: IMargin = { left: 0, right: 0, top: 0, bottom: 0 };
+    private margin: IMargin = { left: 15, right: 15, top: 0, bottom: 0 };
     private titleWidth: number = 100;
     private rowHeight: number = 40;
     constructor(props: TimelineViewProps) {
@@ -116,7 +118,7 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
                 });
 
                 const eventBinSeries: ISeries<number, IEventBin> = eventSeries
-                    .groupBy(row => Math.floor(row.timestamp.getTime() / (QUATER_IN_MILI * intervalByQuarter)))
+                    .groupBy(row => Math.floor(getQuarter(row.timestamp) / intervalByQuarter))
                     .select(group => {
                         const sample = group.first();
                         const binId = Math.floor((getQuarter(sample.timestamp) - getQuarter(startTime)) / intervalByQuarter);
@@ -159,21 +161,26 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
                 {timeLineLegend()}
                 {eventBins && eventBins.map((events, i) => {
                     const title = tableRecords[i].metaInfo?.alias;
+                    const width = this.ref.current!.offsetWidth;
                     return <div className={"timeline-container"} key={i}>
                         <div className={"timeline-title"}
-                            style={{ height: this.rowHeight, width: this.titleWidth, borderLeftColor: this.color(i) }} key={title}>
+                            style={{
+                                height: this.rowHeight, width: this.titleWidth, borderLeftColor: this.color(i),
+                                marginTop: i === 0 ? 20 : 0
+                            }} key={title}>
                             <span className={"timeline-title-text"}>{title === 'Chart Signs' ? 'Chart Events' : title}</span>
                         </div>
                         <Timeline
                             events={events}
                             timeScale={timeScale}
-                            width={this.ref.current!.offsetWidth - this.titleWidth}
+                            width={width - this.titleWidth}
                             margin={this.margin}
-                            height={this.rowHeight}
+                            height={this.rowHeight + (i === 0 ? 20 : 0)}
                             style={{ position: 'absolute', 'left': this.titleWidth + 15 }}
                             onSelectEvents={(startDate: Date, endDate: Date) =>
                                 onSelectEvents && onSelectEvents(tableRecords[i].name!, startDate, endDate)}
-                        // intervalByQuarter={intervalByQuarter}
+                            binTime={intervalByQuarter! * QUATER_IN_MILI}
+                            drawTicks={i === 0}
                         />
                     </div>
                 })}
@@ -184,13 +191,13 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
 
 const timeLineLegend = () => {
     return <div className='timeline-legend'>
-        <div className="eventsNumber">
+        <div className="event-number-legend">
             <span> Less Records </span>
-            <svg className="colorLegend" style={{ height: '16px', width: '150px' }}>
+            <svg className="color-legend" style={{ height: '16px', width: '150px' }}>
                 <defs>
                     <linearGradient id="gradient">
-                        <stop offset="0%" stop-color={d3.interpolateBlues(0.2)}></stop>
-                        <stop offset="100%" stop-color={d3.interpolateBlues(0.5)}></stop>
+                        <stop offset="0%" stopColor={d3.interpolateBlues(0.2)}></stop>
+                        <stop offset="100%" stopColor={d3.interpolateBlues(0.5)}></stop>
                     </linearGradient>
                 </defs>
                 <rect height="20" width="150" style={{ fill: "url('#gradient')" }}></rect>
