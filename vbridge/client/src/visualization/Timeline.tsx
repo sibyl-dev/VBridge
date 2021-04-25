@@ -7,6 +7,7 @@ import { LineChartOutlined, TableOutlined } from "@ant-design/icons";
 import { IEventBin } from "data/event";
 import { getChildOrAppend, getScaleLinear, getScaleTime, getMargin, ChartOptions } from "./common";
 import "./Timeline.scss"
+import Chart, { ChartProps } from "./Chart";
 
 export interface TimelineData {
     events: IEventBin[],
@@ -152,10 +153,7 @@ export function drawTimeline(params: TimelineParam & { node: SVGElement | SVGGEl
         .on("mouseleave", onMouseLeave);
 }
 
-export interface TimelineProps extends TimelineParam {
-    className?: string
-    style?: React.CSSProperties,
-
+export type TimelineProps = TimelineParam & ChartProps & {
     onSelectEvents?: (startDate: Date, endDate: Date) => void,
 }
 
@@ -164,7 +162,7 @@ interface TimelineState {
     showButton: boolean;
 }
 
-export default class Timeline extends React.PureComponent<TimelineProps, TimelineState>{
+export default class Timeline extends Chart<TimelineProps, TimelineState>{
     private ref: React.RefObject<SVGSVGElement> = React.createRef();
     constructor(props: TimelineProps) {
         super(props);
@@ -174,15 +172,6 @@ export default class Timeline extends React.PureComponent<TimelineProps, Timelin
         this.onBrush = this.onBrush.bind(this);
         this.onMouseOver = this.onMouseOver.bind(this);
         this.onMouseLeave = this.onMouseLeave.bind(this);
-    }
-    componentDidMount() {
-        this.paint();
-    }
-
-    componentDidUpdate(prevProps: TimelineParam) {
-        if (prevProps !== this.props) {
-            this.paint();
-        }
     }
 
     private onBrush(startTime?: Date, endTime?: Date) {
@@ -204,7 +193,7 @@ export default class Timeline extends React.PureComponent<TimelineProps, Timelin
         window.setTimeout(delayed, 2000);
     }
 
-    private paint() {
+    protected paint() {
         const { ...rest } = this.props;
         const node = this.ref.current;
         if (node) {
@@ -219,7 +208,7 @@ export default class Timeline extends React.PureComponent<TimelineProps, Timelin
     }
 
     public render() {
-        const { className, height, width, timeScale, style, events, onSelectEvents } = this.props;
+        const { className, height, width, timeScale, style, svgStyle, events, onSelectEvents } = this.props;
         const { showButton, brushedRange } = this.state;
         const xScale = timeScale || getScaleTime(0, width, [...events.map(e => e.binStartTime), ...events.map(e => e.binEndTime)]);
         return <div className={"timeline" + (className ? ` ${className}` : "")} style={style}>
@@ -240,7 +229,10 @@ export default class Timeline extends React.PureComponent<TimelineProps, Timelin
                 }}
                 className={"feature-button-table"}
             />}
-            <svg ref={this.ref} className={"timeline-svg"} style={{ width: width, height: height }} />
+            <svg ref={this.ref} className={"timeline-svg"}
+                style={svgStyle}
+                width={width}
+                height={height} />
         </div>
     }
 }

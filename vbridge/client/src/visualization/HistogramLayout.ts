@@ -72,7 +72,7 @@ export default class HistogramLayout {
 
     private getYScales(): d3.ScaleLinear<number, number> {
         const yMax = this._style.mode === 'side-by-side' ?
-            d3.max(this._bins, bs => d3.max(bs, d => d.length)) : 
+            d3.max(this._bins, bs => d3.max(bs, d => d.length)) :
             d3.max(transMax(this._bins), bs => d3.sum(bs, d => d.length));
         return d3.scaleLinear().range(this.yRange).domain([0, yMax || 1]);;
     }
@@ -82,7 +82,8 @@ export default class HistogramLayout {
     }
 
     public get yRange(): [number, number] {
-        return [0, this._style.height];
+        const { direction, height } = this._style;
+        return direction === 'down' ? [0, height] : [height, 0];
     }
 
     public get x(): d3.ScaleLinear<number, number> {
@@ -110,28 +111,31 @@ export default class HistogramLayout {
     }
 
     public get layout(): BinLayout[][] {
-        const nGroups = this._bins.length;
-        const nBins = this._bins[0].length;
-
-        const barWidth = this.barWidth;
-        const dx: number[][] = _.range(nGroups).map((d, i) => _.range(nBins).map(() =>
-            this._style.mode === 'side-by-side' ? i * (barWidth + this._style.groupInnerPadding) : 0));
-        const dy: number[][] = _.range(nGroups).map((d, groupId) => _.range(nBins).map((d, binId) =>
-            this._style.mode === 'side-by-side' ? 0 :
-                this.y(d3.sum(
-                    this._bins.map(bins => bins[binId].length).filter((d, i) => i < groupId)
-                )) + (groupId > 0 ? this.yRange[0] : 0)
-        ));
-
-        return this._bins.map((bins, groupId) => bins.map((bin, binId) => {
-            const Layout: BinLayout = {
-                ...bin,
-                x: this.x(bin.x0 as number) + dx[groupId][binId],
-                y: this._style.direction === 'up' ? (this.yRange[1] - dy[groupId][binId] - this.y(bin.length)) : dy[groupId][binId],
-                width: barWidth,
-                height: this.y(bin.length) - this.y(0),
-            } as BinLayout;
-            return Layout;
-        }))
+        if (this._style.mode === 'normal' || this._style.mode === 'side-by-side') {
+            return this._bins.map((bins, groupId) => bins.map((bin, binId) => {
+                const Layout: BinLayout = {
+                    ...bin,
+                    x: this.x(bin.x0 as number) + groupId * (this.barWidth + this._style.groupInnerPadding),
+                    y: Math.min(this.y(bin.length), this.y(0)),
+                    width: this.barWidth,
+                    height: Math.abs(this.y(bin.length) - this.y(0)),
+                } as BinLayout;
+                return Layout;
+            }))
+        }
+        else {
+            return this._bins.map((bins, groupId) => bins.map((bin, binId) => {
+                const y1 = this.y(d3.sum(this._bins.map(bins => bins[binId].length).filter((d, i) => i < groupId)));
+                const y2 = this.y(d3.sum(this._bins.map(bins => bins[binId].length).filter((d, i) => i <= groupId)));
+                const Layout: BinLayout = {
+                    ...bin,
+                    x: this.x(bin.x0 as number),
+                    y: Math.min(y1, y2),
+                    width: this.barWidth,
+                    height: Math.abs(y2 - y1),
+                } as BinLayout;
+                return Layout;
+            }))
+        }
     }
 }

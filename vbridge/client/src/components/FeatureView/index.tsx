@@ -13,7 +13,7 @@ import {
     SortAscendingOutlined, TableOutlined
 } from "@ant-design/icons"
 import { ItemDict } from "data/table";
-import Histogram from "visualization/Histogram";
+import AreaChart from "visualization/AreaChart";
 import { arrayShallowCompare, getReferenceValue, isDefined, ReferenceValue } from "data/common";
 
 import "./index.scss"
@@ -551,7 +551,7 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                         </Tooltip>
                         <div className={"feature-block-cell" + (isLeaf ? " feature-value" : "")}
                             style={{ width: showDistibution ? cellWidth(1) + 40 : cellWidth(1), backgroundColor: valueColor }}>
-                            {showDistibution ? <Histogram
+                            {showDistibution ? <AreaChart
                                 // allData={selectedMatrix?.getSeries(name).toArray() as number[]}
                                 data={[selectedMatWithDesiredOutputs?.getSeries(name!).toArray(),
                                 selectedMatWithoutDesiredOutputs?.getSeries(name!).toArray()] as number[][]}
@@ -560,8 +560,7 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                                 width={cellWidth(1) + 40}
                                 drawLeftAxis={false}
                                 drawBottomAxis={true}
-                                areaChart={true}
-                                margin={{ left: 10, bottom: 15 }}
+                                margin={{ left: 10, bottom: 20 }}
                                 referenceValue={value as number}
                                 whatIfValue={showWhatIf ? whatIfValue : undefined}
                                 mode="side-by-side"
