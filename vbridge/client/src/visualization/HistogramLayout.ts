@@ -28,7 +28,7 @@ export interface HistogramLayoutProps extends Partial<HistogramLayoutStyle> {
     data: number[] | number[][],
 }
 
-export interface BarLayout extends d3.Bin<number, number> {
+export interface BinLayout extends d3.Bin<number, number> {
     x: number,
     y: number,
     width: number,
@@ -66,11 +66,6 @@ export default class HistogramLayout {
     }
 
     private getTicks() {
-        // const { mode, width } = this._style;
-        // const [min, max] = mode === 'side-by-side' ?
-        //     HistogramLayout.getNBinsRange(width, 10, 16) :
-        //     HistogramLayout.getNBinsRange(width, 7, 9);
-        // const tickNum = Math.min(max, Math.max(min, d3.thresholdSturges(_.flatten(this._data))))
         const tickNum = d3.thresholdSturges(_.flatten(this._data));
         return this.x.ticks(tickNum);
     }
@@ -114,7 +109,7 @@ export default class HistogramLayout {
             (groupedBarWidth / nGroups - this._style.groupInnerPadding) : groupedBarWidth, 1)
     }
 
-    public get layout(): BarLayout[][] {
+    public get layout(): BinLayout[][] {
         const nGroups = this._bins.length;
         const nBins = this._bins[0].length;
 
@@ -129,14 +124,13 @@ export default class HistogramLayout {
         ));
 
         return this._bins.map((bins, groupId) => bins.map((bin, binId) => {
-            const Layout: BarLayout = {
+            const Layout: BinLayout = {
                 ...bin,
                 x: this.x(bin.x0 as number) + dx[groupId][binId],
                 y: this._style.direction === 'up' ? (this.yRange[1] - dy[groupId][binId] - this.y(bin.length)) : dy[groupId][binId],
-                // y: this.yRange[1] - dy[groupId][binId] - this.y(bin.length),
                 width: barWidth,
                 height: this.y(bin.length) - this.y(0),
-            } as BarLayout;
+            } as BinLayout;
             return Layout;
         }))
     }
