@@ -5,7 +5,7 @@ import { Button } from "antd";
 import { LineChartOutlined, TableOutlined } from "@ant-design/icons";
 
 import { IEventBin } from "data/event";
-import { getChildOrAppend, getScaleLinear, getScaleTime, getMargin, ChartStyle } from "./common";
+import { getChildOrAppend, getScaleLinear, getScaleTime, getMargin, ChartOptions } from "./common";
 import "./Timeline.scss"
 
 export interface TimelineData {
@@ -13,7 +13,7 @@ export interface TimelineData {
     binTime?: number,
 }
 
-export interface TimelineStyle extends ChartStyle {
+export interface TimelineStyle extends ChartOptions {
     timeScale?: d3.ScaleTime<number, number>,
     drawTicks?: boolean,
 }

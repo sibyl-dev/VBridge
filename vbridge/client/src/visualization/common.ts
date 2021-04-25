@@ -47,10 +47,8 @@ export function getMargin(margin: MarginType): IMargin {
   }
 }
 
-export interface ChartStyle {
-  width: number,
-  height: number,
-  margin?: IMargin,
+export function isArrays<T>(a: T[] | T[][]): a is T[][] {
+  return a.length > 0 && Array.isArray(a[0]);
 }
 
 export type PropertyValueFn<T, E extends d3.BaseType, Datum, Result> = {
