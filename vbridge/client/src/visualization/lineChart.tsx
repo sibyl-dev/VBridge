@@ -3,10 +3,9 @@ import * as React from "react"
 import * as _ from 'lodash'
 import "./lineChart.css"
 
-import { getChildOrAppend, getScaleLinear, getScaleTime, defaultCategoricalColor, IMargin, getMargin } from "./common";
+import { getChildOrAppend, getScaleLinear, getScaleTime, IMargin, getMargin } from "./common";
 import { ISeries } from "data-forge";
 import { ReferenceValue } from "data/common";
-import { ImportsNotUsedAsValues } from "typescript";
 import { Segment } from "data/event";
 
 export type PointLayout = {

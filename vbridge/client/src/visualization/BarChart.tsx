@@ -2,16 +2,17 @@ import * as d3 from "d3";
 import * as _ from "lodash";
 import {
     getMargin,
-    CSSPropertiesFn,
-    ChartOptions,
     getChildOrAppend,
     defaultCategoricalColor,
+    ChartOptions,
+    CSSPropertiesFn,
 } from "./common";
-import HistogramLayout, { BinLayout, HistogramLayoutStyle } from './HistogramLayout'
+import BarChartLayout, { BinLayout, BarChartLayoutStyle } from './BarChartLayout'
 import Chart, { ChartProps } from "./Chart";
-import "./Histogram.scss";
+// import { defaultOptions, IHistogramOptions } from "./BarChart";
+import "./BarChart.scss";
 
-export type IHistogramOptions = Partial<HistogramLayoutStyle> & ChartOptions & {
+export type IBarChartOptions = Partial<BarChartLayoutStyle> & ChartOptions & {
     drawLeftAxis?: boolean,
     drawBottomAxis?: boolean,
     rectStyle?: CSSPropertiesFn<SVGRectElement, d3.Bin<number, number>>,
@@ -27,10 +28,10 @@ export const defaultOptions = {
     drawBottomAxis: true,
 };
 
-export function drawHistogram(param: {
+export function drawBarChart(param: {
     root: SVGElement | SVGGElement,
-    data: number[] | number[][],
-    options?: Partial<IHistogramOptions>
+    data: string[] | string[][],
+    options?: Partial<IBarChartOptions>
 }
 ) {
     const { data, options } = param;
@@ -41,7 +42,7 @@ export function drawHistogram(param: {
     const height = opts.height - margin.top - margin.bottom;
     const color = opts.color || defaultCategoricalColor;
 
-    const layout = new HistogramLayout({
+    const layout = new BarChartLayout({
         ...rest,
         data: data,
         width: width,
@@ -52,7 +53,7 @@ export function drawHistogram(param: {
     const base = getChildOrAppend<SVGGElement, SVGElement>(root, "g", "base")
         .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
-    const barGroups = base.selectAll<SVGGElement, BinLayout[]>("g.groups")
+    const barGroups = base.selectAll<SVGGElement, BinLayout<string>[]>("g.groups")
         .data(layout.layout)
         .join<SVGGElement>(
             enter => enter.append("g")
@@ -92,54 +93,54 @@ export function drawHistogram(param: {
         .call(d3.axisBottom(layout.x).ticks(5));
 }
 
-export function drawSublines(param: {
-    root: SVGElement | SVGGElement,
-    data: number[] | number[][],
+// export function drawSublines(param: {
+//     root: SVGElement | SVGGElement,
+//     data: string[] | number[][],
+//     referenceValue?: number,
+//     whatIfValue?: number,
+//     options?: Partial<IBarChartOptions>
+// }
+// ) {
+//     const { data, options, referenceValue, whatIfValue } = param;
+//     const opts = { ...defaultOptions, ...options };
+//     const margin = getMargin(opts.margin);
+//     const width = opts.width - margin.left - margin.right;
+//     const height = opts.height - margin.top - margin.bottom;
+
+//     const layout = new BarChartLayout({
+//         ...opts,
+//         data: data,
+//         width: width,
+//         height: height,
+//     });
+
+//     const root = d3.select(param.root);
+//     const base = getChildOrAppend<SVGGElement, SVGElement>(root, "g", "base")
+//         .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+//     getChildOrAppend<SVGLineElement, SVGGElement>(base, "line", "reference-line")
+//         .attr("x1", layout.x(referenceValue || 0))
+//         .attr("x2", layout.x(referenceValue || 0))
+//         .attr("y1", layout.yRange[0])
+//         .attr("y2", layout.yRange[1])
+//         .style("display", (referenceValue !== undefined) ? 'block' : 'none')
+
+//     getChildOrAppend<SVGLineElement, SVGGElement>(base, "line", "reference-line-whatif")
+//         .attr("x1", layout.x(whatIfValue || 0))
+//         .attr("x2", layout.x(whatIfValue || 0))
+//         .attr("y1", layout.yRange[0])
+//         .attr("y2", layout.yRange[1])
+//         .style("display", (whatIfValue !== undefined) ? 'block' : 'none')
+// }
+
+export type IBarChartProps = IBarChartOptions & ChartProps & {
+    data: string[] | string[][];
     referenceValue?: number,
     whatIfValue?: number,
-    options?: Partial<IHistogramOptions>
-}
-) {
-    const { data, options, referenceValue, whatIfValue } = param;
-    const opts = { ...defaultOptions, ...options };
-    const margin = getMargin(opts.margin);
-    const width = opts.width - margin.left - margin.right;
-    const height = opts.height - margin.top - margin.bottom;
-
-    const layout = new HistogramLayout({
-        ...opts,
-        data: data,
-        width: width,
-        height: height,
-    });
-
-    const root = d3.select(param.root);
-    const base = getChildOrAppend<SVGGElement, SVGElement>(root, "g", "base")
-        .attr("transform", `translate(${margin.left}, ${margin.top})`);
-
-    getChildOrAppend<SVGLineElement, SVGGElement>(base, "line", "reference-line")
-        .attr("x1", layout.x(referenceValue || 0))
-        .attr("x2", layout.x(referenceValue || 0))
-        .attr("y1", layout.yRange[0])
-        .attr("y2", layout.yRange[1])
-        .style("display", (referenceValue !== undefined) ? 'block' : 'none')
-
-    getChildOrAppend<SVGLineElement, SVGGElement>(base, "line", "reference-line-whatif")
-        .attr("x1", layout.x(whatIfValue || 0))
-        .attr("x2", layout.x(whatIfValue || 0))
-        .attr("y1", layout.yRange[0])
-        .attr("y2", layout.yRange[1])
-        .style("display", (whatIfValue !== undefined) ? 'block' : 'none')
 }
 
-export type IHistogramProps = IHistogramOptions & ChartProps & {
-    data: number[] | number[][];
-    referenceValue?: number,
-    whatIfValue?: number,
-}
-
-export default class Histogram extends Chart<IHistogramProps> {
-    constructor(props: IHistogramProps) {
+export default class BarChart extends Chart<IBarChartProps> {
+    constructor(props: IBarChartProps) {
         super(props);
     }
 
@@ -148,8 +149,8 @@ export default class Histogram extends Chart<IHistogramProps> {
         const { data, className, style, svgStyle, referenceValue,
             whatIfValue, ...rest } = this.props;
         if (root) {
-            drawHistogram({ root, data, options: rest });
-            drawSublines({ root, data, referenceValue, whatIfValue, options: rest });
+            drawBarChart({ root, data, options: rest });
+            // drawSublines({ root, data, referenceValue, whatIfValue, options: rest });
             this.shouldPaint = false;
         }
     }
@@ -157,7 +158,7 @@ export default class Histogram extends Chart<IHistogramProps> {
     public render() {
         const { style, svgStyle, className, width, height } = this.props;
         return (
-            <div className={(className || "") + " histogram"} style={style}>
+            <div className={(className || "") + " bar-chart"} style={style}>
                 <svg
                     ref={this.svgRef}
                     style={svgStyle}

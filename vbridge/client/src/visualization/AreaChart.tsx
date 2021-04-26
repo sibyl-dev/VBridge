@@ -1,5 +1,4 @@
 import * as d3 from "d3";
-import * as _ from "lodash";
 import {
     getMargin,
     ChartOptions,
@@ -38,22 +37,17 @@ export function drawAreaChart(param: {
         height: height,
     });
 
-    const bins = layout.layout;
-    const yRange = layout.yRange;
-    const xScale = layout.x;
-
     const root = d3.select(param.root);
-
     const base = getChildOrAppend<SVGGElement, SVGElement>(root, "g", "base")
         .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
     const area = d3.area<BinLayout>()
-        .x(d => xScale((d.x0! + d.x1!) / 2))
+        .x(d => layout.x((d.x0! + d.x1!) / 2))
         .y0(d => d.y)
         .y1(d => d.y + d.height)
         .curve(d3.curveMonotoneX);
     base.selectAll<SVGGElement, BinLayout[]>("path.area")
-        .data(bins)
+        .data(layout.layout)
         .join(
             enter => enter.append("path")
                 .attr("class", "area"),
@@ -68,9 +62,9 @@ export function drawAreaChart(param: {
         .call(d3.axisLeft(layout.y).ticks(4));
 
     getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "x-axis-base")
-        .attr("transform", `translate(0, ${yRange[0]})`)
+        .attr("transform", `translate(0, ${layout.yRange[0]})`)
         .attr("display", drawBottomAxis ? 'block' : 'none')
-        .call(d3.axisBottom(xScale).ticks(5));
+        .call(d3.axisBottom(layout.x).ticks(5));
 }
 
 export type IAreaChartProps = IAreaChartOptions & ChartProps & {
@@ -89,12 +83,8 @@ export default class AreaChart extends Chart<IAreaChartProps> {
         const { data, className, style, svgStyle, referenceValue,
             whatIfValue, ...rest } = this.props;
         if (root) {
-            drawAreaChart({
-                root, data, options: rest
-            });
-            drawSublines({
-                root, data, referenceValue, whatIfValue, options: rest
-            });
+            drawAreaChart({ root, data, options: rest });
+            drawSublines({ root, data, referenceValue, whatIfValue, options: rest });
             this.shouldPaint = false;
         }
     }

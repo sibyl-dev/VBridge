@@ -57,10 +57,6 @@ export default class HistogramLayout {
         if (this._style.yScale === undefined) this._style.yScale = this.getYScales();
     }
 
-    static getNBinsRange(width: number, minWidth: number = 7, maxWidth: number = 9): [number, number] {
-        return [Math.ceil(width / maxWidth), Math.floor(width / minWidth)];
-    }
-
     private getXScale(): d3.ScaleLinear<number, number> {
         return getScaleLinear(this.xRange[0], this.xRange[1], _.flatten(this._data));
     }

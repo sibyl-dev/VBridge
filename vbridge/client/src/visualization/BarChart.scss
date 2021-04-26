@@ -1,4 +1,4 @@
-.histogram {
+.bar-chart {
     svg {
         margin-bottom: 0;
         cursor: crosshair;
@@ -7,6 +7,10 @@
             /* fill: rgb(109, 160, 202); */
             opacity: 0.7;
         }
+        // .base rect {
+        //     /* fill: rgb(109, 160, 202); */
+        //     opacity: 0.2;
+        // }
         rect.shade {
             fill: #aaa;
             opacity: 0;
