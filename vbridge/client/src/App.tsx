@@ -19,16 +19,15 @@ import {
 } from "./router/api"
 import { PatientGroup, PatientMeta } from 'data/patient';
 import { Entity, ItemDict } from 'data/table';
-import { patientInfoMeta } from 'data/metaInfo';
 import { filterType } from 'data/filterType';
 
 import Panel from 'components/Panel';
 import { Feature, FeatureMeta } from 'data/feature';
 import { DataFrame, IDataFrame } from 'data-forge';
 import _, { isUndefined } from 'lodash';
-import { distinct, isDefined, ReferenceValue, ReferenceValueDict } from 'data/common';
+import { distinct, isDefined, ReferenceValueDict } from 'data/common';
 
-import { defaultCategoricalColor, getChildOrAppend, getOffsetById, getScaleLinear } from 'visualization/common';
+import { defaultCategoricalColor, getChildOrAppend, getOffsetById } from 'visualization/common';
 import { CloseOutlined } from '@material-ui/icons';
 
 
@@ -41,7 +40,7 @@ interface AppStates {
   // static information
   subjectIds?: number[],
   tableNames?: string[],
-  featureMeta?: DataFrame<number, FeatureMeta>,
+  featureMeta?: IDataFrame<number, FeatureMeta>,
   predictionTargets?: string[],
   itemDicts?: ItemDict,
   target?: string,
@@ -409,11 +408,12 @@ class App extends React.Component<AppProps, AppStates>{
     const visible = true
     this.setState({ visible })
   };
+
   private onClose = () => {
     const visible = false
     this.setState({ visible })
-    // console.log('onClose', this.state.filterConditions)
   };
+  
   private tableNamesChange(name: string) {
     if (name == 'LABEVENTS')
       return 'Lab Tests'
@@ -422,7 +422,6 @@ class App extends React.Component<AppProps, AppStates>{
     if (name == 'CHARTEVENTS')
       return 'Chart Events'
     return 'Prescriptions'
-
   }
 
 
@@ -611,11 +610,9 @@ class App extends React.Component<AppProps, AppStates>{
                 patientMeta={patientMeta}
                 featureMeta={featureMeta}
                 prediction={predictions(selected)}
-                tableNames={tableNames}
-                groupIds={patientGroup && patientGroup.ids}
+                selectedIds={patientGroup && patientGroup.ids}
                 itemDicts={itemDicts}
                 entityCategoricalColor={this.entityCategoricalColor}
-                // abnormalityColor={this.abnormalityColor}
                 focusedFeatures={[...pinnedfocusedFeatures, ...focusedFeatures]}
                 inspectFeatureInSignal={this.updateSignalsByFeature}
                 inspectFeatureInTable={this.updateTableViewFromFeatures}
