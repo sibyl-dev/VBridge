@@ -55,7 +55,6 @@
         transition: all 0.5s ease;
         border: 2px solid rgba(220, 225, 230, 0.7);
         border-radius: 2px;
-        // background-color: rgba(250, 250, 250, 0.959);
         margin-top: 2px;
         display: flex;
         flex-direction: column;
@@ -64,7 +63,7 @@
             justify-content: space-between;
             height: 100%;
             border-bottom: 1px solid rgba(220, 225, 230, 0.5);
-            ;
+            background-color: #fff;
             .feature-block-cell {
                 margin-top: 4px;
                 margin-bottom: 5px;
@@ -83,7 +82,6 @@
                 }
             }
             .feature-value {
-                background-color: #eee;
                 border-radius: 2px;
                 margin-top: 3px;
                 margin-bottom: 3px;
@@ -200,8 +198,6 @@
     width: 0px;
     top: 2px;
     background-color: #bbb;
-    // opacity: 80%;
-    // left-border-radius: 5px;
     display: inline-block;
     transition: all 0.3s;
 }
@@ -233,10 +229,7 @@
 }
 
 .reference-value {
-    // display: flex;
-    // flex-direction: column;
     margin-top: 15px;
-    // opacity: 80%;
     .reference-value-value {
         font-size: 10px;
     }

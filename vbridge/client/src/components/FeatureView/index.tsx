@@ -458,10 +458,8 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
         // console.log('referenceValue', feature.name, referenceValue, value,)
         let outofRange: 'none' | 'low' | 'high' = 'none';
         let whatIfValue = undefined;
-        let valueColor = '#fff';
         if (referenceValue && typeof (value) === typeof (0.0)) {
-            const { mean, std, ci95 } = referenceValue;
-            const rate = Math.abs((value as number - mean) / std);
+            const { ci95 } = referenceValue;
             if (value as number > ci95[1]) {
                 outofRange = 'high'
                 whatIfValue = ci95[1]
@@ -507,9 +505,7 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                     {children && <CaretRightOutlined className="right-button"
                         onClick={this.onClickButton} rotate={collapsed ? 0 : 90} />}
                 </div>
-                <div className={`feature-block ${showState}` + ((depth === 0) ? " feature-top-block" : ""
-                    + collapsed ? "" : " expanded"
-                )}
+                <div className={`feature-block ${showState}` + (collapsed ? "" : " expanded")}
                     id={id}
                     style={{
                         height: heigth, borderRightWidth: 4,
@@ -523,30 +519,27 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                             </div>
                         </Tooltip>
                         <div className={"feature-block-cell" + (isLeaf ? " feature-value" : "")}
-                            style={{ width: showDistibution ? cellWidth(1) + 40 : cellWidth(1), backgroundColor: valueColor }}>
+                            style={{ width: showDistibution ? cellWidth(1) + 40 : cellWidth(1) }}>
                             {showDistibution ?
-                                (typeof(value) === 'number') ? <AreaChart
+                                (typeof (value) === 'number') ? <AreaChart
                                     data={contextFeatureValues?.map(mat => mat.getSeries(name).toArray()) as number[][]}
                                     height={70}
                                     width={cellWidth(1) + 40}
-                                    drawLeftAxis={false}
                                     drawBottomAxis={true}
                                     margin={{ left: 10, bottom: 20 }}
                                     referenceValue={value as number}
                                     whatIfValue={showWhatIf ? whatIfValue : undefined}
                                     mode="side-by-side"
-                                /> :
-                                (typeof(value) === 'string') ? <BarChart
-                                    data={contextFeatureValues?.map(mat => mat.getSeries(name).toArray()) as string[][]}
-                                    height={70}
-                                    width={cellWidth(1) + 40}
-                                    drawLeftAxis={false}
-                                    drawBottomAxis={true}
-                                    margin={{ left: 10, bottom: 20 }}
-                                    // referenceValue={value}
-                                    // whatIfValue={showWhatIf ? whatIfValue : undefined}
-                                    mode="side-by-side"
-                                /> : <div />
+                                /> : (typeof (value) === 'string') ? <BarChart
+                                        data={contextFeatureValues?.map(mat => mat.getSeries(name).toArray()) as string[][]}
+                                        height={70}
+                                        width={cellWidth(1) + 40}
+                                        drawBottomAxis={true}
+                                        margin={{ left: 10, bottom: 20 }}
+                                        // referenceValue={value}
+                                        // whatIfValue={showWhatIf ? whatIfValue : undefined}
+                                        mode="side-by-side"
+                                    /> : <div />
                                 : <Tooltip title={typeof (value) == typeof (0.0) ? beautifulPrinter(value) : value}>
                                     <span className={"feature-block-cell-text"}>
                                         {outofRange === 'low' && <ArrowDownOutlined />}
@@ -556,15 +549,13 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                                 </Tooltip>}
                         </div>
                         <div className={"feature-block-cell feature-contribution"} style={{ width: cellWidth(2) }}>
-                            <div>
-                                {SHAPContributions({
-                                    contribution: feature.contribution, contributionIfNormal: feature.contributionIfNormal, x, height: 14,
-                                    posRectStyle: { fill: !collapsed ? '#f8a3bf' : undefined },
-                                    negRectStyle: { fill: !collapsed ? '#9abce4' : undefined }
-                                })}
-                                {(contribution > x.domain()[1]) && <ArrowRightOutlined className="overflow-notation-right" />}
-                                {(contribution < x.domain()[0]) && <ArrowLeftOutlined className="overflow-notation-left" />}
-                            </div>
+                            {SHAPContributions({
+                                contribution: feature.contribution, contributionIfNormal: feature.contributionIfNormal, x, height: 14,
+                                posRectStyle: { fill: !collapsed ? '#f8a3bf' : undefined },
+                                negRectStyle: { fill: !collapsed ? '#9abce4' : undefined }
+                            })}
+                            {(contribution > x.domain()[1]) && <ArrowRightOutlined className="overflow-notation-right" />}
+                            {(contribution < x.domain()[0]) && <ArrowLeftOutlined className="overflow-notation-left" />}
                             {showWhatIf && predictionIfNormal && whatIfValue && <div className={"what-if-label"}>
                                 <div className={"label-circle"} style={{ backgroundColor: defaultCategoricalColor(Math.round(prediction)) }}>
                                     {prediction > 0.5 ? 'High' : 'Low'}

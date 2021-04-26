@@ -1,9 +1,9 @@
 import React from 'react';
 import * as d3 from "d3"
+import * as _ from 'lodash';
 
-import { Layout, Drawer, Tooltip, Button, Select, Avatar, Divider, Row, Col, Switch } from 'antd'
+import { Layout, Drawer, Tooltip, Button, Select, Switch } from 'antd'
 import { FilterOutlined } from '@ant-design/icons'
-import './App.css';
 
 import FeatureView from "./components/FeatureView"
 import MetaView from "./components/MetaView"
@@ -24,12 +24,12 @@ import { filterType } from 'data/filterType';
 import Panel from 'components/Panel';
 import { Feature, FeatureMeta } from 'data/feature';
 import { DataFrame, IDataFrame } from 'data-forge';
-import _, { isUndefined } from 'lodash';
 import { distinct, isDefined, ReferenceValueDict } from 'data/common';
 
 import { defaultCategoricalColor, getChildOrAppend, getOffsetById } from 'visualization/common';
 import { CloseOutlined } from '@material-ui/icons';
 
+import './App.css';
 
 const { Header, Content } = Layout;
 const { Option } = Select;
@@ -173,7 +173,7 @@ class App extends React.Component<AppProps, AppStates>{
   }
 
   private async loadReferenceValues() {
-    const { tableNames, patientGroup } = this.state;
+    const { tableNames } = this.state;
     if (tableNames) {
       const references: { name: string, referenceValues: ReferenceValueDict }[] = [];
       for (const name of tableNames) {
@@ -670,7 +670,7 @@ class App extends React.Component<AppProps, AppStates>{
                 referenceValues={referenceValues}
               />}
             </Panel>
-            <Panel initialWidth={ProfileWidth} initialHeight={window.innerHeight - 2 * yPadding}
+            <Panel initialWidth={ProfileWidth} initialHeight={window.innerHeight - headerHeight - 2 * yPadding}
               x={window.innerWidth - xPadding - ProfileWidth} y={yPadding}
               title={<div className="view-title">
                 <span className="view-title-text">Patient's Profile</span>
