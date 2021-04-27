@@ -3,81 +3,64 @@ import * as d3 from "d3";
 import * as _ from "lodash"
 import { PatientMeta } from "data/patient";
 import { Entity } from "data/table";
-import { defaultCategoricalColor, getScaleTime, IMargin, calIntervalsByQuarter, getRefinedStartEndTime, getIdbyQuarter } from "visualization/common";
+import {
+    QUATER_IN_MILI, defaultCategoricalColor, getScaleTime, IMargin, calIntervalsByQuarter,
+    getRefinedStartEndTime, getQuarter
+} from "visualization/common";
 import { IEvent, IEventBin } from "data/event";
-import { TimelineAxis } from "./TimelineAxis";
-import  {drawLegend} from 'visualization/legend'
-
-// import { Timeline } from "./Timeline";
-
-import "./index.scss"
-import { TimelineList } from "./TimelineList";
 import { FeatureMeta } from "data/feature";
 import { IDataFrame, ISeries } from "data-forge";
 import { isDefined, ReferenceValueDict } from "data/common";
 
-const QUATER_IN_MILI = 1000 * 60 * 15;
-const HOUR_IN_QUATER = 4;
-const IntervalBins = [1, 2, HOUR_IN_QUATER, HOUR_IN_QUATER * 2, HOUR_IN_QUATER * 4, HOUR_IN_QUATER * 8,
-    HOUR_IN_QUATER * 12, HOUR_IN_QUATER * 24, HOUR_IN_QUATER * 48];
-
+import "./index.scss"
+import Timeline from "visualization/Timeline";
 
 export interface TimelineViewProps {
     tableNames: string[],
-    patientMeta?: PatientMeta,
+    patientMeta: PatientMeta,
     featureMeta: IDataFrame<number, FeatureMeta>,
     tableRecords: Entity<number, any>[],
     onSelectEvents?: (entityName: string, startDate: Date, endDate: Date) => void,
     entityCategoricalColor?: (entityName?: string) => string,
     referenceValues?: (tableName: string) => ReferenceValueDict | undefined,
-    width: number,
 }
 
 export interface TimelineViewStates {
     timeScale?: d3.ScaleTime<number, number>,
-    events?: IEvent[][],
     eventBins?: IEventBin[][],
     intervalByQuarter?: number,
-    startDate?: Date,
-    endDate?: Date,
+    startTime?: Date,
+    endTime?: Date,
 }
 
 export default class TimelineView extends React.Component<TimelineViewProps, TimelineViewStates> {
     private ref: React.RefObject<HTMLDivElement> = React.createRef();
+    private margin: IMargin = { left: 15, right: 15, top: 0, bottom: 0 };
+    private titleWidth: number = 100;
+    private rowHeight: number = 40;
     constructor(props: TimelineViewProps) {
         super(props);
         this.state = {};
 
         this._extractEvents = this._extractEvents.bind(this);
-        this.updateTimeScale = this.updateTimeScale.bind(this);
         this.color = this.color.bind(this);
-        // this.calculateNewTime = this.calculateNewTime.bind(this)
-        // this.calIntervals = this.calIntervals.bind(this)
     }
 
     public componentDidMount() {
-        this.init()
-        // this.paint()
+        this.init();
     }
-    // private paint(){
-    //     const node = this.ref.current;
-    //     // if (node) {
-    //     //     drawLegend({
-    //     //         node: node,
-    //     //         height: 10,
-    //     //         width: 90,
-    //     //     });
-    //     // }
-    // }
+
     public init() {
         const { patientMeta } = this.props
-        let startDate = patientMeta && patientMeta.AdmitTime;
-        let endDate = patientMeta && patientMeta.SurgeryEndTime;
+        let startDate = patientMeta.AdmitTime;
+        let endDate = patientMeta.SurgeryEndTime;
         if (startDate && endDate) {
-            const intervalByQuarter = calIntervalsByQuarter(startDate, endDate, 9, 16, IntervalBins);
+            const intervalByQuarter = calIntervalsByQuarter(startDate, endDate, 9, 16);
             const extent = getRefinedStartEndTime(startDate, endDate, intervalByQuarter);
-            this.setState({ startDate: extent[0], endDate: extent[1], intervalByQuarter }, () => this._extractEvents());
-            this._extractEvents();
+            const timeScale = getScaleTime(0, this.ref.current!.offsetWidth - this.margin.left
+                - this.margin.right - this.titleWidth, undefined, extent)
+            this.setState({ startTime: extent[0], endTime: extent[1], timeScale: timeScale, intervalByQuarter },
+                () => this._extractEvents());
         }
     }
 
@@ -92,11 +75,9 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
 
     private _extractEvents() {
         const { tableRecords, referenceValues } = this.props
-        const { intervalByQuarter, startDate, endDate } = this.state
+        const { intervalByQuarter, startTime, endTime } = this.state
 
-        if (tableRecords && intervalByQuarter && startDate) {
-            // const events = tableRecords.map(entity => calculateTracks(groupEvents(entity, 24)));
-            const events: IEvent[][] = [];
+        if (tableRecords && intervalByQuarter && startTime) {
             const eventBins: IEventBin[][] = [];
             for (const entity of tableRecords) {
                 const { timeIndex, name } = entity;
@@ -115,7 +96,8 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
                                 const value_index = value_indexes[0];
                                 const referenceValue = referenceValueDict(item);
                                 if (referenceValue) {
-                                    const outOfRange = (row[value_index] > referenceValue?.ci95[1]) || (row[value_index] < referenceValue?.ci95[0]);
+                                    const outOfRange = (row[value_index] > referenceValue?.ci95[1]) ||
+                                        (row[value_index] < referenceValue?.ci95[0]);
                                     if (outOfRange) {
                                         abnormalItems.push(item);
                                     }
@@ -136,12 +118,12 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
                 });
 
                 const eventBinSeries: ISeries<number, IEventBin> = eventSeries
-                    .groupBy(row => Math.floor(row.timestamp.getTime() / (QUATER_IN_MILI * intervalByQuarter)))
+                    .groupBy(row => Math.floor(getQuarter(row.timestamp) / intervalByQuarter))
                     .select(group => {
                         const sample = group.first();
-                        const binId = Math.floor(getIdbyQuarter(sample.timestamp.getTime() - startDate.getTime()) / intervalByQuarter);
-                        const binStartTime = new Date(startDate.getTime() + binId * (QUATER_IN_MILI * intervalByQuarter));
-                        const binEndTime = new Date(startDate.getTime() + (binId + 1) * (QUATER_IN_MILI * intervalByQuarter));
+                        const binId = Math.floor((getQuarter(sample.timestamp) - getQuarter(startTime)) / intervalByQuarter);
+                        const binStartTime = new Date(startTime.getTime() + binId * (QUATER_IN_MILI * intervalByQuarter));
+                        const binEndTime = new Date(startTime.getTime() + (binId + 1) * (QUATER_IN_MILI * intervalByQuarter));
                         const groupArray = group.toArray();
                         const items: string[] = _.uniq(_.flatten(groupArray.map(d => d.items).filter(isDefined)));
                         const abnormalItems: string[] = _.uniq(_.flatten(groupArray.map(d => d.abnormalItems).filter(isDefined)));
@@ -154,16 +136,10 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
                             abnormalItems: abnormalItems
                         }
                     });
-                events.push(eventSeries.toArray());
                 eventBins.push(eventBinSeries.toArray());
             }
-            this.setState({ events, eventBins });
+            this.setState({ eventBins });
         }
-    }
-
-    public updateTimeScale(scale: d3.ScaleTime<number, number>, startDate: Date, endDate: Date) {
-        this.setState({ timeScale: scale, startDate, endDate })
-        // this.setState({startDate, endDate})
     }
 
     private color(id: number) {
@@ -177,80 +153,63 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
     }
 
     public render() {
-        const { patientMeta, tableRecords, onSelectEvents, entityCategoricalColor, tableNames, width } = this.props;
-        const { timeScale, events, eventBins, startDate, endDate, intervalByQuarter } = this.state;
-        const margin: IMargin = { left: 15, right: 15, top: 0, bottom: 0 };
-        const metaEvents = patientMeta ? [{
-            name: 'Admit to Hospital',
-            timestamp: patientMeta.AdmitTime
-        }, {
-            name: 'Surgery Begin',
-            timestamp: patientMeta.SurgeryBeginTime
-        }, {
-            name: 'Surgery End',
-            timestamp: patientMeta.SurgeryEndTime
-        }] : undefined;
+        const { tableRecords, onSelectEvents } = this.props;
+        const { timeScale, eventBins, startTime, endTime, intervalByQuarter } = this.state;
 
         return (
-            <div style={{ height: "100%", width: "100%" }}>
-                <div className='timeline-legend'>
-                    <div className="eventsNumber">
-                      <span> Less Records </span>
-                      <svg className="colorLegend" style={{ height:'16px', width:'150px' }}>
-                          <defs>
-                            <linearGradient id="gradient">
-                              <stop offset="0%" stop-color={d3.interpolateBlues(0.2)}></stop>
-                              <stop offset="100%" stop-color={d3.interpolateBlues(0.5)}></stop>
-                            </linearGradient>
-                          </defs>
-                          <rect height="20" width="150" style={{fill: "url('#gradient')"}}></rect>
-                        </svg>
-                       {/*<svg ref={this.ref} className={"colorLegend"} style={{ height:'10px', width:'90px' }} />*/}
-                      <span> More Records </span>
+            <div className="timeline-view-container" ref={this.ref}>
+                {timeLineLegend()}
+                {eventBins && eventBins.map((events, i) => {
+                    const title = tableRecords[i].metaInfo?.alias;
+                    const width = this.ref.current!.offsetWidth;
+                    return <div className={"timeline-container"} key={i}>
+                        <div className={"timeline-title"}
+                            style={{
+                                height: this.rowHeight, width: this.titleWidth, borderLeftColor: this.color(i),
+                                marginTop: i === 0 ? 20 : 0
+                            }} key={title}>
+                            <span className={"timeline-title-text"}>{title === 'Chart Signs' ? 'Chart Events' : title}</span>
+                        </div>
+                        <Timeline
+                            events={events}
+                            timeScale={timeScale}
+                            width={width - this.titleWidth}
+                            margin={this.margin}
+                            height={this.rowHeight + (i === 0 ? 20 : 0)}
+                            style={{ position: 'absolute', 'left': this.titleWidth + 15 }}
+                            onSelectEvents={(startDate: Date, endDate: Date) =>
+                                onSelectEvents && onSelectEvents(tableRecords[i].name!, startDate, endDate)}
+                            binTime={intervalByQuarter! * QUATER_IN_MILI}
+                            drawTicks={i === 0}
+                        />
                     </div>
-                    <div className="abnormal">
-                      <span> Less Abnormal Items </span>
-                          <div className='legend-rect' style={{ backgroundColor: '#919191',height:'13px', width:'13px'}} />
-                          <div className='legend-rect' style={{ backgroundColor: '#919191',height:'16px', width:'16px'}} />
-                          <div className='legend-rect' style={{ backgroundColor: '#919191',height:'19px', width:'19px'}} />
-
-                      <span> More Abnormal Items </span>
-                    </div>
-                </div>
-                {tableRecords && eventBins && startDate && endDate && <div ref={this.ref} className={"timeline-view-content"}>
-                    <TimelineList
-                        // metaEvents={metaEvents}
-                        events={eventBins}
-                        titles={tableRecords.map(t => t.metaInfo?.alias || t.metaInfo?.name)}
-                        timeScale={timeScale || getScaleTime(0, width - margin.left - margin.right, undefined, [startDate, endDate])}
-                        timelineStyle={{
-                            width: width,
-                            margin: margin
-                        }}
-                        onSelectEvents={(id: number, startDate: Date, endDate: Date) =>
-                            onSelectEvents && onSelectEvents(tableRecords[id].name!, startDate, endDate)}
-                        color={this.color}
-                        margin={{ top: 0, bottom: 0, left: 0, right: 0 }}
-                        intervalByQuarter={intervalByQuarter}
-                    />
-                </div>}
-                {/* {tableRecords && intervalByQuarter && startDate && endDate && <TimelineAxis
-                    className="fix-on-bottom"
-                    startTime={startDate}
-                    endTime={endDate}
-                    timelineStyle={{
-                        width: width,
-                        height: 60,
-                        margin: { ...margin, bottom: 20, top: 0 }
-                    }}
-                    // formulateStartandEnd={this.formulateStartandEnd}
-                    updateTimeScale={this.updateTimeScale}
-                    events={events}
-                    color={defaultCategoricalColor}
-                    size={intervalByQuarter * 15}
-                />} */}
-
+                })}
             </div>
         )
     }
+}
+
+const timeLineLegend = () => {
+    return <div className='timeline-legend'>
+        <div className="event-number-legend">
+            <span> Less Records </span>
+            <svg className="color-legend" style={{ height: '16px', width: '150px' }}>
+                <defs>
+                    <linearGradient id="gradient">
+                        <stop offset="0%" stopColor={d3.interpolateBlues(0.2)}></stop>
+                        <stop offset="100%" stopColor={d3.interpolateBlues(0.5)}></stop>
+                    </linearGradient>
+                </defs>
+                <rect height="20" width="150" style={{ fill: "url('#gradient')" }}></rect>
+            </svg>
+            <span> More Records </span>
+        </div>
+        <div className="abnormal">
+            <span> Less Abnormal Items </span>
+            <div className='legend-rect' style={{ backgroundColor: '#919191', height: '10px', width: '10px' }} />
+            <div className='legend-rect' style={{ backgroundColor: '#919191', height: '12px', width: '12px' }} />
+            <div className='legend-rect' style={{ backgroundColor: '#919191', height: '14px', width: '14px' }} />
+            <span> More Abnormal Items </span>
+        </div>
+    </div>
 }

@@ -44,7 +44,7 @@ export function arrayShallowCompare<T>(array1?: Array<T>, array2?: Array<T>) {
         return false;
     else if (array1.length !== array2.length)
         return false;
-        
+
     let flag = true;
     // the order should be the same
     array1.forEach((d, i) => {
@@ -116,12 +116,12 @@ export type ReferenceValue = {
 export type ReferenceValueDict = (itemName: string) => (ReferenceValue | undefined);
 
 export function getReferenceValue(data: number[]): ReferenceValue {
-    if(data.length==0){
-       return {
-        mean: 0,
-        std: 0,
-        count: 0,
-        ci95: [0,0]
+    if (data.length == 0) {
+        return {
+            mean: 0,
+            std: 0,
+            count: 0,
+            ci95: [0, 0]
         }
     }
     const mean = _.mean(data);

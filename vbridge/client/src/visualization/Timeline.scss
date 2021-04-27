@@ -1,0 +1,38 @@
+.axis-line {
+    stroke: #eee;
+    stroke-width: 1px;
+}
+
+.subline {
+    stroke: #aaa;
+    stroke-width: 1px;
+    transition: all 0.5s ease;
+}
+
+.timeline-cell {
+    stroke-width: 1px;
+    stroke: #eee;
+    .timeline-cell-inner {
+        fill: rgb(145, 145, 145);
+        stroke: none;
+    }
+}
+
+.time-tick-group {
+    .time-tick {
+        stroke: rgb(102, 100, 100);
+    }
+    .time-tick-text {
+        font-size: 12px;
+        fill: rgb(71, 71, 71);
+        /* stroke: #aaa; */
+    }
+}
+
+.handle {
+    fill: rgb(119, 119, 119)
+}
+
+rect.selection {
+    fill: #8dbefa;
+}

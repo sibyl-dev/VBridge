@@ -1,9 +1,9 @@
 import React from 'react';
 import * as d3 from "d3"
+import * as _ from 'lodash';
 
-import { Layout, Drawer, Tooltip, Button, Select, Avatar, Divider, Row, Col, Switch } from 'antd'
+import { Layout, Drawer, Tooltip, Button, Select, Switch } from 'antd'
 import { FilterOutlined } from '@ant-design/icons'
-import './App.css';
 
 import FeatureView from "./components/FeatureView"
 import MetaView from "./components/MetaView"
@@ -19,18 +19,17 @@ import {
 } from "./router/api"
 import { PatientGroup, PatientMeta } from 'data/patient';
 import { Entity, ItemDict } from 'data/table';
-import { patientInfoMeta } from 'data/metaInfo';
 import { filterType } from 'data/filterType';
 
 import Panel from 'components/Panel';
 import { Feature, FeatureMeta } from 'data/feature';
 import { DataFrame, IDataFrame } from 'data-forge';
-import _, { isUndefined } from 'lodash';
-import { distinct, isDefined, ReferenceValue, ReferenceValueDict } from 'data/common';
+import { distinct, isDefined, ReferenceValueDict } from 'data/common';
 
-import { defaultCategoricalColor, getChildOrAppend, getOffsetById, getScaleLinear } from 'visualization/common';
+import { defaultCategoricalColor, getChildOrAppend, getOffsetById } from 'visualization/common';
 import { CloseOutlined } from '@material-ui/icons';
 
+import './App.css';
 
 const { Header, Content } = Layout;
 const { Option } = Select;
@@ -41,7 +40,7 @@ interface AppStates {
   // static information
   subjectIds?: number[],
   tableNames?: string[],
-  featureMeta?: DataFrame<number, FeatureMeta>,
+  featureMeta?: IDataFrame<number, FeatureMeta>,
   predictionTargets?: string[],
   itemDicts?: ItemDict,
   target?: string,
@@ -174,7 +173,7 @@ class App extends React.Component<AppProps, AppStates>{
   }
 
   private async loadReferenceValues() {
-    const { tableNames, patientGroup } = this.state;
+    const { tableNames } = this.state;
     if (tableNames) {
       const references: { name: string, referenceValues: ReferenceValueDict }[] = [];
       for (const name of tableNames) {
@@ -409,11 +408,12 @@ class App extends React.Component<AppProps, AppStates>{
     const visible = true
     this.setState({ visible })
   };
+
   private onClose = () => {
     const visible = false
     this.setState({ visible })
-    // console.log('onClose', this.state.filterConditions)
   };
+  
   private tableNamesChange(name: string) {
     if (name == 'LABEVENTS')
       return 'Lab Tests'
@@ -422,7 +422,6 @@ class App extends React.Component<AppProps, AppStates>{
     if (name == 'CHARTEVENTS')
       return 'Chart Events'
     return 'Prescriptions'
-
   }
 
 
@@ -438,9 +437,6 @@ class App extends React.Component<AppProps, AppStates>{
     else {
       return "#aaa"
     }
-    // if (i === 1) i = 3;
-    // else if (i === 3) i = 1;
-
   }
 
   private abnormalityColor(abnormality: number) {
@@ -469,23 +465,6 @@ class App extends React.Component<AppProps, AppStates>{
           y1: (start.top + start.bottom) / 2,
           x2: end.left,
           y2: (end.top + end.bottom) / 2,
-          // path: d3.path()
-          // path: d3.line()([
-          //   [start.right + 8, start.top + 2],
-          //   [end.left, end.top + (end.bottom - end.top) * i / starts.length],
-          //   [end.left, end.top + (end.bottom - end.top) * (i + 1) / starts.length],
-          //   [start.right + 8, start.bottom - 2],
-          // ]),
-          // path: d3.line()([
-          //   [start.right, start.top],
-          //   [end.left, end.top],
-          //   [end.left, end.bottom],
-          //   [start.right, start.bottom],
-          // ]),
-          // path: d3.line()([
-          //   [start.right, (start.top + start.bottom) / 2],
-          //   [end.left, (end.top + end.bottom) / 2],
-          // ]),
           color: this.entityCategoricalColor(signal.tableName)
         }))
       }
@@ -631,11 +610,9 @@ class App extends React.Component<AppProps, AppStates>{
                 patientMeta={patientMeta}
                 featureMeta={featureMeta}
                 prediction={predictions(selected)}
-                tableNames={tableNames}
-                groupIds={patientGroup && patientGroup.ids}
+                selectedIds={patientGroup && patientGroup.ids}
                 itemDicts={itemDicts}
                 entityCategoricalColor={this.entityCategoricalColor}
-                // abnormalityColor={this.abnormalityColor}
                 focusedFeatures={[...pinnedfocusedFeatures, ...focusedFeatures]}
                 inspectFeatureInSignal={this.updateSignalsByFeature}
                 inspectFeatureInTable={this.updateTableViewFromFeatures}
@@ -651,12 +628,11 @@ class App extends React.Component<AppProps, AppStates>{
               title={<div className="view-title">
                 <span className="view-title-text">Timeline View</span>
               </div>}>
-              {featureMeta && tableNames && tableRecords && referenceValues && <TimelineView
+              {patientMeta && featureMeta && tableNames && tableRecords && referenceValues && <TimelineView
                 tableNames={tableNames}
                 patientMeta={patientMeta}
                 featureMeta={featureMeta}
                 tableRecords={tableRecords}
-                width={window.innerWidth - featureViewWidth - ProfileWidth - 160 - xPadding * 2}
                 onSelectEvents={this.updateSignalFromTimeline}
                 entityCategoricalColor={this.entityCategoricalColor}
                 referenceValues={referenceValues}
@@ -694,7 +670,7 @@ class App extends React.Component<AppProps, AppStates>{
                 referenceValues={referenceValues}
               />}
             </Panel>
-            <Panel initialWidth={ProfileWidth} initialHeight={window.innerHeight - 2 * yPadding}
+            <Panel initialWidth={ProfileWidth} initialHeight={window.innerHeight - headerHeight - 2 * yPadding}
               x={window.innerWidth - xPadding - ProfileWidth} y={yPadding}
               title={<div className="view-title">
                 <span className="view-title-text">Patient's Profile</span>
@@ -727,7 +703,6 @@ class App extends React.Component<AppProps, AppStates>{
                 patientMeta={patientMeta}
                 tableNames={tableNames}
                 itemDicts={itemDicts}
-                // tableRecord={tableRecords ? tableRecords[0] : undefined}
                 tableMeta={tableViewMeta}
                 tableRecords={tableRecords}
               />}

@@ -47,6 +47,10 @@ export function getMargin(margin: MarginType): IMargin {
   }
 }
 
+export function isArrays<T>(a: T[] | T[][]): a is T[][] {
+  return a.length > 0 && Array.isArray(a[0]);
+}
+
 export type PropertyValueFn<T, E extends d3.BaseType, Datum, Result> = {
   [P in keyof T]: Result | d3.ValueFn<E, Datum, Result>;
 };
@@ -103,42 +107,17 @@ export function getScaleLinear(
 
 }
 
-export function calIntervalsCommon(
-  startDate: Date,
-  endDate: Date,
-): number {
-  let size = 9
-  const ONE_HOUR = 60
-  const ONE_MIN = 1
-  const ONE_DAY = 60 * 24
-  const ONE_MONTH = 60 * 24 * 30
-  const definedIntervalMins = [15 * ONE_MIN, 30 * ONE_MIN, ONE_HOUR, 2 * ONE_HOUR, 4 * ONE_HOUR, 6 * ONE_HOUR, 12 * ONE_HOUR,
-  1 * ONE_DAY, 2 * ONE_DAY, 3 * ONE_DAY, 5 * ONE_DAY, 6 * ONE_DAY, 10 * ONE_DAY, 15 * ONE_DAY,
-  1 * ONE_MONTH, 2 * ONE_MONTH, 3 * ONE_MONTH]
+export const HOUR_IN_QUATER = 4;
+export const QUATER_IN_MILI = 1000 * 60 * 15;
+const defaultIntervalOptions = [1, 2, HOUR_IN_QUATER, HOUR_IN_QUATER * 2, HOUR_IN_QUATER * 4, HOUR_IN_QUATER * 8,
+  HOUR_IN_QUATER * 12, HOUR_IN_QUATER * 24, HOUR_IN_QUATER * 48];
 
-  let mins = Math.round((endDate.valueOf() - startDate.valueOf()) / 1000 / 60)
-  let choseInterval = 0
-  for (let i = 0; i < definedIntervalMins.length; i++) {
-    for (size = 9; size <= 14; size++) {
-      if (choseInterval)
-        break
-      if (definedIntervalMins[i] * size >= mins) {
-        choseInterval = definedIntervalMins[i]
-        break
-      }
-    }
-    if (choseInterval)
-      break
-  }
-  return choseInterval
+export function getQuarter(time: Date) {
+  return Math.floor(time.getTime() / QUATER_IN_MILI);
 }
 
-export function getIdbyQuarter(time: number) {
-  return Math.floor(time / (1000 * 60 * 15));
-}
-
-export function getRefinedStartEndTime(startTime: Date, endTime: Date, intervalInQuarter: number) {
-  const intervalInMilisecs = intervalInQuarter * 1000 * 60 * 15;
+export function getRefinedStartEndTime(startTime: Date, endTime: Date, intervalInQuarter: number): [Date, Date] {
+  const intervalInMilisecs = intervalInQuarter * QUATER_IN_MILI;
   const refinedStartTime = new Date(Math.floor(startTime.getTime() / intervalInMilisecs) * intervalInMilisecs);
   const refinedEndTime = new Date(Math.ceil(endTime.getTime() / intervalInMilisecs) * intervalInMilisecs);
   return [refinedStartTime, refinedEndTime];
@@ -149,23 +128,16 @@ export function calIntervalsByQuarter(
   endTime: Date,
   minBins: number,
   maxBins: number,
-  intervalOptions: number[],
-  range?: number,
-  width?: number,
+  intervalOptions: number[] = defaultIntervalOptions,
 ) {
-  // if (width && range) {
-  //   const binNum = Math.floor(range / width);
-  // }
-  // else {s
-    for (const interval of intervalOptions) {
-      const extent = getRefinedStartEndTime(startTime, endTime, interval);
-      const nBins = (extent[1].getTime() - extent[0].getTime()) / (1000 * 60 * 15 * interval);
-      if (nBins <= maxBins && nBins >= minBins) {
-        return interval;
-      }
+  for (const interval of intervalOptions) {
+    const extent = getRefinedStartEndTime(startTime, endTime, interval);
+    const nBins = Math.ceil((getQuarter(extent[1]) - getQuarter(extent[0])) / interval);
+    if (nBins <= maxBins && nBins >= minBins) {
+      return interval;
     }
-    return intervalOptions[intervalOptions.length - 1];
-  // }
+  }
+  return intervalOptions[intervalOptions.length - 1];
 }
 
 export function getScaleTime(
@@ -246,8 +218,6 @@ export function getScaleBand(
     .paddingOuter(outerPadding)
     .rangeRound([x0, x1]);
 }
-
-export const DELAY_PAINT_TIME = 100;
 
 export function isStringArray(x: number[] | string[]): x is string[] {
   return typeof x[0] === 'string';

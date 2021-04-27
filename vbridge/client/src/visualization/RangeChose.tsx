@@ -134,7 +134,7 @@ export default class RangeChose extends React.Component<RangeChoseProps, RangeCh
                                 data={data}
                                 height={60}
                                 width={200}
-                                drawAxis={false}
+                                drawLeftAxis={false}
                                 margin={{ left: 80, bottom: 15 }}
                                 referenceValue={referenceValue}
                             />
