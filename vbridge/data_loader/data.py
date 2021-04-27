@@ -4,7 +4,7 @@ from copy import deepcopy
 import pandas as pd
 import featuretools as ft
 
-from vbridge.data_loader.settings import interesting_variables, RELATIONSHIPS, META_INFO
+from vbridge.data_loader.settings import RELATIONSHIPS, META_INFO
 from vbridge.data_loader.utils import load_entityset, remove_nan_entries, save_entityset
 
 
@@ -68,10 +68,6 @@ def get_patient_records(es, table_name, subject_id, hadm_id=None, cutoff_times=N
     # select records by HADM_ID
     if hadm_id is not None and 'HADM_ID' in target_table.columns:
         patient_df = patient_df[patient_df['HADM_ID'] == hadm_id]
-
-    # remove identifier columns
-    useful_cols = interesting_variables[table_name]
-    patient_df = patient_df.loc[:, useful_cols]
 
     # select records before or at the cutoff_time
     time_index = META_INFO[table_name].get('time_index')

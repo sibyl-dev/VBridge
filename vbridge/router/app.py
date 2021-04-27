@@ -7,13 +7,14 @@ from flask_cors import CORS
 from vbridge.router.api import api
 from vbridge.data_loader.data import load_pic
 from vbridge.data_loader.utils import load_entityset, load_fm
+from vbridge import modeling
 from vbridge.modeling import model_manager, modeler
 from vbridge.featurization import featurization
 from vbridge.modeling.model_manager import ModelManager
 from vbridge.featurization.featurization import generate_cutoff_times, Featurization
 from vbridge.explainer.explanation import Explainer
 
-
+sys.modules['model'] = modeling
 sys.modules['model.model_manager'] = model_manager
 sys.modules['model.modeler'] = modeler
 sys.modules['model.featurization'] = featurization

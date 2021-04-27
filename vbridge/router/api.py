@@ -9,7 +9,7 @@ from flask import request, jsonify, Blueprint, current_app, Response
 
 from vbridge.data_loader.data import get_patient_records
 from vbridge.modeling.modeler import Modeler
-from vbridge.data_loader.settings import interesting_variables, META_INFO, filter_variable, filter_variable1
+from vbridge.data_loader.settings import META_INFO, filter_variable, filter_variable1
 
 api = Blueprint('api', __name__)
 
@@ -51,10 +51,6 @@ class ApiError(Exception):
         rv = dict(self.payload or ())
         rv['message'] = self.message
         return rv
-
-
-def formalize(x):
-    x1 = x.copy(deep=True)
 
 
 @api.errorhandler(ApiError)
@@ -119,7 +115,7 @@ def get_patientinfo_meta():
     for i, table_name in enumerate(table_names):
         hadm_df = es[table_name].df
         record = hadm_df[hadm_df['SUBJECT_ID'] == subject_id]
-        column_names = interesting_variables[table_name]
+        column_names = es[table_name].df.columns
         for i, col in enumerate(column_names):
             info[col] = str(record[col].values[0])
 
@@ -136,8 +132,7 @@ def get_record_filterrange():
         if filter_name == 'GENDER':
             info[filter_name] = ['F', 'M']
         elif filter_name == 'Age':
-            info[filter_name] = ['< 1 month',
-                                 '< 1 year', '1-3 years', '> 3 years']
+            info[filter_name] = ['< 1 month', '< 1 year', '1-3 years', '> 3 years']
             all_records = list(set(fm[filter_name]))
             info['age'] = [min(all_records), max(all_records)]
         elif filter_name == 'SURGERY_NAME':
@@ -169,7 +164,6 @@ def get_patient_group():
     subject_idG = fm.index.to_list()
 
     info = {'subject_idG': subject_idG}
-    # print('conditions', conditions)
 
     # filter subject_idG according to the conditions
     for i, table_name in enumerate(table_names):
@@ -228,6 +222,7 @@ def get_patient_group():
 @api.route('/record_meta', methods=['GET'])
 def get_record_meta():
     table_name = request.args.get('table_name')
+    es = current_app.es
     info = {'name': table_name}
     if table_name in META_INFO:
         table_info = META_INFO[table_name]
@@ -235,7 +230,7 @@ def get_record_meta():
         info['item_index'] = table_info.get('item_index')
         info['value_indexes'] = table_info.get('value_indexes')
         info['alias'] = table_info.get('alias')
-        column_names = interesting_variables[table_name]
+        column_names = es[table_name].df.columns
         df = current_app.es[table_name].df
         # distinguish "categorical" and "numerical" columns
         info['types'] = ['categorical' if df[name].dtype == object
