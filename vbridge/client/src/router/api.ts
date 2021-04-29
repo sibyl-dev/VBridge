@@ -7,7 +7,7 @@ import { Entity, ItemDict } from "data/table";
 import { ROOT_URL, DEV_MODE } from "./env";
 import { patientInfoMeta } from 'data/metaInfo';
 import { filterType } from 'data/filterType';
-import { ReferenceValue, ReferenceValueDict } from "data/common";
+import { ReferenceValueDict } from "data/common";
 import { SegmentExplanation } from "data/event";
 
 
@@ -45,9 +45,6 @@ export async function getTableNames(): Promise<string[]> {
     const url = `${API}/table_names`;
     const response = await axios.get(url);
     let tableNames = checkResponse(response, []);
-    // let tmp3 = tableNames[3]
-    // tableNames[3] = tableNames[1]
-    // tableNames[1] = tmp3
     return tableNames;
 }
 
@@ -77,14 +74,6 @@ export async function getPatientGroup(params: {
     const response = await axios.get(url, { params });
     return checkResponse(response, []);
 }
-
-// export async function getPatientGroupPart(params: {
-//     filterConditions: { [key: string]: any },
-// }): Promise<{ [key: string]: any }> {
-//     const url = `${API}/patient_group_partial`;
-//     const response = await axios.get(url, { params });
-//     return checkResponse(response, []);
-// }
 
 export async function getPatientMeta(params: {
     subject_id: number

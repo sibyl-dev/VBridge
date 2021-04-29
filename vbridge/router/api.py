@@ -9,7 +9,7 @@ from flask import request, jsonify, Blueprint, current_app, Response
 
 from vbridge.data_loader.data import get_patient_records
 from vbridge.modeling.modeler import Modeler
-from vbridge.data_loader.settings import META_INFO, filter_variable, filter_variable1
+from vbridge.data_loader.settings import META_INFO, filter_variables
 
 api = Blueprint('api', __name__)
 
@@ -95,11 +95,8 @@ def get_patient_meta():
         surgery_df[surgery_df['SUBJECT_ID'] == subject_id]['SURGERY_BEGIN_TIME'].values[0])
 
     patient_df = es["PATIENTS"].df
-    info['GENDER'] = patient_df[patient_df['SUBJECT_ID']
-                                == subject_id]['GENDER'].values[0]
-    info['DOB'] = str(patient_df[patient_df['SUBJECT_ID']
-                                 == subject_id]['DOB'].values[0])
-    info['days'] = 0
+    info['GENDER'] = patient_df[patient_df['SUBJECT_ID'] == subject_id]['GENDER'].values[0]
+    info['DOB'] = str(patient_df[patient_df['SUBJECT_ID'] == subject_id]['DOB'].values[0])
 
     return jsonify(info)
 
@@ -127,7 +124,7 @@ def get_record_filterrange():
     info = {'name': 'filter_range'}
     fm = current_app.fm
 
-    for i, filter_name in enumerate(filter_variable):
+    for i, filter_name in enumerate(filter_variables):
         # categorical
         if filter_name == 'GENDER':
             info[filter_name] = ['F', 'M']
@@ -147,7 +144,6 @@ def get_record_filterrange():
         else:
             all_records = list(set(fm[filter_name]))
             info[filter_name] = [min(all_records), max(all_records)]
-    print('filterRange', info)
     return jsonify(info)
 
 
@@ -157,7 +153,7 @@ def get_patient_group():
     setSubjectIdG = request.args.get('setSubjectIdG')
 
     table_names = ['PATIENTS', 'SURGERY_INFO', 'ADMISSIONS']
-    number_vari = ['Height', 'Weight', 'Surgical time (minutes)']
+    number_variables = ['Height', 'Weight', 'Surgical time (minutes)']
 
     es = current_app.es
     fm = current_app.fm
@@ -167,13 +163,11 @@ def get_patient_group():
 
     # filter subject_idG according to the conditions
     for i, table_name in enumerate(table_names):
-        column_names = filter_variable1[table_name]
         df = es[table_name].df
         df = df[df['SUBJECT_ID'].isin(subject_idG)]
         for item, value in conditions.items():
-            if item in column_names:
-                print('conditions', item, value)
-                if item in number_vari:
+            if item in df.columns:
+                if item in number_variables:
                     df = df[(df[item] >= value[0]) & (df[item] <= value[1])]
                 elif item == 'Age':
                     filter_flag = False

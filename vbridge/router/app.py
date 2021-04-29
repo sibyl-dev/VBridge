@@ -19,6 +19,7 @@ sys.modules['model.model_manager'] = model_manager
 sys.modules['model.modeler'] = modeler
 sys.modules['model.featurization'] = featurization
 
+
 def create_app():
     app = Flask(__name__)
 

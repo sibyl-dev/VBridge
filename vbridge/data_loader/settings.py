@@ -174,18 +174,4 @@ ignore_variables = {
     'D_ICD_DIAGNOSES': ['ROW_ID']
 }
 
-filter_variable = ['Height', 'Weight', 'Surgical time (minutes)', 'GENDER', 'Age',
-                   'SURGERY_NAME', ]
-filter_variable1 = {
-    'PATIENTS': ['GENDER'],
-    'ADMISSIONS': ['LANGUAGE', 'RELIGION', 'MARITAL_STATUS', 'ETHNICITY', 'ADMISSION_DEPARTMENT',
-                   'INSURANCE', 'DIAGNOSIS', 'ICD10_CODE_CN', ],
-    'SURGERY_INFO': ['Age', 'Height', 'Weight', 'SURGERY_NAME', 'ANES_METHOD',
-                     'SURGERY_POSITION', 'Surgical time (minutes)',
-                     'complication',
-                     'lung complication',
-                     'cardiac complication',
-                     'arrhythmia complication',
-                     'infectious complication',
-                     'other complication', ]
-}
+filter_variables = ['Height', 'Weight', 'Surgical time (minutes)', 'GENDER', 'Age', 'SURGERY_NAME']
