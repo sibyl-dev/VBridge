@@ -1,7 +1,7 @@
 import os
+import pickle
 
 import pandas as pd
-import pickle
 
 from vbridge.modeling.modeler import Modeler
 

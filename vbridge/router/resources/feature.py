@@ -1,7 +1,7 @@
 import logging
 
-from flask_restful import Resource
-from flask import jsonify, current_app
+from flask import Response, current_app, jsonify
+from flask_restful import Resource, reqparse
 
 from vbridge.modeling.modeler import Modeler
 
@@ -9,7 +9,6 @@ LOGGER = logging.getLogger(__name__)
 
 
 def get_feature_meta(fl):
-
     def get_leaf(feature):
         if len(feature.base_features) > 0:
             return get_leaf(feature.base_features[0])
@@ -19,8 +18,7 @@ def get_feature_meta(fl):
     def get_level2_leaf(feature):
         if len(feature.base_features) == 0:
             return None
-        elif len(feature.base_features) > 0 and \
-                len(feature.base_features[0].base_features) == 0:
+        elif len(feature.base_features) > 0 and len(feature.base_features[0].base_features) == 0:
             return feature
         else:
             return get_level2_leaf(feature.base_features[0])
@@ -68,6 +66,32 @@ def get_feature_meta(fl):
     return jsonify(feature_meta)
 
 
+def get_feature_matrix(fm):
+    # TODO
+    return Response(fm.to_csv(), mimetype="text/csv")
+
+
+def get_feature_values(fm, subject_id):
+    entry = fm.loc[subject_id].fillna('N/A').to_dict()
+    return jsonify(entry)
+
+
+def get_available_ids():
+    # return jsonify(fm.index.to_list())
+    return jsonify([5856, 10007])
+
+
+class SubjectIDs(Resource):
+    def get(self):
+        try:
+            res = get_available_ids()
+        except Exception as e:
+            LOGGER.exception(e)
+            return {'message': str(e)}, 500
+        else:
+            return res
+
+
 class FeatureMeta(Resource):
     def __init__(self):
         self.fl = current_app.fl
@@ -75,6 +99,48 @@ class FeatureMeta(Resource):
     def get(self):
         try:
             res = get_feature_meta(self.fl)
+        except Exception as e:
+            LOGGER.exception(e)
+            return {'message': str(e)}, 500
+        else:
+            return res
+
+
+class FeatureMatrix(Resource):
+    def __init__(self):
+        self.fm = current_app.fm
+
+    def get(self):
+        try:
+            res = get_feature_matrix(self.fm)
+        except Exception as e:
+            LOGGER.exception(e)
+            return {'message': str(e)}, 500
+        else:
+            return res
+
+
+class FeatureValues(Resource):
+    def __init__(self):
+        self.fm = current_app.fm
+
+        parser_get = reqparse.RequestParser(bundle_errors=True)
+        parser_get.add_argument('subject_id', type=int, required=True, location='args')
+        self.parser_get = parser_get
+
+    def get(self):
+
+        try:
+            args = self.parser_get.parse_args()
+            print(args)
+        except Exception as e:
+            LOGGER.exception(str(e))
+            return {'message', str(e)}, 400
+
+        subject_id = args['subject_id']
+
+        try:
+            res = get_feature_values(self.fm, subject_id)
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500

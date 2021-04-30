@@ -68,7 +68,6 @@ interface AppStates {
   // for patient group & reference values
   filterRange?: filterType,
   patientGroup?: PatientGroup,
-  selectedsubjectId?: number,
   conditions?: { [key: string]: any },
   referenceValues?: (tableName: string) => ReferenceValueDict | undefined,
 
@@ -159,12 +158,13 @@ class App extends React.Component<AppProps, AppStates>{
     const featureMeta = new DataFrame(await getFeatureMate());
     const predictionTargets = await getPredictionTargets();
 
-    const patientGroup = await getPatientGroup({ filterConditions: { 'aha': '' }, subject_id: 0, setSubjectIdG: true });
+    const patientGroup = await getPatientGroup({ filters: { 'aha': '' }});
     this.setState({ subjectIds, tableNames, filterRange, featureMeta, predictionTargets, itemDicts, patientGroup });
   }
 
   private async loadPredictions() {
     const { patientMeta } = this.state;
+    console.log("load predictions");
     if (patientMeta) {
       const predictions = await getPrediction({ subject_id: patientMeta?.subjectId });
       this.setState({ predictions });
@@ -197,15 +197,14 @@ class App extends React.Component<AppProps, AppStates>{
 
   public async selectPatientId(subjectId: number) {
     // subjectId=11300
-    const selectedsubjectId = subjectId
     const patientMeta = await getPatientMeta({ subject_id: subjectId });
     const tableRecords = await this.loadPatientRecords(subjectId);
     if (patientMeta) {
-      const subjectIdG = await getPatientGroup({ filterConditions: { '': ''}, subject_id: subjectId, setSubjectIdG: true })
+      const subjectIdG = await getPatientGroup({ filters: { '': ''}})
       this.setState({ patientGroup: subjectIdG })
     }
     const selected = 'lung complication'
-    this.setState({ patientMeta, tableRecords, selectedsubjectId, target: selected });
+    this.setState({ patientMeta, tableRecords, target: selected });
   }
   public judgeTheAge(days: number) {
     if (days <= 28) return '< 1 month'
@@ -216,7 +215,7 @@ class App extends React.Component<AppProps, AppStates>{
 
   private async filterPatients(conditions: { [key: string]: any }, changeornot: boolean) {
     if (changeornot) {
-      const subjectIdG = await getPatientGroup({ filterConditions: conditions, subject_id: 0, setSubjectIdG: true });
+      const subjectIdG = await getPatientGroup({ filters: conditions});
       this.setState({ patientGroup: subjectIdG, conditions: Object.assign({}, conditions) })
     }
   }
@@ -524,7 +523,7 @@ class App extends React.Component<AppProps, AppStates>{
   public render() {
 
     const { subjectIds, patientMeta, tableNames, tableRecords, featureMeta, predictionTargets, showTableView,
-      focusedFeatures, pinnedfocusedFeatures, target: selected, selectedsubjectId, predictions, tableViewMeta,
+      focusedFeatures, pinnedfocusedFeatures, target: selected, predictions, tableViewMeta,
       itemDicts, signalMetas, filterRange, visible, patientGroup, referenceValues } = this.state;
     const { headerHeight, featureViewWidth, timelineViewHeight, ProfileWidth, xPadding, yPadding } = this.layout;
 
@@ -712,11 +711,10 @@ class App extends React.Component<AppProps, AppStates>{
                 onClose={this.onClose} visible={visible} width={450} >
                 <p>
                   <FilterView
-                    selectedsubjectId={selectedsubjectId}
                     filterRange={filterRange}
                     filterPatients={this.filterPatients}
                     onClose={this.onClose}
-                    patientInfoMeta={patientMeta}
+                    patientMeta={patientMeta}
                     visible={visible}
                     subjectIdG={patientGroup && patientGroup.ids}
                     distributionApp={patientGroup?.labelCounts}

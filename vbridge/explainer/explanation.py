@@ -2,6 +2,7 @@ import featuretools as ft
 import numpy as np
 
 from vbridge.data_loader.settings import META_INFO
+
 from .anomaly import find_anomalies
 
 
@@ -151,7 +152,8 @@ class Explainer:
         time_index = META_INFO[table_name]['time_index']
         surgery_table = self.es['SURGERY_INFO'].df
         start_time = \
-            surgery_table[surgery_table['SUBJECT_ID'] == subject_id]['SURGERY_BEGIN_TIME'].values[0]
+            surgery_table[surgery_table['SUBJECT_ID']
+                          == subject_id]['SURGERY_BEGIN_TIME'].values[0]
         end_time = \
             surgery_table[surgery_table['SUBJECT_ID'] == subject_id]['SURGERY_END_TIME'].values[0]
         signal, signal_table = self.extract_signal(subject_id, table_name, record_id, start_time,

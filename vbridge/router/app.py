@@ -4,16 +4,16 @@ import sys
 from flask import Flask
 from flask_cors import CORS
 
-from vbridge.router.api import api, NpEncoder
+from vbridge import modeling
 from vbridge.data_loader.data import load_pic
 from vbridge.data_loader.utils import load_entityset, load_fm
-from vbridge import modeling
-from vbridge.modeling import model_manager, modeler
-from vbridge.featurization import featurization
-from vbridge.modeling.model_manager import ModelManager
-from vbridge.featurization.featurization import generate_cutoff_times, Featurization
 from vbridge.explainer.explanation import Explainer
-from vbridge.router.route import add_routes
+from vbridge.featurization import featurization
+from vbridge.featurization.featurization import Featurization, generate_cutoff_times
+from vbridge.modeling import model_manager, modeler
+from vbridge.modeling.model_manager import ModelManager
+from vbridge.router.routes import add_routes
+from vbridge.router.utils import NpEncoder
 
 sys.modules['model'] = modeling
 sys.modules['model.model_manager'] = model_manager
@@ -51,12 +51,13 @@ def create_app():
         model_manager.fit_all()
         print(model_manager.evaluate())
     app.model_manager = model_manager
+
+    # load similar patient group
     app.subject_idG = fm.index
 
     # load explainer
     app.ex = Explainer(es, fm, model_manager)
 
-    app.register_blueprint(api, url_prefix='/api')
     app.json_encoder = NpEncoder
     CORS(app, resources={r"/api/*": {"origins": "*"}})
     add_routes(app)

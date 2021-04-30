@@ -11,16 +11,16 @@ import MultiSelect from 'visualization/MultiSelect'
 
 import { getFeatureMatrix, getPatientGroup } from "router/api";
 import { IDataFrame } from "data-forge";
+import { PatientMeta } from "data/patient";
 
 
 const { Option } = Select
 export interface FliterViewProps {
-    selectedsubjectId?: (number | undefined),
     filterRange?: { [key: string]: any },
     filterPatients?: (condition: { [key: string]: any }, changeornot: boolean) => void,
     onClose?: () => void,
     visible?: boolean,
-    patientInfoMeta?: { [key: string]: any },
+    patientMeta?: any,
     subjectIdG?: number[],
     distributionApp?: number[],
 }
@@ -58,13 +58,6 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
             changeornot: false,
             cancel: false,
             filter_name: ['Age', 'SURGERY_NAME', 'GENDER', 'Height', 'Weight', 'Surgical time (minutes)',
-
-
-                // 'ETHNICITY',
-                // 'ADMISSION_DEPARTMENT', 
-                // 'DIAGNOSIS', 'ICD10_CODE_CN', 
-
-                // 'ANES_METHOD','SURGERY_POSITION', 
             ],
             categorical_name: [
                 // 'ETHNICITY', 'ADMISSION_DEPARTMENT',  'DIAGNOSIS', 'ICD10_CODE_CN',  'ANES_METHOD','SURGERY_POSITION', 
@@ -77,9 +70,7 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
         this.updateConditions = this.updateConditions.bind(this)
     }
     public async init() {
-        var checkedList = Array(8).fill([])
-        console.log('checkedList', this.props.filterRange, this.state.checkedList)
-        const { filterRange, patientInfoMeta, visible, filterPatients, distributionApp, subjectIdG, selectedsubjectId } = this.props
+        const { filterRange, visible, filterPatients, distributionApp } = this.props
         var { categorical_name, numerical_name, defaultValue, filterConditions } = this.state
         defaultValue = { '': '' }
         filterConditions = { '': '', 'SURGERY_NAME': [] }
@@ -93,22 +84,17 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
             })
             defaultValue['SURGERY_NAME'] = []
             defaultValue['Age'] = filterRange['Age']
-
         }
-        // if (patientInfoMeta)
-        //     defaultValue['Age'] = new Array(this.judgeTheAge(patientInfoMeta['Age']))
 
 
         if (filterPatients)
             filterPatients(defaultValue, true)
-        console.log('here defaultValue', defaultValue)
+
         let tmp1 = Object.assign({}, defaultValue)
         let tmp2 = Object.assign({}, defaultValue)
-        console.log('tmp', tmp1 === defaultValue, tmp2 === tmp1)
 
-        console.log('this init', distributionApp)
         this.setState({ defaultValue: defaultValue, filterConditions: tmp1, tmpConditions: tmp2, cancel: !visible })
-        const subjectIdGFilter = await getPatientGroup({ filterConditions: tmp1 ? tmp1 : { '': '' }, subject_id: 0, setSubjectIdG: false })
+        const subjectIdGFilter = await getPatientGroup({ filters: tmp1 ? tmp1 : { '': '' }})
         const distributionFilter: number[] = Object.assign([], subjectIdGFilter.labelCounts)
         const allPatientNumber: number = subjectIdGFilter.ids.length
         this.setState({ distributionFilter, allPatientNumber }, () => { console.log(this.state.distributionFilter) })
@@ -124,7 +110,7 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
         this.setState({ featureMatrix });
     }
     componentDidUpdate(prevProps: FliterViewProps) {
-        if (this.props.selectedsubjectId && prevProps.selectedsubjectId !== this.props.selectedsubjectId) {
+        if (prevProps.patientMeta?.subjectId !== this.props.patientMeta?.subjectId) {
             this.init()
         }
     }
@@ -140,7 +126,7 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
     }
     public async distributionRes() {
         const { tmpConditions } = this.state
-        const subjectIdGFilter = await getPatientGroup({ filterConditions: tmpConditions ? tmpConditions : { '': '' }, subject_id: 0, setSubjectIdG: false })
+        const subjectIdGFilter = await getPatientGroup({ filters: tmpConditions ? tmpConditions : { '': '' }})
         const distributionFilter: number[] = Object.assign([], subjectIdGFilter.labelCounts)
         const allPatientNumber: number = subjectIdGFilter.ids.length
         this.setState({ distributionFilter, allPatientNumber }, () => { console.log(this.state.distributionFilter) })
@@ -157,7 +143,7 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
         }
     }
     onClickToCancel() {
-        const { onClose, filterPatients, filterRange, patientInfoMeta, distributionApp, subjectIdG } = this.props
+        const { onClose, filterPatients, filterRange, patientMeta: patientInfoMeta, distributionApp, subjectIdG } = this.props
         var { filterConditions, filter_name, tmpConditions, defaultValue } = this.state
         var tmpConditions1 = Object.assign({}, filterConditions)
         console.log('onClickToCancel', filterConditions, tmpConditions)
@@ -206,17 +192,13 @@ export default class FilterView extends React.Component<FliterViewProps, FilterV
         this.updateConditions('GENDER', value, coverAll)
     }
     public render() {
-        const { filterRange, selectedsubjectId, onClose, filterPatients, patientInfoMeta } = this.props
+        const { filterRange, onClose, filterPatients, patientMeta: patientInfoMeta } = this.props
         const { expandItem, PATIENTS, ADMISSIONS, SURGERY_INFO, defaultValue, filter_name, checkedList, indeterminate,
             checkedAll, tmpConditions, filterConditions, cancel, featureMatrix, distributionFilter, allPatientNumber } = this.state;
         console.log('filterConditions', filterConditions, 'tmpConditions', tmpConditions)
         var conditions: { [key: string]: any } = { '': '' }
         if (tmpConditions)
             conditions = tmpConditions
-        const leftSpan = 0
-        const titleWidth = 10
-        const valueWidth = 11
-        const rightSpan = 0
         const complicationtypes = ['Lung Comp.', 'Cardiac Comp.', 'Arrhythmia Comp.', 'Infectious Comp.', 'Other Comp.', 'No Comp.']
 
         console.log('distributionFilter', distributionFilter)

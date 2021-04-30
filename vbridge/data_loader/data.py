@@ -1,12 +1,11 @@
 import os
 from copy import deepcopy
 
-import pandas as pd
 import featuretools as ft
+import pandas as pd
 
-from vbridge.data_loader.settings import RELATIONSHIPS, META_INFO
+from vbridge.data_loader.settings import META_INFO, RELATIONSHIPS
 from vbridge.data_loader.utils import load_entityset, remove_nan_entries, save_entityset
-
 
 ROOT = os.path.dirname(os.path.dirname(__file__))
 PIC_dir = os.path.join(ROOT, 'data/raw/PIC_mini/')

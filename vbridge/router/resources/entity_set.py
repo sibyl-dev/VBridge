@@ -1,11 +1,16 @@
 import logging
 
+from flask import current_app, jsonify
 from flask_restful import Resource, reqparse
-from flask import jsonify, current_app, Response
 
-from vbridge.data_loader.settings import META_INFO
+from vbridge.data_loader.settings import META_INFO, filter_variables
 
 LOGGER = logging.getLogger(__name__)
+
+
+def get_table_names():
+    table_names = ['LABEVENTS', 'SURGERY_VITAL_SIGNS', 'CHARTEVENTS']
+    return jsonify(table_names)
 
 
 def get_record_meta(es, table_name):
@@ -40,7 +45,31 @@ def get_item_dict(es):
     return jsonify(item_dict)
 
 
-class RecordMeta(Resource):
+def get_record_range(fm):
+    info = {}
+    for i, filter_name in enumerate(filter_variables):
+        # categorical
+        if filter_name == 'GENDER':
+            info[filter_name] = ['F', 'M']
+        elif filter_name == 'Age':
+            info[filter_name] = ['< 1 month', '< 1 year', '1-3 years', '> 3 years']
+            all_records = list(set(fm[filter_name]))
+            info['age'] = [min(all_records), max(all_records)]
+        elif filter_name == 'SURGERY_NAME':
+            all_records = []
+            for surgeryname in fm[filter_name]:
+                all_records = all_records + surgeryname
+            info[filter_name] = list(set(all_records))
+        elif fm[filter_name].dtype == object:
+            all_records = sorted(set(fm[filter_name]))
+            info[filter_name] = all_records
+        else:
+            all_records = list(set(fm[filter_name]))
+            info[filter_name] = [min(all_records), max(all_records)]
+    return jsonify(info)
+
+
+class EntitySchema(Resource):
 
     def __init__(self):
         self.es = current_app.es
@@ -51,7 +80,6 @@ class RecordMeta(Resource):
     def get(self):
         try:
             args = self.parser_get.parse_args()
-            print(args)
         except Exception as e:
             LOGGER.exception(str(e))
             return {'message', str(e)}, 400
@@ -59,6 +87,17 @@ class RecordMeta(Resource):
         table_name = args['table_name']
         try:
             res = get_record_meta(self.es, table_name)
+        except Exception as e:
+            LOGGER.exception(e)
+            return {'message': str(e)}, 500
+        else:
+            return res
+
+
+class EntityIDs(Resource):
+    def get(self):
+        try:
+            res = get_table_names()
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500
@@ -74,6 +113,21 @@ class ItemDict(Resource):
     def get(self):
         try:
             res = get_item_dict(self.es)
+        except Exception as e:
+            LOGGER.exception(e)
+            return {'message': str(e)}, 500
+        else:
+            return res
+
+
+class StaticRecordRange(Resource):
+
+    def __init__(self):
+        self.fm = current_app.fm
+
+    def get(self):
+        try:
+            res = get_record_range(self.fm)
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500

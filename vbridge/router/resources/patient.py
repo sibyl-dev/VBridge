@@ -1,7 +1,7 @@
 import logging
 
+from flask import Response, current_app, jsonify
 from flask_restful import Resource, reqparse
-from flask import jsonify, current_app, Response
 
 from vbridge.data_loader.data import get_patient_records
 
@@ -9,7 +9,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 def get_patient_meta(es, subject_id):
-    info = {'SubjectId': subject_id}
+    info = {'subjectId': subject_id}
     table_names = ['PATIENTS', 'ADMISSIONS', 'SURGERY_INFO']
     for i, table_name in enumerate(table_names):
         hadm_df = es[table_name].df
@@ -49,7 +49,6 @@ class PatientMeta(Resource):
         """
         try:
             args = self.parser_get.parse_args()
-            print(args)
         except Exception as e:
             LOGGER.exception(str(e))
             return {'message', str(e)}, 400
