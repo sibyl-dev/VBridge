@@ -17,6 +17,7 @@ install_requires = [
     'xgboost>=1.4.1,<1.5',
     'shap>=0.39.0,<0.40',
     'flask>=1.1.0,<1.2',
+    'flask-restful>=0.3.8,<0.4.0',
     'flask-cors>=3.0,<3.1'
 ]
 
