@@ -4,7 +4,7 @@ import sys
 from flask import Flask
 from flask_cors import CORS
 
-from vbridge.router.api import api
+from vbridge.router.api import api, NpEncoder
 from vbridge.data_loader.data import load_pic
 from vbridge.data_loader.utils import load_entityset, load_fm
 from vbridge import modeling
@@ -13,6 +13,7 @@ from vbridge.featurization import featurization
 from vbridge.modeling.model_manager import ModelManager
 from vbridge.featurization.featurization import generate_cutoff_times, Featurization
 from vbridge.explainer.explanation import Explainer
+from vbridge.router.route import add_routes
 
 sys.modules['model'] = modeling
 sys.modules['model.model_manager'] = model_manager
@@ -56,7 +57,9 @@ def create_app():
     app.ex = Explainer(es, fm, model_manager)
 
     app.register_blueprint(api, url_prefix='/api')
+    app.json_encoder = NpEncoder
     CORS(app, resources={r"/api/*": {"origins": "*"}})
+    add_routes(app)
     return app
 
 

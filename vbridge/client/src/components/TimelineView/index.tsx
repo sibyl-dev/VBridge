@@ -52,8 +52,8 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
 
     public init() {
         const { patientMeta } = this.props
-        let startDate = patientMeta.AdmitTime;
-        let endDate = patientMeta.SurgeryEndTime;
+        let startDate = patientMeta.ADMITTIME;
+        let endDate = patientMeta.SURGERY_END_TIME;
         if (startDate && endDate) {
             const intervalByQuarter = calIntervalsByQuarter(startDate, endDate, 9, 16);
             const extent = getRefinedStartEndTime(startDate, endDate, intervalByQuarter);

@@ -1,4 +1,4 @@
-export type patientInfoMeta = {
+export type PatientInfoMeta = {
     'GENDER': string,
     'ADMITTIME': string,
     'ADMISSION_DEPARTMENT': string, 

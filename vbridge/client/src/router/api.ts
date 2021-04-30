@@ -5,7 +5,7 @@ import { FeatureMeta } from "data/feature";
 import { PatientGroup, PatientMeta } from "data/patient";
 import { Entity, ItemDict } from "data/table";
 import { ROOT_URL, DEV_MODE } from "./env";
-import { patientInfoMeta } from 'data/metaInfo';
+import { PatientInfoMeta } from 'data/metaInfo';
 import { filterType } from 'data/filterType';
 import { ReferenceValueDict } from "data/common";
 import { SegmentExplanation } from "data/event";
@@ -28,7 +28,7 @@ export async function getPatientRecords(params: {
     table_name: string,
     subject_id: number
 }): Promise<Entity<number, any>> {
-    const recordUrl = `${API}/individual_records`;
+    const recordUrl = `${API}/patient_records`;
     const recordResponse = await axios.get(recordUrl, { params });
     const csvResponse = checkResponse(recordResponse, []);
     const table = new Entity(dataForge.fromCSV(csvResponse));
@@ -54,14 +54,6 @@ export async function getPatientIds(): Promise<number[]> {
     return checkResponse(response, [])
 }
 
-export async function getPatientInfoMeta(params: {
-    subject_id: number
-}): Promise<patientInfoMeta> {
-    const url = `${API}/patientinfo_meta`;
-    const response = await axios.get(url, { params });
-    return checkResponse(response, []);
-}
-
 export async function getPatientFilterRange(): Promise<filterType> {
     const url = `${API}/record_filterrange`;
     const response = await axios.get(url);
@@ -81,11 +73,11 @@ export async function getPatientMeta(params: {
     const url = `${API}/patient_meta`;
     const response = await axios.get(url, { params });
     let meta: PatientMeta = checkResponse(response, []);
-    meta.SurgeryBeginTime = new Date(meta.SurgeryBeginTime);
-    meta.SurgeryEndTime = new Date(meta.SurgeryEndTime);
-    meta.AdmitTime = new Date(meta.AdmitTime);
+    meta.SURGERY_BEGIN_TIME = new Date(meta.SURGERY_BEGIN_TIME);
+    meta.SURGERY_END_TIME = new Date(meta.SURGERY_END_TIME);
+    meta.ADMITTIME = new Date(meta.ADMITTIME);
     meta.DOB = new Date(meta.DOB)
-    meta.days = Math.round((meta.SurgeryBeginTime.valueOf() - meta.DOB.valueOf())/1000/60/60/24)
+    meta.days = Math.round((meta.SURGERY_BEGIN_TIME.valueOf() - meta.DOB.valueOf())/1000/60/60/24)
     return meta;
 }
 

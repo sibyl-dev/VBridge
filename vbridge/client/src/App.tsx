@@ -14,7 +14,7 @@ import DynamicView, { SignalMeta } from "./components/DynamicView"
 import FilterView from "./components/FilterView"
 
 import {
-  getFeatureMate, getPatientIds, getPatientMeta, getPatientInfoMeta, getPatientRecords,
+  getFeatureMate, getPatientIds, getPatientMeta, getPatientRecords,
   getPredictionTargets, getTableNames, getPatientFilterRange, getPatientGroup, getItemDict, getPrediction, getReferenceValues
 } from "./router/api"
 import { PatientGroup, PatientMeta } from 'data/patient';
@@ -48,7 +48,6 @@ interface AppStates {
   //patient information
   tableRecords?: Entity<number, any>[],
   patientMeta?: PatientMeta,
-  patientInfoMeta?: { [key: string]: any },
   predictions?: (target: string) => number,
 
   //for table view
@@ -200,14 +199,13 @@ class App extends React.Component<AppProps, AppStates>{
     // subjectId=11300
     const selectedsubjectId = subjectId
     const patientMeta = await getPatientMeta({ subject_id: subjectId });
-    const patientInfoMeta = await getPatientInfoMeta({ subject_id: subjectId });
     const tableRecords = await this.loadPatientRecords(subjectId);
     if (patientMeta) {
       const subjectIdG = await getPatientGroup({ filterConditions: { '': ''}, subject_id: subjectId, setSubjectIdG: true })
       this.setState({ patientGroup: subjectIdG })
     }
     const selected = 'lung complication'
-    this.setState({ patientMeta, tableRecords, patientInfoMeta, selectedsubjectId, target: selected });
+    this.setState({ patientMeta, tableRecords, selectedsubjectId, target: selected });
   }
   public judgeTheAge(days: number) {
     if (days <= 28) return '< 1 month'
@@ -247,7 +245,7 @@ class App extends React.Component<AppProps, AppStates>{
       const entity = this.state.tableRecords?.find(e => e.name === entityId);
       if (entity && entity.metaInfo && patientMeta) {
         const { item_index, time_index } = entity.metaInfo;
-        const { SurgeryBeginTime, SurgeryEndTime } = patientMeta;
+        const { SURGERY_BEGIN_TIME: SurgeryBeginTime, SURGERY_END_TIME: SurgeryEndTime } = patientMeta;
         const startTime = (period === 'in-surgery') ? SurgeryBeginTime :
           new Date(SurgeryBeginTime.getTime() - 1000 * 60 * 60 * 24 * 2);
         const endTime = (period === 'in-surgery') ? SurgeryEndTime : SurgeryBeginTime;
@@ -310,7 +308,7 @@ class App extends React.Component<AppProps, AppStates>{
     const { featureMeta, patientMeta } = this.state;
     let relatedFeatureNames: string[] = []
     if (featureMeta && patientMeta) {
-      const { SurgeryBeginTime, SurgeryEndTime } = patientMeta;
+      const { SURGERY_BEGIN_TIME: SurgeryBeginTime, SURGERY_END_TIME: SurgeryEndTime } = patientMeta;
       const candidates = featureMeta.where(row => row.entityId === entityName && row.whereItem[1] === itemName);
       if (startTime < SurgeryBeginTime && endTime.getTime() > (SurgeryBeginTime.getTime() - 1000 * 60 * 60 * 24 * 2)) {
         relatedFeatureNames = relatedFeatureNames.concat(
@@ -394,7 +392,7 @@ class App extends React.Component<AppProps, AppStates>{
       return items
     }
     if (patientMeta && entityId) {
-      const { SurgeryBeginTime, SurgeryEndTime } = patientMeta;
+      const { SURGERY_BEGIN_TIME: SurgeryBeginTime, SURGERY_END_TIME: SurgeryEndTime } = patientMeta;
       const startTime = (period === 'in-surgery') ? SurgeryBeginTime :
         new Date(SurgeryBeginTime.getTime() - 1000 * 60 * 60 * 24 * 2);
       const endTime = (period === 'in-surgery') ? SurgeryEndTime : SurgeryBeginTime;
@@ -527,7 +525,7 @@ class App extends React.Component<AppProps, AppStates>{
 
     const { subjectIds, patientMeta, tableNames, tableRecords, featureMeta, predictionTargets, showTableView,
       focusedFeatures, pinnedfocusedFeatures, target: selected, selectedsubjectId, predictions, tableViewMeta,
-      itemDicts, signalMetas, patientInfoMeta, filterRange, visible, patientGroup, referenceValues } = this.state;
+      itemDicts, signalMetas, filterRange, visible, patientGroup, referenceValues } = this.state;
     const { headerHeight, featureViewWidth, timelineViewHeight, ProfileWidth, xPadding, yPadding } = this.layout;
 
     return (
@@ -683,7 +681,7 @@ class App extends React.Component<AppProps, AppStates>{
                 className={"meta-view-element"}
                 patientIds={subjectIds}
                 featureMeta={featureMeta}
-                patientInfoMeta={patientInfoMeta}
+                patientInfoMeta={patientMeta}
                 updateFocusedFeatures={this.updateFocusedFeatures}
                 updatePinnedFocusedFeatures={this.updatePinnedFocusedFeatures}
                 entityCategoricalColor={this.entityCategoricalColor}
@@ -718,7 +716,7 @@ class App extends React.Component<AppProps, AppStates>{
                     filterRange={filterRange}
                     filterPatients={this.filterPatients}
                     onClose={this.onClose}
-                    patientInfoMeta={patientInfoMeta}
+                    patientInfoMeta={patientMeta}
                     visible={visible}
                     subjectIdG={patientGroup && patientGroup.ids}
                     distributionApp={patientGroup?.labelCounts}

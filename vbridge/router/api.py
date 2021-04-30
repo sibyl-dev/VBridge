@@ -26,6 +26,8 @@ class NpEncoder(JSONEncoder):
             return float(obj)
         elif isinstance(obj, np.ndarray):
             return obj.tolist()
+        elif isinstance(obj, np.datetime64):
+            return str(obj)
         else:
             return super(NpEncoder, self).default(obj)
 
@@ -66,57 +68,6 @@ def get_available_ids():
     fm = current_app.fm
     # return jsonify(fm.index.to_list())
     return jsonify([5856, 10007])
-
-
-@api.route('/individual_records', methods=['GET'])
-def get_individual_records():
-    table_name = request.args.get('table_name')
-    subject_id = int(request.args.get('subject_id'))
-    es = current_app.es
-    cutoff_times = current_app.cutoff_times
-    records = get_patient_records(
-        es, table_name, subject_id, cutoff_times=cutoff_times)
-
-    return Response(records.to_csv(), mimetype="text/csv")
-
-
-@api.route('/patient_meta', methods=['GET'])
-def get_patient_meta():
-    subject_id = int(request.args.get('subject_id'))
-    info = {'subjectId': subject_id}
-    es = current_app.es
-    hadm_df = es["ADMISSIONS"].df
-    surgery_df = es["SURGERY_INFO"].df
-    info['AdmitTime'] = str(
-        hadm_df[hadm_df['SUBJECT_ID'] == subject_id]['ADMITTIME'].values[0])
-    info['SurgeryEndTime'] = str(
-        surgery_df[surgery_df['SUBJECT_ID'] == subject_id]['SURGERY_END_TIME'].values[0])
-    info['SurgeryBeginTime'] = str(
-        surgery_df[surgery_df['SUBJECT_ID'] == subject_id]['SURGERY_BEGIN_TIME'].values[0])
-
-    patient_df = es["PATIENTS"].df
-    info['GENDER'] = patient_df[patient_df['SUBJECT_ID'] == subject_id]['GENDER'].values[0]
-    info['DOB'] = str(patient_df[patient_df['SUBJECT_ID'] == subject_id]['DOB'].values[0])
-
-    return jsonify(info)
-
-
-@api.route('/patientinfo_meta', methods=['GET'])
-def get_patientinfo_meta():
-    subject_id = int(request.args.get('subject_id'))
-
-    info = {'subjectId': subject_id}
-    es = current_app.es
-
-    table_names = ['PATIENTS', 'ADMISSIONS', 'SURGERY_INFO']
-    for i, table_name in enumerate(table_names):
-        hadm_df = es[table_name].df
-        record = hadm_df[hadm_df['SUBJECT_ID'] == subject_id]
-        column_names = es[table_name].df.columns
-        for i, col in enumerate(column_names):
-            info[col] = str(record[col].values[0])
-
-    return jsonify(info)
 
 
 @api.route('/record_filterrange', methods=['GET'])
@@ -213,95 +164,10 @@ def get_patient_group():
     return jsonify(info)
 
 
-@api.route('/record_meta', methods=['GET'])
-def get_record_meta():
-    table_name = request.args.get('table_name')
-    es = current_app.es
-    info = {'name': table_name}
-    if table_name in META_INFO:
-        table_info = META_INFO[table_name]
-        info['time_index'] = table_info.get('time_index')
-        info['item_index'] = table_info.get('item_index')
-        info['value_indexes'] = table_info.get('value_indexes')
-        info['alias'] = table_info.get('alias')
-        column_names = es[table_name].df.columns
-        df = current_app.es[table_name].df
-        # distinguish "categorical" and "numerical" columns
-        info['types'] = ['categorical' if df[name].dtype == object
-                         else 'numerical' for name in column_names]
-        for i, col in enumerate(column_names):
-            if col == table_info.get("time_index") or col in table_info.get("secondary_index", []):
-                info['types'][i] = 'timestamp'
-
-    return jsonify(info)
-
-
 @api.route('/table_names', methods=['GET'])
 def get_table_names():
     table_names = ['LABEVENTS', 'SURGERY_VITAL_SIGNS', 'CHARTEVENTS']
     return jsonify(table_names)
-
-
-@api.route('/feature_meta', methods=['GET'])
-def get_feature_meta():
-    fl = current_app.fl
-
-    def get_leaf(feature):
-        if len(feature.base_features) > 0:
-            return get_leaf(feature.base_features[0])
-        else:
-            return feature
-
-    def get_level2_leaf(feature):
-        if len(feature.base_features) == 0:
-            return None
-        elif len(feature.base_features) > 0 and \
-                len(feature.base_features[0].base_features) == 0:
-            return feature
-        else:
-            return get_level2_leaf(feature.base_features[0])
-
-    feature_meta = []
-    targets = Modeler.prediction_targets()
-    for f in fl:
-        if f.get_name() in targets:
-            continue
-        leaf_node = get_leaf(f)
-        leve2_leaf_node = get_level2_leaf(f)
-        info = {
-            'name': f.get_name(),
-            'whereItem': leve2_leaf_node.where.get_name().split(' = ')
-            if leve2_leaf_node and ('where' in leve2_leaf_node.__dict__) else [],
-            'primitive': leve2_leaf_node and leve2_leaf_node.primitive.name,
-            'entityId': leaf_node.entity_id,
-            'columnName': leaf_node.get_name(),
-        }
-
-        if len(info['whereItem']) > 0:
-            info['alias'] = leve2_leaf_node.primitive.name
-        else:
-            info['alias'] = leaf_node.get_name()
-
-        if '#' in f.get_name():
-            period = f.get_name().split('#')[0]
-            info['period'] = period
-        else:
-            info['period'] = 'others'
-
-        if info['period'] == 'in-surgery':
-            feature_type = 'In-surgery'
-        elif info['period'] == 'pre-surgery':
-            feature_type = 'Pre-surgery'
-        else:
-            if f.get_name() in ['Height', 'Weight', 'Age',
-                                'ADMISSIONS.ICD10_CODE_CN', 'ADMISSIONS.PATIENTS.GENDER']:
-                feature_type = 'Pre-surgery'
-            else:
-                feature_type = 'In-surgery'
-
-        info['type'] = feature_type
-        feature_meta.append(info)
-    return jsonify(feature_meta)
 
 
 @api.route('/prediction_target', methods=['GET'])
@@ -388,20 +254,6 @@ def get_what_if_shap_values():
                                     'prediction': predictions[i]}
 
     return jsonify(shap_values)
-
-
-@api.route('/item_dict', methods=['GET'])
-def get_item_dict():
-    item_dict = {}
-    for group in current_app.es['D_ITEMS'].df.groupby('LINKSTO'):
-        items = group[1].loc[:, ['LABEL', 'LABEL_CN']]
-        table_name = group[0].upper()
-        item_dict[table_name] = items.to_dict('index')
-
-    item_dict['LABEVENTS'] = current_app.es['D_LABITEMS'].df.loc[:, ['LABEL', 'LABEL_CN']].to_dict(
-        'index')
-
-    return jsonify(item_dict)
 
 
 @api.route('/reference_value', methods=['GET'])
