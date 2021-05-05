@@ -8,6 +8,7 @@ from flask_restful import Resource, reqparse
 LOGGER = logging.getLogger(__name__)
 
 
+# TODO: generalize the filtering function
 def get_patient_group(es, fm, filters):
     table_names = ['PATIENTS', 'SURGERY_INFO', 'ADMISSIONS']
     number_variables = ['Height', 'Weight', 'Surgical time (minutes)']
@@ -75,6 +76,8 @@ class PatientSelection(Resource):
         self.parser_get = parser_get
 
     def get(self):
+        """
+        """
         try:
             args = self.parser_get.parse_args()
             filters = json.loads(args['filters'])

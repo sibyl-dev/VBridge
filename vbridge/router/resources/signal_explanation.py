@@ -51,6 +51,43 @@ class SignalExplanation(Resource):
         self.parser_get = parser_get
 
     def get(self):
+        """
+        Get the important record segments contributing to related features with the given item ID.
+        ---
+        tags:
+          - explanation
+        parameters:
+          - name: subject_id
+            in: query
+            schema:
+              type: integer
+            required: true
+            description: ID of the target patient.
+          - name: item_id
+            in: query
+            schema:
+              type: string
+            required: true
+            description: ID of the item.
+        responses:
+          200:
+            description: The important time segments.
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      featureName:
+                        type: string
+                      segments:
+                        type: array
+          400:
+            $ref: '#/components/responses/ErrorMessage'
+          500:
+            $ref: '#/components/responses/ErrorMessage'
+        """
         try:
             args = self.parser_get.parse_args()
         except Exception as e:

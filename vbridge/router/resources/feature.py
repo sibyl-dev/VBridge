@@ -83,6 +83,25 @@ def get_available_ids():
 
 class SubjectIDs(Resource):
     def get(self):
+        """
+        Get the available patient IDs.
+        ---
+        tags:
+          - feature
+        responses:
+          200:
+            description: The available IDs.
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    type: string
+          400:
+            $ref: '#/components/responses/ErrorMessage'
+          500:
+            $ref: '#/components/responses/ErrorMessage'
+        """
         try:
             res = get_available_ids()
         except Exception as e:
@@ -97,6 +116,23 @@ class FeatureMeta(Resource):
         self.fl = current_app.fl
 
     def get(self):
+        """
+        Get the schema of the features
+        ---
+        tags:
+          - feature
+        responses:
+          200:
+            description: The schema of the features.
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/FeatureMeta'
+          400:
+            $ref: '#/components/responses/ErrorMessage'
+          500:
+            $ref: '#/components/responses/ErrorMessage'
+        """
         try:
             res = get_feature_meta(self.fl)
         except Exception as e:
@@ -111,6 +147,22 @@ class FeatureMatrix(Resource):
         self.fm = current_app.fm
 
     def get(self):
+        """
+        Get feature values of all patients.
+        ---
+        tags:
+          - feature
+        responses:
+          200:
+            description: A csv file containing feature values of all patients.
+            content:
+              application/json:
+                schema:
+          400:
+            $ref: '#/components/responses/ErrorMessage'
+          500:
+            $ref: '#/components/responses/ErrorMessage'
+        """
         try:
             res = get_feature_matrix(self.fm)
         except Exception as e:
@@ -129,7 +181,30 @@ class FeatureValues(Resource):
         self.parser_get = parser_get
 
     def get(self):
-
+        """
+        Get the feature values of a patient.
+        ---
+        tags:
+          - feature
+        parameters:
+          - name: subject_id
+            in: query
+            schema:
+              type: integer
+            required: true
+            description: ID of the target patient.
+        responses:
+          200:
+            description: The schema of the features.
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/FeatureValues'
+          400:
+            $ref: '#/components/responses/ErrorMessage'
+          500:
+            $ref: '#/components/responses/ErrorMessage'
+        """
         try:
             args = self.parser_get.parse_args()
             print(args)

@@ -73,7 +73,36 @@ class ShapValues(Resource):
         self.parser_get = parser_get
 
     def get(self):
-
+        """
+        Get the SHAP explanations of a patient.
+        ---
+        tags:
+          - explanation
+        parameters:
+          - name: subject_id
+            in: query
+            schema:
+              type: integer
+            required: true
+            description: ID of the target patient.
+          - name: target
+            in: query
+            schema:
+              type: string
+            required: true
+            description: ID of the prediction target.
+        responses:
+          200:
+            description: The SHAP explanations.
+            content:
+              application/json:
+                schema:
+                  type: object
+          400:
+            $ref: '#/components/responses/ErrorMessage'
+          500:
+            $ref: '#/components/responses/ErrorMessage'
+        """
         try:
             args = self.parser_get.parse_args()
         except Exception as e:
@@ -102,6 +131,37 @@ class ShapValuesIfNormal(Resource):
         self.parser_get = parser_get
 
     def get(self):
+        """
+        Modify the out-of-reference-range features to the closet normal values one by one and
+        get the updated predictions and SHAP explanations.
+        ---
+        tags:
+          - explanation
+        parameters:
+          - name: subject_id
+            in: query
+            schema:
+              type: integer
+            required: true
+            description: ID of the target patient.
+          - name: target
+            in: query
+            schema:
+              type: string
+            required: true
+            description: ID of the prediction target.
+        responses:
+          200:
+            description: The updated predictions and SHAP explanations.
+            content:
+              application/json:
+                schema:
+                  type: object
+          400:
+            $ref: '#/components/responses/ErrorMessage'
+          500:
+            $ref: '#/components/responses/ErrorMessage'
+        """
         try:
             args = self.parser_get.parse_args()
         except Exception as e:

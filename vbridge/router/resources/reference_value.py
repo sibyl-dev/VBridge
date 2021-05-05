@@ -37,6 +37,36 @@ class ReferenceValue(Resource):
         self.parser_get = parser_get
 
     def get(self):
+        """
+        Get the reference value of the target attributes.
+        ---
+        tags:
+          - entity set
+        parameters:
+          - name: table_name
+            in: query
+            schema:
+              type: string
+            required: true
+            description: ID of the table.
+          - name: column_name
+            in: query
+            schema:
+              type: string
+            required: true
+            description: ID of the column.
+        responses:
+          200:
+            description: The reference value of the target attributes.
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ReferenceRange'
+          400:
+            $ref: '#/components/responses/ErrorMessage'
+          500:
+            $ref: '#/components/responses/ErrorMessage'
+        """
         try:
             args = self.parser_get.parse_args()
         except Exception as e:

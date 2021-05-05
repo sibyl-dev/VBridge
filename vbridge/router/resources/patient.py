@@ -28,7 +28,7 @@ def get_individual_records(es, subject_id, table_name):
     return Response(records.to_csv(), mimetype="text/csv")
 
 
-class PatientMeta(Resource):
+class PatientStaticInfo(Resource):
 
     def __init__(self):
         self.es = current_app.es
@@ -38,14 +38,28 @@ class PatientMeta(Resource):
 
     def get(self):
         """
-        Get a patient's basic information by ID
+        Get a patient's static information by ID
         ---
         tags:
           - patient
         parameters:
           - name: subject_id
+            in: query
             schema:
-              type: string
+              type: integer
+            required: true
+            description: ID of the target patient.
+        responses:
+          200:
+            description: The static information of the patient (e.g., gender).
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/PatientStatic'
+          400:
+            $ref: '#/components/responses/ErrorMessage'
+          500:
+            $ref: '#/components/responses/ErrorMessage'
         """
         try:
             args = self.parser_get.parse_args()
@@ -63,8 +77,7 @@ class PatientMeta(Resource):
             return res
 
 
-class PatientRecords(Resource):
-
+class PatientDynamicInfo(Resource):
     def __init__(self):
         self.es = current_app.es
 
@@ -75,6 +88,28 @@ class PatientRecords(Resource):
 
     def get(self):
         """
+        Get a patient's dynamic information by ID
+        ---
+        tags:
+          - patient
+        parameters:
+          - name: subject_id
+            in: query
+            schema:
+              type: integer
+            required: true
+            description: ID of the target patient.
+        responses:
+          200:
+            description: The dynamic information of the patient (e.g., lab tests).
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/PatientDynamic'
+          400:
+            $ref: '#/components/responses/ErrorMessage'
+          500:
+            $ref: '#/components/responses/ErrorMessage'
         """
         try:
             args = self.parser_get.parse_args()

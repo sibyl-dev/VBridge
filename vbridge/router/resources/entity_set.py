@@ -70,7 +70,30 @@ def get_record_range(fm):
 
 
 class EntitySchema(Resource):
-
+    """
+    Get the schema of the entity.
+    ---
+    tags:
+      - entity set
+    parameters:
+      - name: table_name
+        in: query
+        schema:
+          type: string
+        required: true
+        description: ID of the table.
+    responses:
+      200:
+        description: The schema of the entity.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EntitySchema'
+      400:
+        $ref: '#/components/responses/ErrorMessage'
+      500:
+        $ref: '#/components/responses/ErrorMessage'
+    """
     def __init__(self):
         self.es = current_app.es
         parser_get = reqparse.RequestParser(bundle_errors=True)
@@ -96,6 +119,23 @@ class EntitySchema(Resource):
 
 class EntityIDs(Resource):
     def get(self):
+        """
+        Get the entity IDs.
+        ---
+        tags:
+          - entity set
+        responses:
+          200:
+            description: The entity IDs.
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/EntityIDs'
+          400:
+            $ref: '#/components/responses/ErrorMessage'
+          500:
+            $ref: '#/components/responses/ErrorMessage'
+        """
         try:
             res = get_table_names()
         except Exception as e:
@@ -111,6 +151,23 @@ class ItemDict(Resource):
         self.es = current_app.es
 
     def get(self):
+        """
+        Get the map between item IDs and item names.
+        ---
+        tags:
+          - entity set
+        responses:
+          200:
+            description: The entity IDs.
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ItemDict'
+          400:
+            $ref: '#/components/responses/ErrorMessage'
+          500:
+            $ref: '#/components/responses/ErrorMessage'
+        """
         try:
             res = get_item_dict(self.es)
         except Exception as e:
@@ -126,6 +183,23 @@ class StaticRecordRange(Resource):
         self.fm = current_app.fm
 
     def get(self):
+        """
+        Get the default range of the static attributes (e.g., age).
+        ---
+        tags:
+          - entity set
+        responses:
+          200:
+            description: The default range of the static attributes (e.g., age).
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/DefaultRange'
+          400:
+            $ref: '#/components/responses/ErrorMessage'
+          500:
+            $ref: '#/components/responses/ErrorMessage'
+        """
         try:
             res = get_record_range(self.fm)
         except Exception as e:
