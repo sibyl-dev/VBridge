@@ -52,11 +52,8 @@ class Prediction(Resource):
 
     def __init__(self):
         self.model_manager = current_app.model_manager
-        parser_get = reqparse.RequestParser(bundle_errors=True)
-        parser_get.add_argument('subject_id', type=int, required=True, location='args')
-        self.parser_get = parser_get
 
-    def get(self):
+    def get(self, subject_id):
         """
         Get the prediction results of a target patient.
         ---
@@ -64,7 +61,7 @@ class Prediction(Resource):
           - model
         parameters:
           - name: subject_id
-            in: query
+            in: path
             schema:
               type: integer
             required: true
@@ -81,13 +78,6 @@ class Prediction(Resource):
           500:
             $ref: '#/components/responses/ErrorMessage'
         """
-        try:
-            args = self.parser_get.parse_args()
-        except Exception as e:
-            LOGGER.exception(str(e))
-            return {'message', str(e)}, 400
-
-        subject_id = args['subject_id']
         try:
             res = get_prediction(self.model_manager, subject_id)
         except Exception as e:

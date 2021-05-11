@@ -1,7 +1,7 @@
 import logging
 
 from flask import current_app, jsonify
-from flask_restful import Resource, reqparse
+from flask_restful import Resource
 
 from vbridge.data_loader.settings import META_INFO, filter_variables
 
@@ -76,12 +76,12 @@ class EntitySchema(Resource):
     tags:
       - entity set
     parameters:
-      - name: table_name
-        in: query
+      - name: entity_id
+        in: path
         schema:
           type: string
         required: true
-        description: ID of the table.
+        description: ID of the entity.
     responses:
       200:
         description: The schema of the entity.
@@ -96,20 +96,10 @@ class EntitySchema(Resource):
     """
     def __init__(self):
         self.es = current_app.es
-        parser_get = reqparse.RequestParser(bundle_errors=True)
-        parser_get.add_argument('table_name', type=str, required=True, location='args')
-        self.parser_get = parser_get
 
-    def get(self):
+    def get(self, entity_id):
         try:
-            args = self.parser_get.parse_args()
-        except Exception as e:
-            LOGGER.exception(str(e))
-            return {'message', str(e)}, 400
-
-        table_name = args['table_name']
-        try:
-            res = get_record_meta(self.es, table_name)
+            res = get_record_meta(self.es, entity_id)
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500

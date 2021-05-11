@@ -32,8 +32,8 @@ class ReferenceValue(Resource):
         self.es = current_app.es
 
         parser_get = reqparse.RequestParser(bundle_errors=True)
-        parser_get.add_argument('table_name', type=str, required=True, location='args')
-        parser_get.add_argument('column_name', type=str, required=True, location='args')
+        parser_get.add_argument('entity_id', type=str, required=True, location='args')
+        parser_get.add_argument('column_id', type=str, required=True, location='args')
         self.parser_get = parser_get
 
     def get(self):
@@ -41,15 +41,15 @@ class ReferenceValue(Resource):
         Get the reference value of the target attributes.
         ---
         tags:
-          - entity set
+          - cohort
         parameters:
-          - name: table_name
+          - name: entity_id
             in: query
             schema:
               type: string
             required: true
-            description: ID of the table.
-          - name: column_name
+            description: ID of the entity.
+          - name: column_id
             in: query
             schema:
               type: string
@@ -73,8 +73,8 @@ class ReferenceValue(Resource):
             LOGGER.exception(str(e))
             return {'message', str(e)}, 400
 
-        table_name = args['table_name']
-        column_name = args['column_name']
+        table_name = args['entity_id']
+        column_name = args['column_id']
         try:
             res = get_reference_value(self.es, table_name, column_name)
         except Exception as e:

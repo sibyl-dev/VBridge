@@ -13,20 +13,22 @@ def add_routes(app):
     Swagger(app, template=swagger_tpl, parse=True)
 
     # patient
-    api.add_resource(res.patient.PatientStaticInfo, API_VERSION + 'patient_meta/')
-    api.add_resource(res.patient.PatientDynamicInfo, API_VERSION + 'patient_records/')
-    # patient selection
-    api.add_resource(res.patient_selection.PatientSelection, API_VERSION + 'patient_group/')
+    api.add_resource(res.patient.PatientStaticInfo, API_VERSION +
+                     'patient_static_record/<string:subject_id>')
+    api.add_resource(res.patient.PatientDynamicInfo, API_VERSION +
+                     'patient_dynamic_record/<string:subject_id>')
+    # cohort
+    api.add_resource(res.patient_selection.PatientSelection, API_VERSION + 'patient_selection/')
+    api.add_resource(res.patient_selection.SubjectIDs, API_VERSION + 'subject_ids/')
     # feature
-    api.add_resource(res.feature.FeatureMeta, API_VERSION + 'feature_meta/')
+    api.add_resource(res.feature.FeatureMeta, API_VERSION + 'feature_schema/')
     api.add_resource(res.feature.FeatureMatrix, API_VERSION + 'feature_matrix/')
-    api.add_resource(res.feature.FeatureValues, API_VERSION + 'feature_values/')
-    api.add_resource(res.feature.SubjectIDs, API_VERSION + 'available_ids/')
+    api.add_resource(res.feature.FeatureValues, API_VERSION + 'feature_values/<string:subject_id>')
     # entity-set
-    api.add_resource(res.entity_set.EntitySchema, API_VERSION + 'record_meta/')
+    api.add_resource(res.entity_set.EntitySchema, API_VERSION + 'entity_schema/')
     api.add_resource(res.entity_set.ItemDict, API_VERSION + 'item_dict/')
     api.add_resource(res.entity_set.EntityIDs, API_VERSION + 'table_names/')
-    api.add_resource(res.entity_set.StaticRecordRange, API_VERSION + 'record_filterrange/')
+    api.add_resource(res.entity_set.StaticRecordRange, API_VERSION + 'record_range/')
     api.add_resource(res.reference_value.ReferenceValue, API_VERSION + 'reference_value/')
     # model
     api.add_resource(res.model.PredictionTargets, API_VERSION + 'prediction_target/')

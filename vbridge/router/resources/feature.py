@@ -76,41 +76,6 @@ def get_feature_values(fm, subject_id):
     return jsonify(entry)
 
 
-def get_available_ids():
-    # return jsonify(fm.index.to_list())
-    return jsonify([5856, 10007])
-
-
-class SubjectIDs(Resource):
-    def get(self):
-        """
-        Get the available patient IDs.
-        ---
-        tags:
-          - feature
-        responses:
-          200:
-            description: The available IDs.
-            content:
-              application/json:
-                schema:
-                  type: array
-                  items:
-                    type: string
-          400:
-            $ref: '#/components/responses/ErrorMessage'
-          500:
-            $ref: '#/components/responses/ErrorMessage'
-        """
-        try:
-            res = get_available_ids()
-        except Exception as e:
-            LOGGER.exception(e)
-            return {'message': str(e)}, 500
-        else:
-            return res
-
-
 class FeatureMeta(Resource):
     def __init__(self):
         self.fl = current_app.fl

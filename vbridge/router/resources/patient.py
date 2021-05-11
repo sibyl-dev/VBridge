@@ -8,7 +8,9 @@ from vbridge.data_loader.data import get_patient_records
 LOGGER = logging.getLogger(__name__)
 
 
-def get_patient_meta(es, subject_id):
+def get_patient_statics(es, subject_id):
+    # TODO: string ids
+    subject_id = int(subject_id)
     info = {'subjectId': subject_id}
     table_names = ['PATIENTS', 'ADMISSIONS', 'SURGERY_INFO']
     for i, table_name in enumerate(table_names):
@@ -21,7 +23,9 @@ def get_patient_meta(es, subject_id):
     return jsonify(info)
 
 
-def get_individual_records(es, subject_id, table_name):
+def get_individual_dynamics(es, subject_id, table_name):
+    # TODO: string ids
+    subject_id = int(subject_id)
     cutoff_times = current_app.cutoff_times
     records = get_patient_records(es, table_name, subject_id, cutoff_times=cutoff_times)
 
@@ -32,11 +36,8 @@ class PatientStaticInfo(Resource):
 
     def __init__(self):
         self.es = current_app.es
-        parser_get = reqparse.RequestParser(bundle_errors=True)
-        parser_get.add_argument('subject_id', type=int, required=True, location='args')
-        self.parser_get = parser_get
 
-    def get(self):
+    def get(self, subject_id):
         """
         Get a patient's static information by ID
         ---
@@ -44,9 +45,9 @@ class PatientStaticInfo(Resource):
           - patient
         parameters:
           - name: subject_id
-            in: query
+            in: path
             schema:
-              type: integer
+              type: string
             required: true
             description: ID of the target patient.
         responses:
@@ -62,14 +63,7 @@ class PatientStaticInfo(Resource):
             $ref: '#/components/responses/ErrorMessage'
         """
         try:
-            args = self.parser_get.parse_args()
-        except Exception as e:
-            LOGGER.exception(str(e))
-            return {'message', str(e)}, 400
-
-        subject_id = args['subject_id']
-        try:
-            res = get_patient_meta(self.es, subject_id)
+            res = get_patient_statics(self.es, subject_id)
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500
@@ -82,11 +76,10 @@ class PatientDynamicInfo(Resource):
         self.es = current_app.es
 
         parser_get = reqparse.RequestParser(bundle_errors=True)
-        parser_get.add_argument('subject_id', type=int, required=True, location='args')
-        parser_get.add_argument('table_name', type=str, required=True, location='args')
+        parser_get.add_argument('entity_id', type=str, required=True, location='args')
         self.parser_get = parser_get
 
-    def get(self):
+    def get(self, subject_id):
         """
         Get a patient's dynamic information by ID
         ---
@@ -94,11 +87,17 @@ class PatientDynamicInfo(Resource):
           - patient
         parameters:
           - name: subject_id
-            in: query
+            in: path
             schema:
-              type: integer
+              type: string
             required: true
             description: ID of the target patient.
+          - name: entity_id
+            in: query
+            schema:
+              type: string
+            required: true
+            description: ID of the target entity.
         responses:
           200:
             description: The dynamic information of the patient (e.g., lab tests).
@@ -113,16 +112,14 @@ class PatientDynamicInfo(Resource):
         """
         try:
             args = self.parser_get.parse_args()
-            print(args)
         except Exception as e:
             LOGGER.exception(str(e))
             return {'message', str(e)}, 400
 
-        subject_id = args['subject_id']
-        table_name = args['table_name']
+        table_name = args['entity_id']
 
         try:
-            res = get_individual_records(self.es, subject_id, table_name)
+            res = get_individual_dynamics(self.es, subject_id, table_name)
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500

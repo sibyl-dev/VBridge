@@ -66,6 +66,41 @@ def get_patient_group(es, fm, filters):
     return jsonify(info)
 
 
+def get_available_ids():
+    # return jsonify(fm.index.to_list())
+    return jsonify([5856, 10007])
+
+
+class SubjectIDs(Resource):
+    def get(self):
+        """
+        Get the available patient IDs.
+        ---
+        tags:
+          - cohort
+        responses:
+          200:
+            description: The available IDs.
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    type: string
+          400:
+            $ref: '#/components/responses/ErrorMessage'
+          500:
+            $ref: '#/components/responses/ErrorMessage'
+        """
+        try:
+            res = get_available_ids()
+        except Exception as e:
+            LOGGER.exception(e)
+            return {'message': str(e)}, 500
+        else:
+            return res
+
+
 class PatientSelection(Resource):
     def __init__(self):
         self.es = current_app.es

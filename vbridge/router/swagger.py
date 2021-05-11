@@ -78,8 +78,8 @@ tags = [
         'description': 'Everything about individual patients.'
     },
     {
-        'name': 'patient selection',
-        'description': 'Everything about patient selections.'
+        'name': 'cohort',
+        'description': 'Everything about a cohort of similar patients.'
     },
     {
         'name': 'feature',
@@ -94,11 +94,7 @@ tags = [
     }, {
         'name': 'explanation',
         'description': 'Everything about model explanations.'
-    },
-    {
-        'name': 'test',
-        'description': 'Using these APIs to do the basic test'
-    },
+    }
 ]
 
 swagger_tpl = {
@@ -146,12 +142,8 @@ swagger_tpl = {
     },
     'servers': [
         {
-            'url': 'http://localhost:3000/',
+            'url': 'http://localhost:7777/',
             'description': 'Internal staging server for testing'
-        },
-        {
-            'url': 'http://mtv.lids.mit.edu:3000/',
-            'description': 'Main production server'
         }
     ]
 }
