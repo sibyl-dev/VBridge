@@ -1,13 +1,18 @@
+import os
+
 schemas = {
     'PatientStatic': {
         'type': 'object',
-        'properties': {}  # todo: depending on the dataset
+        'properties': {
+            'GENDER': {'type': 'string'},
+            'SUBJECT_ID': {'type': 'string'},
+            'ADMITTIME': {'type': 'string'},
+            'SURGERY_BEGIN_TIME': {'type': 'string'},
+            'SURGERY_END_TIME': {'type': 'string'},
+        },
+        'additionalProperties': {}
     },
-    'PatientDynamic': {
-        'type': 'object',
-        'properties': {}  # todo: csv file
-    },
-    'FeatureMeta': {
+    'FeatureSchema': {
         'type': 'object',
         'properties': {
             'name': {'type': 'string'},
@@ -26,10 +31,6 @@ schemas = {
             'period': {'type': 'string'},
         }
     },
-    'FeatureValues': {
-        'type': 'object',
-        'properties': {}  # todo: depending on the dataset
-    },
     'EntitySchema': {
         'type': 'object',
         'properties': {
@@ -46,21 +47,50 @@ schemas = {
             'type': {'type': 'string'}  # todo: enumerate
         }
     },
-    'EntityIDs': {
+    'EntitySetSchema': {
+        'type': 'object',
+        'properties': {
+            'subject_ids': {
+                'type': 'array',
+                'items': {
+                    'type': 'string',
+                }
+            },
+            'entity_ids': {
+                'type': 'array',
+                'items': {
+                    'type': 'string',
+                }
+            },
+            'entity_schemas': {
+                'type': 'array',
+                'items': {
+                    'type': '$ref: #/components/schemas/EntitySchema',
+                }
+            },
+        }
+    },
+    'SignalExplanation': {
         'type': 'array',
-        'items': {'type': 'string'}
-    },
-    'ItemDict': {
-        'type': 'object',
-        'properties': {}
-    },
-    'DefaultRange': {
-        'type': 'object',
-        'properties': {}
-    },
-    'ReferenceRange': {
-        'type': 'object',
-        'properties': {}
+        'items': {
+            'type': 'object',
+            'properties': {
+                'featureName': {'type': 'string'},
+                'segments': {
+                    'type': 'array',
+                    'items': {
+                        'type': 'object',
+                        'properties': {
+                            'contriSum': {'type': 'number'},
+                            'maxValue': {'type': 'number'},
+                            'minValue': {'type': 'number'},
+                            'startTime': {'type': 'string'},
+                            'endTime': {'type': 'string'}
+                        }
+                    }
+                }
+            }
+        }
     },
     'Message': {
         'type': 'object',
@@ -76,16 +106,10 @@ tags = [
     {
         'name': 'patient',
         'description': 'Everything about individual patients.'
-    },
-    {
-        'name': 'cohort',
-        'description': 'Everything about a cohort of similar patients.'
-    },
-    {
+    }, {
         'name': 'feature',
         'description': 'Everything about features.'
-    },
-    {
+    }, {
         'name': 'entity set',
         'description': 'Everything about the entity set.'
     }, {
@@ -96,6 +120,30 @@ tags = [
         'description': 'Everything about model explanations.'
     }
 ]
+
+dir_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+
+swagger_config = {
+    'title': 'Sintel RestAPI Documentation',
+    'uiversion': 3,
+    'openapi': '3.0.2',
+    'doc_dir': './apidocs/resources/',
+    "headers": [
+    ],
+    "specs": [
+        {
+            "endpoint": 'apispec',
+            "route": '/apispec.json',
+            "rule_filter": lambda rule: True,  # all in
+            "model_filter": lambda tag: True,  # all in
+        }
+    ],
+    "swagger_ui": True,
+    "static_url_path": "/flasgger_static",
+    "static_folder": dir_path + "/apidocs/ui3/static",
+    "template_folder": dir_path + "/apidocs/ui3/templates",
+    "specs_route": "/apidocs/"
+}
 
 swagger_tpl = {
     'info': {

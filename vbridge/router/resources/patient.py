@@ -23,7 +23,7 @@ def get_patient_statics(es, subject_id):
     return jsonify(info)
 
 
-def get_individual_dynamics(es, subject_id, table_name):
+def get_patient_temporal(es, subject_id, table_name):
     # TODO: string ids
     subject_id = int(subject_id)
     cutoff_times = current_app.cutoff_times
@@ -32,7 +32,7 @@ def get_individual_dynamics(es, subject_id, table_name):
     return Response(records.to_csv(), mimetype="text/csv")
 
 
-class PatientStaticInfo(Resource):
+class StaticInfo(Resource):
 
     def __init__(self):
         self.es = current_app.es
@@ -71,7 +71,7 @@ class PatientStaticInfo(Resource):
             return res
 
 
-class PatientDynamicInfo(Resource):
+class TemporalInfo(Resource):
     def __init__(self):
         self.es = current_app.es
 
@@ -102,9 +102,9 @@ class PatientDynamicInfo(Resource):
           200:
             description: The dynamic information of the patient (e.g., lab tests).
             content:
-              application/json:
+              text/csv:
                 schema:
-                  $ref: '#/components/schemas/PatientDynamic'
+                  type: string
           400:
             $ref: '#/components/responses/ErrorMessage'
           500:
@@ -119,7 +119,7 @@ class PatientDynamicInfo(Resource):
         table_name = args['entity_id']
 
         try:
-            res = get_individual_dynamics(self.es, subject_id, table_name)
+            res = get_patient_temporal(self.es, subject_id, table_name)
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500

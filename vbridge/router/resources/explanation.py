@@ -16,8 +16,8 @@ def get_shap_values(model_manager, subject_id, target):
 
 def get_what_if_shap_values(fm, model_manager, subject_id, target):
     shap_values = {}
-    if current_app.subject_idG is not None:
-        selected_fm = fm.loc[current_app.subject_idG]
+    if current_app.selected_subject_ids is not None:
+        selected_fm = fm.loc[current_app.selected_subject_ids]
         selected_fm = selected_fm[selected_fm['complication'] == 0]
     else:
         selected_fm = fm

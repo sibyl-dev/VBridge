@@ -22,7 +22,12 @@ sys.modules['model.featurization'] = featurization
 
 
 def create_app():
-    app = Flask(__name__)
+    app = Flask(
+        __name__,
+        static_url_path='',
+        static_folder='../../apidocs',
+        template_folder='../../apidocs'
+    )
 
     # load dataset
     try:
@@ -53,7 +58,7 @@ def create_app():
     app.model_manager = model_manager
 
     # load similar patient group
-    app.subject_idG = fm.index
+    app.selected_subject_ids = fm.index
 
     # load explainer
     app.ex = Explainer(es, fm, model_manager)

@@ -8,8 +8,8 @@ LOGGER = logging.getLogger(__name__)
 
 
 def get_explain_signal(fm, ex, subject_id, item_id):
-    if current_app.subject_idG is not None:
-        reference_fm = fm.loc[current_app.subject_idG]
+    if current_app.selected_subject_ids is not None:
+        reference_fm = fm.loc[current_app.selected_subject_ids]
         reference_fm = reference_fm[reference_fm['complication'] == 0]
     else:
         reference_fm = fm
@@ -75,14 +75,7 @@ class SignalExplanation(Resource):
             content:
               application/json:
                 schema:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      featureName:
-                        type: string
-                      segments:
-                        type: array
+                  $ref: '#/components/schemas/SignalExplanation'
           400:
             $ref: '#/components/responses/ErrorMessage'
           500:

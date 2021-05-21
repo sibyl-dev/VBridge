@@ -1,7 +1,7 @@
 import logging
 
 from flask import Response, current_app, jsonify
-from flask_restful import Resource, reqparse
+from flask_restful import Resource
 
 from vbridge.modeling.modeler import Modeler
 
@@ -67,11 +67,11 @@ def get_feature_meta(fl):
 
 
 def get_feature_matrix(fm):
-    # TODO
     return Response(fm.to_csv(), mimetype="text/csv")
 
 
 def get_feature_values(fm, subject_id):
+    subject_id = int(subject_id)
     entry = fm.loc[subject_id].fillna('N/A').to_dict()
     return jsonify(entry)
 
@@ -121,10 +121,9 @@ class FeatureMatrix(Resource):
           200:
             description: A csv file containing feature values of all patients.
             content:
-              application/json:
+              text/csv:
                 schema:
-          400:
-            $ref: '#/components/responses/ErrorMessage'
+                  type: string
           500:
             $ref: '#/components/responses/ErrorMessage'
         """
@@ -141,11 +140,7 @@ class FeatureValues(Resource):
     def __init__(self):
         self.fm = current_app.fm
 
-        parser_get = reqparse.RequestParser(bundle_errors=True)
-        parser_get.add_argument('subject_id', type=int, required=True, location='args')
-        self.parser_get = parser_get
-
-    def get(self):
+    def get(self, subject_id):
         """
         Get the feature values of a patient.
         ---
@@ -153,7 +148,7 @@ class FeatureValues(Resource):
           - feature
         parameters:
           - name: subject_id
-            in: query
+            in: path
             schema:
               type: integer
             required: true
@@ -165,20 +160,9 @@ class FeatureValues(Resource):
               application/json:
                 schema:
                   $ref: '#/components/schemas/FeatureValues'
-          400:
-            $ref: '#/components/responses/ErrorMessage'
           500:
             $ref: '#/components/responses/ErrorMessage'
         """
-        try:
-            args = self.parser_get.parse_args()
-            print(args)
-        except Exception as e:
-            LOGGER.exception(str(e))
-            return {'message', str(e)}, 400
-
-        subject_id = args['subject_id']
-
         try:
             res = get_feature_values(self.fm, subject_id)
         except Exception as e:

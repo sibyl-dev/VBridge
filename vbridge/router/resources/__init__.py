@@ -1,6 +1,4 @@
-from . import (
-    entity_set, explanation, feature, model, patient, patient_selection, reference_value,
-    signal_explanation,)
+from . import entity_set, explanation, feature, model, patient, signal_explanation
 
 __all__ = [
     'patient',
@@ -9,6 +7,4 @@ __all__ = [
     'model',
     'explanation',
     'signal_explanation',
-    'reference_value',
-    'patient_selection'
 ]

@@ -1,7 +1,7 @@
 import logging
 
 from flask import current_app, jsonify
-from flask_restful import Resource, reqparse
+from flask_restful import Resource
 
 from vbridge.modeling.modeler import Modeler
 
@@ -9,7 +9,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 def get_prediction_target():
-    return jsonify(Modeler.prediction_targets())
+    return Modeler.prediction_targets()
 
 
 def get_prediction(model_manager, subject_id):

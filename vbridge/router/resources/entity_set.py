@@ -1,19 +1,28 @@
+import json
 import logging
 
+import numpy as np
 from flask import current_app, jsonify
-from flask_restful import Resource
+from flask_restful import Resource, reqparse
 
 from vbridge.data_loader.settings import META_INFO, filter_variables
 
 LOGGER = logging.getLogger(__name__)
 
 
-def get_table_names():
-    table_names = ['LABEVENTS', 'SURGERY_VITAL_SIGNS', 'CHARTEVENTS']
-    return jsonify(table_names)
+def get_item_dict(es):
+    item_dict = {}
+    for group in es['D_ITEMS'].df.groupby('LINKSTO'):
+        items = group[1].loc[:, ['LABEL', 'LABEL_CN']]
+        table_name = group[0].upper()
+        item_dict[table_name] = items.to_dict('index')
+
+    item_dict['LABEVENTS'] = es['D_LABITEMS'].df.loc[:, ['LABEL', 'LABEL_CN']].to_dict('index')
+
+    return jsonify(item_dict)
 
 
-def get_record_meta(es, table_name):
+def get_entity_schema(es, table_name):
     info = {'name': table_name}
     if table_name in META_INFO:
         table_info = META_INFO[table_name]
@@ -30,19 +39,63 @@ def get_record_meta(es, table_name):
             if col == table_info.get("time_index") or col in table_info.get("secondary_index", []):
                 info['types'][i] = 'timestamp'
 
-    return jsonify(info)
+    return info
 
 
-def get_item_dict(es):
-    item_dict = {}
-    for group in es['D_ITEMS'].df.groupby('LINKSTO'):
-        items = group[1].loc[:, ['LABEL', 'LABEL_CN']]
-        table_name = group[0].upper()
-        item_dict[table_name] = items.to_dict('index')
+def get_entity_set_schema(es):
+    entity_ids = ['LABEVENTS', 'SURGERY_VITAL_SIGNS', 'CHARTEVENTS']
+    schema = {
+        'subject_ids': [5856, 10007],  # TODO: these two patients are used for test
+        # 'subject_ids': current_app.fm.index.to_list(),
+        'entity_ids': entity_ids,
+        'entity_schemas': [get_entity_schema(es, entity_id) for entity_id in entity_ids]
+    }
+    return schema
 
-    item_dict['LABEVENTS'] = es['D_LABITEMS'].df.loc[:, ['LABEL', 'LABEL_CN']].to_dict('index')
 
-    return jsonify(item_dict)
+# TODO: generalize the filtering function
+def get_patient_group(es, filters):
+    table_names = ['PATIENTS', 'SURGERY_INFO', 'ADMISSIONS']
+    number_variables = ['Height', 'Weight', 'Surgical time (minutes)']
+
+    selected_subject_ids = es['PATIENTS'].df['SUBJECT_ID'].to_list()
+
+    for i, table_name in enumerate(table_names):
+        df = es[table_name].df
+        df = df[df['SUBJECT_ID'].isin(selected_subject_ids)]
+        for item, value in filters.items():
+            if item in df.columns:
+                if item in number_variables:
+                    df = df[(df[item] >= value[0]) & (df[item] <= value[1])]
+                elif item == 'Age':
+                    filter_flag = False
+                    if '< 1 month' in value:
+                        filter_flag = filter_flag | (df[item] <= 1)
+                    if '1-3 years' in value:
+                        filter_flag = filter_flag | (
+                            df[item] >= 12) & (df[item] <= 36)
+                    if '< 1 year' in value:
+                        filter_flag = filter_flag | (
+                            df[item] >= 1) & (df[item] <= 12)
+                    if '> 3 years' in value:
+                        filter_flag = filter_flag | (df[item] >= 36)
+                    df = df[filter_flag]
+                elif item == 'SURGERY_NAME':
+                    # do nothing when he is []
+                    df = df[df.apply(lambda x: np.array([t in x[item] for t in value]).all(),
+                                     axis='columns')]
+                elif item == 'SURGERY_POSITION':
+                    df = df[df.apply(lambda x: np.array([t in x[item] for t in value]).any(),
+                                     axis='columns')]
+                elif item == 'GENDER':
+                    df = df[df[item].isin(value)]
+                else:
+                    raise UserWarning("Condition: {} will not be considered.".format(item))
+
+        selected_subject_ids = df['SUBJECT_ID'].drop_duplicates().values.tolist()
+
+    current_app.selected_subject_ids = selected_subject_ids
+    return {'ids': selected_subject_ids}
 
 
 def get_record_range(fm):
@@ -69,65 +122,53 @@ def get_record_range(fm):
     return jsonify(info)
 
 
+def get_reference_value(es, table_name, column_name):
+    table_info = META_INFO[table_name]
+    df = es[table_name].df
+    df = df[df['SUBJECT_ID'].isin(current_app.selected_subject_ids)]
+    references = {}
+    for group in df.groupby(table_info.get('item_index')):
+        item_name = group[0]
+        mean, count, std = group[1][column_name].agg(['mean', 'count', 'std'])
+        references[item_name] = {
+            'mean': 0 if np.isnan(mean) else mean,
+            'std': 0 if np.isnan(std) else std,
+            'count': 0 if np.isnan(count) else count,
+            'ci95': [0 if np.isnan(mean - 1.96 * std) else (mean - 1.96 * std),
+                     0 if np.isnan(mean + 1.96 * std) else (mean + 1.96 * std)]
+        }
+    return jsonify(references)
+
+
 class EntitySchema(Resource):
-    """
-    Get the schema of the entity.
-    ---
-    tags:
-      - entity set
-    parameters:
-      - name: entity_id
-        in: path
-        schema:
-          type: string
-        required: true
-        description: ID of the entity.
-    responses:
-      200:
-        description: The schema of the entity.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/EntitySchema'
-      400:
-        $ref: '#/components/responses/ErrorMessage'
-      500:
-        $ref: '#/components/responses/ErrorMessage'
-    """
     def __init__(self):
         self.es = current_app.es
 
     def get(self, entity_id):
-        try:
-            res = get_record_meta(self.es, entity_id)
-        except Exception as e:
-            LOGGER.exception(e)
-            return {'message': str(e)}, 500
-        else:
-            return res
-
-
-class EntityIDs(Resource):
-    def get(self):
         """
-        Get the entity IDs.
+        Get the schema of the entity.
         ---
         tags:
           - entity set
+        parameters:
+          - name: entity_id
+            in: path
+            schema:
+              type: string
+            required: true
+            description: ID of the entity.
         responses:
           200:
-            description: The entity IDs.
+            description: The schema of the entity.
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/EntityIDs'
-          400:
-            $ref: '#/components/responses/ErrorMessage'
+                  $ref: '#/components/schemas/EntitySchema'
           500:
             $ref: '#/components/responses/ErrorMessage'
         """
         try:
-            res = get_table_names()
+            res = get_entity_schema(self.es, entity_id)
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500
@@ -135,31 +176,29 @@ class EntityIDs(Resource):
             return res
 
 
-class ItemDict(Resource):
+class EntitySetSchema(Resource):
 
     def __init__(self):
         self.es = current_app.es
 
     def get(self):
         """
-        Get the map between item IDs and item names.
+        Get the schema of the entity.
         ---
         tags:
           - entity set
         responses:
           200:
-            description: The entity IDs.
+            description: The schema of the entity.
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/ItemDict'
-          400:
-            $ref: '#/components/responses/ErrorMessage'
+                  $ref: '#/components/schemas/EntitySetSchema'
           500:
             $ref: '#/components/responses/ErrorMessage'
         """
         try:
-            res = get_item_dict(self.es)
+            res = get_entity_set_schema(self.es)
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500
@@ -185,13 +224,112 @@ class StaticRecordRange(Resource):
               application/json:
                 schema:
                   $ref: '#/components/schemas/DefaultRange'
+          500:
+            $ref: '#/components/responses/ErrorMessage'
+        """
+        try:
+            res = get_record_range(self.fm)
+        except Exception as e:
+            LOGGER.exception(e)
+            return {'message': str(e)}, 500
+        else:
+            return res
+
+
+class PatientSelection(Resource):
+    def __init__(self):
+        self.es = current_app.es
+        self.fm = current_app.fm
+
+        parser_get = reqparse.RequestParser(bundle_errors=True)
+        parser_get.add_argument('filters', type=str, required=True, location='args')
+        self.parser_get = parser_get
+
+    def put(self):
+        """
+        Update the selected subject ids.
+        ---
+        tags:
+          - entity set
+        parameters:
+          - name: filter
+            in: query
+            schema:
+              type: string
+        responses:
+          200:
+            description: The selected subject ids.
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    type: string
+        """
+        try:
+            args = self.parser_get.parse_args()
+            filters = json.loads(args['filters'])
+        except Exception as e:
+            LOGGER.exception(str(e))
+            return {'message', str(e)}, 400
+
+        try:
+            res = get_patient_group(self.es, filters)
+        except Exception as e:
+            LOGGER.exception(e)
+            return {'message': str(e)}, 500
+        else:
+            return res
+
+
+class ReferenceValue(Resource):
+    def __init__(self):
+        self.es = current_app.es
+
+        parser_get = reqparse.RequestParser(bundle_errors=True)
+        parser_get.add_argument('column_id', type=str, required=True, location='args')
+        self.parser_get = parser_get
+
+    def get(self, entity_id):
+        """
+        Get the reference value of the target attributes.
+        ---
+        tags:
+          - entity set
+        parameters:
+          - name: entity_id
+            in: path
+            schema:
+              type: string
+            required: true
+            description: ID of the entity.
+          - name: column_id
+            in: query
+            schema:
+              type: string
+            required: true
+            description: ID of the column.
+        responses:
+          200:
+            description: The reference value of the target attributes.
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ReferenceRange'
           400:
             $ref: '#/components/responses/ErrorMessage'
           500:
             $ref: '#/components/responses/ErrorMessage'
         """
         try:
-            res = get_record_range(self.fm)
+            args = self.parser_get.parse_args()
+        except Exception as e:
+            LOGGER.exception(str(e))
+            return {'message', str(e)}, 400
+
+        column_id = args['column_id']
+        try:
+            res = get_reference_value(self.es, entity_id, column_id)
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500

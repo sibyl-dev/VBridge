@@ -1,39 +1,40 @@
 from flasgger import Swagger
+from flask import render_template
 from flask_restful import Api
 
 import vbridge.router.resources as res
-from vbridge.router.swagger import swagger_tpl
+from vbridge.router.swagger import swagger_config, swagger_tpl
 
-API_VERSION = '/api/'
+API = '/api/'
 
 
 def add_routes(app):
+
+    @app.route('/redoc')
+    def redoc():
+        return render_template('redoc.html')
+
     api = Api(app)
 
-    Swagger(app, template=swagger_tpl, parse=True)
+    Swagger(app, config=swagger_config, template=swagger_tpl, parse=True)
 
     # patient
-    api.add_resource(res.patient.PatientStaticInfo, API_VERSION +
-                     'patient_static_record/<string:subject_id>')
-    api.add_resource(res.patient.PatientDynamicInfo, API_VERSION +
-                     'patient_dynamic_record/<string:subject_id>')
-    # cohort
-    api.add_resource(res.patient_selection.PatientSelection, API_VERSION + 'patient_selection/')
-    api.add_resource(res.patient_selection.SubjectIDs, API_VERSION + 'subject_ids/')
+    api.add_resource(res.patient.StaticInfo, API + 'patient_statics/<string:subject_id>')
+    api.add_resource(res.patient.TemporalInfo, API + 'patient_temporal/<string:subject_id>')
     # feature
-    api.add_resource(res.feature.FeatureMeta, API_VERSION + 'feature_schema/')
-    api.add_resource(res.feature.FeatureMatrix, API_VERSION + 'feature_matrix/')
-    api.add_resource(res.feature.FeatureValues, API_VERSION + 'feature_values/<string:subject_id>')
+    api.add_resource(res.feature.FeatureMeta, API + 'feature_schema/')
+    api.add_resource(res.feature.FeatureMatrix, API + 'feature_matrix/')
+    api.add_resource(res.feature.FeatureValues, API + 'feature_values/<string:subject_id>')
     # entity-set
-    api.add_resource(res.entity_set.EntitySchema, API_VERSION + 'entity_schema/')
-    api.add_resource(res.entity_set.ItemDict, API_VERSION + 'item_dict/')
-    api.add_resource(res.entity_set.EntityIDs, API_VERSION + 'table_names/')
-    api.add_resource(res.entity_set.StaticRecordRange, API_VERSION + 'record_range/')
-    api.add_resource(res.reference_value.ReferenceValue, API_VERSION + 'reference_value/')
+    api.add_resource(res.entity_set.EntitySetSchema, API + 'entityset_schema/')
+    api.add_resource(res.entity_set.EntitySchema, API + 'entity_schema/<string:entity_id>')
+    api.add_resource(res.entity_set.StaticRecordRange, API + 'record_ranges/')
+    # api.add_resource(res.entity_set.PatientSelection, API + 'patient_selection/')
+    api.add_resource(res.entity_set.ReferenceValue, API + 'reference_values/<string:entity_id>')
     # model
-    api.add_resource(res.model.PredictionTargets, API_VERSION + 'prediction_target/')
-    api.add_resource(res.model.Prediction, API_VERSION + 'prediction/')
+    api.add_resource(res.model.PredictionTargets, API + 'prediction_targets/')
+    api.add_resource(res.model.Prediction, API + 'predictions/<string:subject_id>')
     # explanation
-    api.add_resource(res.explanation.ShapValues, API_VERSION + 'shap_values/')
-    api.add_resource(res.explanation.ShapValuesIfNormal, API_VERSION + 'what_if_shap_values/')
-    api.add_resource(res.signal_explanation.SignalExplanation, API_VERSION + 'explain_signal/')
+    api.add_resource(res.explanation.ShapValues, API + 'shap_values/')
+    api.add_resource(res.explanation.ShapValuesIfNormal, API + 'what_if_shap_values/')
+    api.add_resource(res.signal_explanation.SignalExplanation, API + 'explain_signal/')
