@@ -1,5 +1,6 @@
 import * as _ from "lodash"
 import { AssertionError } from "assert";
+import { AggrValues } from "./entity";
 
 export function distinct<T>(value: T, index: number, self: Array<T>) {
     return self.indexOf(value) === index;
@@ -106,16 +107,7 @@ export const isDefined = <T>(input: T | undefined | null): input is T => {
     return typeof input !== 'undefined' && input !== null;
 };
 
-export type ReferenceValue = {
-    mean: number,
-    std: number,
-    count: number,
-    ci95: [number, number],
-}
-
-export type ReferenceValueDict = (itemName: string) => (ReferenceValue | undefined);
-
-export function getReferenceValue(data: number[]): ReferenceValue {
+export function getReferenceValue(data: number[]): AggrValues {
     if (data.length == 0) {
         return {
             mean: 0,
@@ -157,5 +149,14 @@ export function timeDeltaPrinter(startTime: Date, endTime: Date) {
         else {
             return `${Math.floor(deltaHour / 24)}d`
         }
+    }
+}
+
+export function safeMap<K extends string | number | symbol, T>(map: Record<K, T>) {
+    return (itemName: K) => {
+        if (_.has(map, itemName)) {
+            return map[itemName];
+        }
+        return undefined;
     }
 }

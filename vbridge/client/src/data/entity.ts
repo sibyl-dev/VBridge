@@ -4,55 +4,46 @@ import { Index } from "react-virtualized";
 
 // export type columnType = 'numerical' | 'categorical' | 'timestamp';
 
-export interface TableMeta {
-    name?: string,
-    time_index?: string,
-    types?: ('numerical' | 'categorical' | 'timestamp')[],
-    item_index?: string,
-    value_indexes?: string[],
-    alias?: string,
-}
 
 export type ItemDesc = {
     LABEL: string,
     LABEL_CN: string
+};
+
+export type ItemDict = Record<string, ItemDesc>;
+
+export interface EntitySchema {
+    id: string,
+    alias?: string,
+    time_index?: string,
+    item_index?: string,
+    value_indexes?: string[],
+    types?: ('numerical' | 'categorical' | 'timestamp')[],
+    item_dict?: ItemDict
 }
-export type ItemDict = (tableName: string, itemName: string) => ItemDesc|undefined;
+
+export type EntitySetSchema = EntitySchema[];
 
 export class Entity<IndexT, ValueT> extends DataFrame<IndexT, ValueT> {
-    public metaInfo?: TableMeta;
-    public name?: string;
-    public timeIndex?: string;
+    public id: string;
+    public schema: EntitySchema;
 
-    constructor(config?: Iterable<ValueT> | IDataFrameConfig<IndexT, ValueT>
+    constructor(schema: EntitySchema, config?: Iterable<ValueT> | IDataFrameConfig<IndexT, ValueT>
         | DataFrameConfigFn<IndexT, ValueT> | DataFrame<IndexT, ValueT>) {
         super(config);
-    }
-
-    public setMetaInfo(metaInfo: TableMeta) {
-        this.metaInfo = metaInfo;
-        return this;
-    }
-
-    public update() {
-        if (this.metaInfo !== undefined) {
-            const { name, time_index, types } = this.metaInfo;
-            this.name = name;
-            this.timeIndex = time_index;
-
-            time_index && this.parseDates(time_index);
-            types && this.getColumnNames().forEach((name, i) => {
-                if (types[i] === 'numerical') {
-                    this.parseFloats(name);
-                }
-                else if (types[i] === 'timestamp') {
-                    this.parseDates(name);
-                }
-            })
-        }
-        return this;
+        this.id = schema.id;
+        this.schema = schema;
     }
 }
+
+export type AggrValues = {
+    mean: number,
+    std: number,
+    count: number,
+    ci95: [number, number],
+}
+
+export type ReferenceValues = Record<string, AggrValues>;
 
 export function getColumnWidth(dataFrame: IDataFrame, includeIndex?: boolean,
     maxWidth?: number, minWidth?: number) {
