@@ -1,28 +1,28 @@
 import * as React from "react";
 import * as d3 from "d3";
 import * as _ from "lodash"
-import { PatientMeta } from "data/patient";
-import { Entity } from "data/table";
+import { PatientStatics } from "data/patient";
+import { Entity, ReferenceValues } from "data/entity";
 import {
     QUATER_IN_MILI, defaultCategoricalColor, getScaleTime, IMargin, calIntervalsByQuarter,
     getRefinedStartEndTime, getQuarter
 } from "visualization/common";
 import { IEvent, IEventBin } from "data/event";
-import { FeatureMeta } from "data/feature";
+import { FeatureSchema } from "data/feature";
 import { IDataFrame, ISeries } from "data-forge";
-import { isDefined, ReferenceValueDict } from "data/common";
+import { isDefined } from "data/common";
 
 import "./index.scss"
 import Timeline from "visualization/Timeline";
 
 export interface TimelineViewProps {
     tableNames: string[],
-    patientMeta: PatientMeta,
-    featureMeta: IDataFrame<number, FeatureMeta>,
+    patientMeta: PatientStatics,
+    featureMeta: IDataFrame<number, FeatureSchema>,
     tableRecords: Entity<number, any>[],
     onSelectEvents?: (entityName: string, startDate: Date, endDate: Date) => void,
     entityCategoricalColor?: (entityName?: string) => string,
-    referenceValues?: (tableName: string) => ReferenceValueDict | undefined,
+    referenceValues?: ReferenceValues,
 }
 
 export interface TimelineViewStates {
@@ -80,11 +80,11 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
         if (tableRecords && intervalByQuarter && startTime) {
             const eventBins: IEventBin[][] = [];
             for (const entity of tableRecords) {
-                const { timeIndex, name } = entity;
-                const referenceValueDict = referenceValues && referenceValues(name!)
+                const { time_index, id: name } = entity.schema;
+                const referenceValueDict = referenceValues && referenceValues[name!]
 
-                const eventSeries: ISeries<number, IEvent> = entity.groupBy(row => row[timeIndex!]).select(group => {
-                    const { item_index, value_indexes } = entity.metaInfo!;
+                const eventSeries: ISeries<number, IEvent> = entity.groupBy(row => row[time_index!]).select(group => {
+                    const { item_index, value_indexes } = entity.schema;
                     const sample = group.first();
                     const items = _.uniq(group.getSeries(item_index!).toArray());
                     const abnormalItems: string[] = [];
@@ -94,7 +94,7 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
                             const item = row[item_index!]
                             if (item_index && value_indexes && value_indexes.length > 0) {
                                 const value_index = value_indexes[0];
-                                const referenceValue = referenceValueDict(item);
+                                const referenceValue = referenceValues && referenceValues[item];
                                 if (referenceValue) {
                                     const outOfRange = (row[value_index] > referenceValue?.ci95[1]) ||
                                         (row[value_index] < referenceValue?.ci95[0]);
@@ -109,7 +109,7 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
                     }
                     return {
                         entityName: name!,
-                        timestamp: new Date(sample[timeIndex!]),
+                        timestamp: new Date(sample[time_index!]),
                         count: group.count(),
                         abnormalyCount: abnormalyCount,
                         items: items,
@@ -145,7 +145,7 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
     private color(id: number) {
         const { entityCategoricalColor, tableRecords } = this.props;
         if (entityCategoricalColor && tableRecords) {
-            return entityCategoricalColor(tableRecords[id].name);
+            return entityCategoricalColor(tableRecords[id].id);
         }
         else {
             return defaultCategoricalColor(id);
@@ -160,7 +160,7 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
             <div className="timeline-view-container" ref={this.ref}>
                 {timeLineLegend()}
                 {eventBins && eventBins.map((events, i) => {
-                    const title = tableRecords[i].metaInfo?.alias;
+                    const title = tableRecords[i].schema?.alias;
                     const width = this.ref.current!.offsetWidth;
                     return <div className={"timeline-container"} key={i}>
                         <div className={"timeline-title"}
@@ -178,7 +178,7 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
                             height={this.rowHeight + (i === 0 ? 20 : 0)}
                             style={{ position: 'absolute', 'left': this.titleWidth + 15 }}
                             onSelectEvents={(startDate: Date, endDate: Date) =>
-                                onSelectEvents && onSelectEvents(tableRecords[i].name!, startDate, endDate)}
+                                onSelectEvents && onSelectEvents(tableRecords[i].id!, startDate, endDate)}
                             binTime={intervalByQuarter! * QUATER_IN_MILI}
                             drawTicks={i === 0}
                         />

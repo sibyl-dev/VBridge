@@ -5,8 +5,8 @@ import "./lineChart.css"
 
 import { getChildOrAppend, getScaleLinear, getScaleTime, IMargin, getMargin } from "./common";
 import { ISeries } from "data-forge";
-import { ReferenceValue } from "data/common";
-import { Segment } from "data/event";
+import { ReferenceValues, AggrValues } from "data/entity";
+import { Segment } from "data/explanation";
 
 export type PointLayout = {
     x: number,
@@ -34,7 +34,7 @@ export interface LineChartOptions {
 
 export interface LineChartParams extends LineChartOptions {
     data: { dates: ISeries<number, Date>, values: ISeries<number, any> }
-    referenceValue?: ReferenceValue,
+    referenceValue?: AggrValues,
     segments?: Segment[],
     svg: SVGElement,
 }
@@ -268,7 +268,7 @@ console.log(margin);
 
 export interface LineChartProps extends LineChartOptions {
     data: { dates: ISeries<number, Date>, values: ISeries<number, any> }
-    referenceValue?: ReferenceValue
+    referenceValue?: AggrValues
     segments?: Segment[]
 }
 

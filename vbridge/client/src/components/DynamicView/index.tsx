@@ -1,18 +1,18 @@
 import { Button, Card, Divider, Select, Spin } from "antd";
-import { PatientMeta } from "data/patient";
-import { Entity, ItemDict } from "data/table";
+import { PatientStatics } from "data/patient";
+import { Entity, ItemDict, ReferenceValues } from "data/entity";
 import * as React from "react";
 import * as _ from "lodash"
 import { DataFrame, IDataFrame, ISeries } from "data-forge";
 import { defaultMargin, getMargin, getScaleLinear, getScaleTime, IMargin } from "visualization/common";
 import { CloseOutlined, ExpandAltOutlined, PushpinOutlined, ShrinkOutlined } from "@ant-design/icons";
-import { arrayShallowCompare, ReferenceValue, ReferenceValueDict, timeDeltaPrinter } from "data/common";
-import { getSegmentExplanation } from "router/api";
+import { arrayShallowCompare } from "data/common";
+import API from "router/api";
 import LineChart from "visualization/lineChart";
 
 import "./index.scss";
-import { FeatureMeta } from "data/feature";
-import { SegmentExplanation } from "data/event";
+import { FeatureSchema } from "data/feature";
+import { SignalExplanation } from "data/explanation";
 
 export interface SignalMeta {
     tableName: string,
@@ -30,9 +30,8 @@ export interface Signal extends SignalMeta {
 
 export interface DynamicViewProps {
     className: string,
-    patientMeta: PatientMeta,
-    featureMeta: IDataFrame<number, FeatureMeta>,
-    itemDicts?: ItemDict,
+    patientMeta: PatientStatics,
+    featureMeta: IDataFrame<number, FeatureSchema>,
     tableRecords: Entity<number, any>[],
     signalMetas: SignalMeta[],
     align?: boolean,
@@ -42,7 +41,7 @@ export interface DynamicViewProps {
     updatePinnedFocusedFeatures?: (featureNames: string[]) => void,
     pinSignal: (signalMeta: SignalMeta) => void;
     removeSignal: (signalMeta: SignalMeta) => void;
-    referenceValues?: (tableName: string) => ReferenceValueDict | undefined;
+    referenceValues?: ReferenceValues;
 }
 
 export interface DynamicViewStates {
@@ -85,8 +84,8 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
     private buildSignal(record: SignalMeta): Signal {
         const { tableName, columnName, itemName, startTime, endTime } = record;
         const { tableRecords } = this.props;
-        const entity = tableRecords.find(e => e.name === tableName);
-        const { item_index, time_index } = entity!.metaInfo!;
+        const entity = tableRecords.find(e => e.id === tableName);
+        const { item_index, time_index } = entity!.schema!;
         let entries = entity!.where(row => row[item_index!] === itemName);
         if (startTime) entries = entries.where(row => startTime <= new Date(row[time_index!]));
         if (endTime) entries = entries.where(row => new Date(row[time_index!]) <= endTime);
@@ -117,7 +116,7 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
     }
 
     public render() {
-        const { patientMeta, itemDicts, color, updateFocusedFeatures, removeSignal, className, referenceValues, align, width } = this.props;
+        const { patientMeta, color, updateFocusedFeatures, removeSignal, className, referenceValues, align, width } = this.props;
         const { signalGroups, globalStartTime, globalEndTime } = this.state;
         const margin = { bottom: 20, left: 30, top: 15, right: 10 };
         let xScale: d3.ScaleTime<number, number> | undefined = undefined;
@@ -137,9 +136,8 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
                                 className={className}
                                 patientMeta={patientMeta}
                                 signal={signal}
-                                referenceValues={referenceValues && referenceValues(signal.tableName)}
+                                // referenceValues={referenceValues && referenceValues[signal.tableName]}
                                 key={signal.itemName}
-                                itemDicts={itemDicts}
                                 align={true}
                                 xScale={xScale}
                                 width={width}
@@ -174,7 +172,7 @@ const defaultTimeSeriesStyle: TimeSeriesStyle = {
 
 export interface DynamicCardProps extends Partial<TimeSeriesStyle> {
     signal: Signal,
-    patientMeta: PatientMeta,
+    patientMeta: PatientStatics,
     className: string,
     align?: boolean,
     // timeSeriesStyle: Partial<TimeSeriesStyle>,
@@ -187,7 +185,7 @@ export interface DynamicCardProps extends Partial<TimeSeriesStyle> {
     onPin?: () => void;
     onRemove?: () => void;
     // subjectIdG?: number[],
-    referenceValues?: ReferenceValueDict;
+    referenceValues?: ReferenceValues;
 }
 
 export interface DynamicCardStates {
@@ -195,7 +193,7 @@ export interface DynamicCardStates {
     pinned: boolean,
     explain: boolean,
     loading: boolean,
-    segmentExplanation?: SegmentExplanation[]
+    segmentExplanation?: SignalExplanation[]
 }
 
 export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardStates> {
@@ -208,7 +206,7 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
             explain: false,
             loading: false,
         };
-        this.loadSegmentExplanation = this.loadSegmentExplanation.bind(this);
+        // this.loadSegmentExplanation = this.loadSegmentExplanation.bind(this);
 
         this.onExpand = this.onExpand.bind(this);
         this.onCollapse = this.onCollapse.bind(this);
@@ -221,16 +219,16 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
     componentDidUpdate(prevProps: DynamicCardProps, prevState: DynamicCardStates) {
     }
 
-    private async loadSegmentExplanation() {
-        this.setState({ loading: true });
-        const { signal, patientMeta } = this.props;
-        const { itemName, tableName } = signal;
-        if (tableName === 'SURGERY_VITAL_SIGNS') {
-            const segmentExplanation = await getSegmentExplanation({ subject_id: patientMeta.subjectId, item_id: itemName });
-            this.setState({ segmentExplanation, loading: false });
-        }
-        this.setState({ loading: false });
-    }
+    // private async loadSegmentExplanation() {
+    //     this.setState({ loading: true });
+    //     const { signal, patientMeta } = this.props;
+    //     const { itemName, tableName } = signal;
+    //     if (tableName === 'SURGERY_VITAL_SIGNS') {
+    //         const segmentExplanation = await API.signalExplanation.find({ subject_id: patientMeta.id, item_id: itemName });
+    //         this.setState({ segmentExplanation, loading: false });
+    //     }
+    //     this.setState({ loading: false });
+    // }
 
     private onExpand() {
         this.setState({ expand: true });
@@ -249,8 +247,8 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
         const { explain, segmentExplanation } = this.state;
         if (explain) this.setState({ explain: false })
         else {
-            if (!segmentExplanation)
-                this.loadSegmentExplanation();
+            // if (!segmentExplanation)
+            //     this.loadSegmentExplanation();
             this.setState({ explain: true });
         }
     }
@@ -261,7 +259,7 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
         const { expand, pinned, segmentExplanation, explain } = this.state;
         const { tableName, itemName, data, startTime, endTime } = signal;
 
-        const itemLabel = itemDicts && itemDicts(tableName, itemName)?.LABEL;
+        // const itemLabel = itemDicts && itemDicts(tableName, itemName)?.LABEL;
 
         console.log('DynamicView', margin, height);
 
@@ -271,8 +269,8 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
             <Spin spinning={this.state.loading} delay={500}>
                 {data && <LineChart
                     data={data}
-                    referenceValue={referenceValues && referenceValues(itemName)}
-                    segments={explain ? segmentExplanation && _.flatten(segmentExplanation.map(d => d.segments)) : []}
+                    referenceValue={referenceValues && referenceValues[itemName]}
+                    // segments={explain ? segmentExplanation && _.flatten(segmentExplanation.map(d => d.segments)) : []}
                     height={expand ? height : 32}
                     width={width}
                     xScale={xScale}
@@ -289,7 +287,7 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
             </Spin>
             <div className={"ts-title-float"} style={{ width: width }}>
                 {/* <span className={"ts-title-float-text"}>{`${itemLabel || itemName} (${timeDeltaPrinter(startTime, endTime)})`}</span> */}
-                <span className={"ts-title-float-text"}>{`${itemLabel || itemName}`}</span>
+                <span className={"ts-title-float-text"}>{`${itemName}`}</span>
 
                 <Button size="small" type="primary" shape="circle" icon={<PushpinOutlined />} className={"ts-title-button"}
                     style={{ display: pinned ? 'block' : undefined }} onClick={this.onPin}

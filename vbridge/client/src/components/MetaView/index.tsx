@@ -3,7 +3,7 @@ import { Row, Col, Divider, Button } from "antd"
 import { beautifulPrinter, defaultCategoricalColor } from "visualization/common";
 import "./index.scss"
 import { IDataFrame } from "data-forge";
-import { FeatureMeta } from "data/feature";
+import { FeatureSchema } from "data/feature";
 import { PushpinOutlined } from "@ant-design/icons";
 
 export interface MetaViewProps {
@@ -11,7 +11,7 @@ export interface MetaViewProps {
     patientIds?: number[],
     patientInfoMeta?: { [key: string]: any },
     days?: number,
-    featureMeta: IDataFrame<number, FeatureMeta>,
+    featureMeta: IDataFrame<number, FeatureSchema>,
     updateFocusedFeatures?: (featureNames: string[]) => void,
     updatePinnedFocusedFeatures?: (featureNames: string[]) => void,
     entityCategoricalColor?: (entityName: string | undefined) => string,
@@ -80,7 +80,7 @@ export default class MetaView extends React.PureComponent<MetaViewProps, MetaVie
         const { updateFocusedFeatures, featureMeta } = this.props;
         const targetFeature = featureMeta.where(row => row.alias === name);
         if (targetFeature.count() > 0)
-            updateFocusedFeatures && updateFocusedFeatures([targetFeature.first().name!]);
+            updateFocusedFeatures && updateFocusedFeatures([targetFeature.first().id!]);
     }
 
     private onLeave() {
@@ -92,7 +92,7 @@ export default class MetaView extends React.PureComponent<MetaViewProps, MetaVie
         const { updatePinnedFocusedFeatures, featureMeta } = this.props;
         const targetFeature = featureMeta.where(row => row.alias === name);
         if (targetFeature.count() > 0)
-            updatePinnedFocusedFeatures && updatePinnedFocusedFeatures([targetFeature.first().name!]);
+            updatePinnedFocusedFeatures && updatePinnedFocusedFeatures([targetFeature.first().id!]);
     }
 
     public render() {
