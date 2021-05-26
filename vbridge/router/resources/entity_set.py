@@ -10,28 +10,28 @@ from vbridge.data_loader.settings import META_INFO, filter_variables
 LOGGER = logging.getLogger(__name__)
 
 
-def get_item_dict(es):
+def get_item_dict(es, entity_id):
     item_dict = {}
-    for group in es['D_ITEMS'].df.groupby('LINKSTO'):
-        items = group[1].loc[:, ['LABEL', 'LABEL_CN']]
-        table_name = group[0].upper()
-        item_dict[table_name] = items.to_dict('index')
+    if entity_id is 'LABEVENTS':
+      item_dict = es['D_LABITEMS'].df.loc[:, ['LABEL', 'LABEL_CN']].to_dict('index')
+    elif entity_id in ['CHARTEVENTS, LABEVENTS']:
+        df = es['D_ITEMS'].df
+        items = df[df['LINKSTO'] == entity_id].loc[:, ['LABEL', 'LABEL_CN']]
+        item_dict = items.to_dict('index')
+    return item_dict
 
-    item_dict['LABEVENTS'] = es['D_LABITEMS'].df.loc[:, ['LABEL', 'LABEL_CN']].to_dict('index')
 
-    return jsonify(item_dict)
-
-
-def get_entity_schema(es, table_name):
-    info = {'name': table_name}
-    if table_name in META_INFO:
-        table_info = META_INFO[table_name]
+def get_entity_schema(es, entity_id):
+    info = {'id': entity_id}
+    if entity_id in META_INFO:
+        table_info = META_INFO[entity_id]
         info['time_index'] = table_info.get('time_index')
         info['item_index'] = table_info.get('item_index')
         info['value_indexes'] = table_info.get('value_indexes')
         info['alias'] = table_info.get('alias')
-        column_names = es[table_name].df.columns
-        df = current_app.es[table_name].df
+        info['item_dict'] = get_item_dict(es, entity_id)
+        column_names = es[entity_id].df.columns
+        df = current_app.es[entity_id].df
         # distinguish "categorical" and "numerical" columns
         info['types'] = ['categorical' if df[name].dtype == object
                          else 'numerical' for name in column_names]
@@ -44,12 +44,7 @@ def get_entity_schema(es, table_name):
 
 def get_entity_set_schema(es):
     entity_ids = ['LABEVENTS', 'SURGERY_VITAL_SIGNS', 'CHARTEVENTS']
-    schema = {
-        'subject_ids': [5856, 10007],  # TODO: these two patients are used for test
-        # 'subject_ids': current_app.fm.index.to_list(),
-        'entity_ids': entity_ids,
-        'entity_schemas': [get_entity_schema(es, entity_id) for entity_id in entity_ids]
-    }
+    schema = [get_entity_schema(es, entity_id) for entity_id in entity_ids]
     return schema
 
 

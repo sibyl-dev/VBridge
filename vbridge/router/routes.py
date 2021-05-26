@@ -22,19 +22,18 @@ def add_routes(app):
     api.add_resource(res.patient.StaticInfo, API + 'patient_statics/<string:subject_id>')
     api.add_resource(res.patient.TemporalInfo, API + 'patient_temporal/<string:subject_id>')
     # feature
-    api.add_resource(res.feature.FeatureMeta, API + 'feature_schema/')
-    api.add_resource(res.feature.FeatureMatrix, API + 'feature_matrix/')
+    api.add_resource(res.feature.FeatureMeta, API + 'feature_schemas/')
+    api.add_resource(res.feature.FeatureMatrix, API + 'feature_values/')
     api.add_resource(res.feature.FeatureValues, API + 'feature_values/<string:subject_id>')
     # entity-set
-    api.add_resource(res.entity_set.EntitySetSchema, API + 'entityset_schema/')
+    api.add_resource(res.entity_set.EntitySetSchema, API + 'entity_schema/')
     api.add_resource(res.entity_set.EntitySchema, API + 'entity_schema/<string:entity_id>')
     api.add_resource(res.entity_set.StaticRecordRange, API + 'record_ranges/')
     # api.add_resource(res.entity_set.PatientSelection, API + 'patient_selection/')
     api.add_resource(res.entity_set.ReferenceValue, API + 'reference_values/<string:entity_id>')
     # model
-    api.add_resource(res.model.PredictionTargets, API + 'prediction_targets/')
     api.add_resource(res.model.Prediction, API + 'predictions/<string:subject_id>')
     # explanation
     api.add_resource(res.explanation.ShapValues, API + 'shap_values/')
-    api.add_resource(res.explanation.ShapValuesIfNormal, API + 'what_if_shap_values/')
-    api.add_resource(res.signal_explanation.SignalExplanation, API + 'explain_signal/')
+    api.add_resource(res.explanation.ShapValuesIfNormal, API + 'counterfactual_shap_values/')
+    api.add_resource(res.signal_explanation.SignalExplanation, API + 'signal_explanations/')

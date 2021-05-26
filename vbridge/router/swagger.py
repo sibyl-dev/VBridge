@@ -65,7 +65,20 @@ schemas = {
             'entity_schemas': {
                 'type': 'array',
                 'items': {
-                    'type': '$ref: #/components/schemas/EntitySchema',
+                    'type': 'object',
+                    'properties': {
+                        'name': {'type': 'string'},
+                        'alias': {'type': 'string'},
+                        'time_index': {'type': 'string'},
+                        'item_index': {'type': 'string'},
+                        'value_indexes': {
+                            'type': 'array',
+                            'items': {
+                                'type': 'string',
+                            },
+                        },
+                        'type': {'type': 'string'}  # todo: enumerate
+                    }
                 }
             },
         }

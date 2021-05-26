@@ -8,7 +8,7 @@ from vbridge.modeling.modeler import Modeler
 LOGGER = logging.getLogger(__name__)
 
 
-def get_feature_meta(fl):
+def get_feature_schemas(fl):
     def get_leaf(feature):
         if len(feature.base_features) > 0:
             return get_leaf(feature.base_features[0])
@@ -23,15 +23,14 @@ def get_feature_meta(fl):
         else:
             return get_level2_leaf(feature.base_features[0])
 
-    feature_meta = []
-    targets = Modeler.prediction_targets()
+    features = []
+    targets = []
+    target_names = Modeler.prediction_targets()
     for f in fl:
-        if f.get_name() in targets:
-            continue
         leaf_node = get_leaf(f)
         leve2_leaf_node = get_level2_leaf(f)
         info = {
-            'name': f.get_name(),
+            'id': f.get_name(),
             'whereItem': leve2_leaf_node.where.get_name().split(' = ')
             if leve2_leaf_node and ('where' in leve2_leaf_node.__dict__) else [],
             'primitive': leve2_leaf_node and leve2_leaf_node.primitive.name,
@@ -56,14 +55,21 @@ def get_feature_meta(fl):
             feature_type = 'Pre-surgery'
         else:
             if f.get_name() in ['Height', 'Weight', 'Age',
-                                'ADMISSIONS.ICD10_CODE_CN', 'ADMISSIONS.PATIENTS.GENDER']:
+                                'ADMISSIONS.ICD10_CODE_CN', 
+                                'ADMISSIONS.PATIENTS.GENDER']:
                 feature_type = 'Pre-surgery'
             else:
                 feature_type = 'In-surgery'
 
         info['type'] = feature_type
-        feature_meta.append(info)
-    return jsonify(feature_meta)
+        if info['id'] in target_names:
+            targets.append(info)
+        else:
+            features.append(info)
+    return {
+        'targets': targets,
+        'features': features
+    }
 
 
 def get_feature_matrix(fm):
@@ -92,14 +98,14 @@ class FeatureMeta(Resource):
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/FeatureMeta'
+                  $ref: '#/components/schemas/FeatureSchema'
           400:
             $ref: '#/components/responses/ErrorMessage'
           500:
             $ref: '#/components/responses/ErrorMessage'
         """
         try:
-            res = get_feature_meta(self.fl)
+            res = get_feature_schemas(self.fl)
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500

@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 
 from flask import Response, current_app, jsonify
 from flask_restful import Resource, reqparse
@@ -13,12 +14,14 @@ def get_patient_statics(es, subject_id):
     subject_id = int(subject_id)
     info = {'subjectId': subject_id}
     table_names = ['PATIENTS', 'ADMISSIONS', 'SURGERY_INFO']
-    for i, table_name in enumerate(table_names):
-        hadm_df = es[table_name].df
-        record = hadm_df[hadm_df['SUBJECT_ID'] == subject_id]
+    for table_name in table_names:
+        df = es[table_name].df
+        records = df[df['SUBJECT_ID'] == subject_id]
         column_names = es[table_name].df.columns
-        for i, col in enumerate(column_names):
-            info[col] = str(record[col].values[0])
+        for col in column_names:
+            info[col] = str(records[col].values[0])
+    # info['ageInDays'] = datetime.fromisoformat(info['SURGERY_BEGIN_TIME']) - \
+    #   datetime.fromisoformat(info['DOB'])
 
     return jsonify(info)
 
