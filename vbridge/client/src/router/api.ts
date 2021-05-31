@@ -1,14 +1,14 @@
 import axios, { AxiosRequestConfig, AxiosInstance, AxiosResponse } from "axios";
 import * as dataForge from "data-forge"
 import * as _ from "lodash"
-import { FeatureSchema, FeatureSchemaResponse, FeatureValue, FeatureValueResponse } from "data/feature";
-import { PatientGroup, PatientStatics, patientTemporal } from "data/patient";
-import { Entity, EntitySchema, EntitySetSchema, ItemDict, ReferenceValueResponse, ReferenceValues } from "data/entity";
 import { ROOT_URL, DEV_MODE } from "./env";
-import { filterType } from 'data/filterType';
+import { filterType } from 'type/filterType';
 import Resource from './restResource';
-import { Prediction } from "data/model";
-import { CfShapValues, ShapValues, SignalExplanation } from "data/explanation";
+import {
+    CfShapValues, ShapValues, SignalExplanation, FeatureSchema, FeatureSchemaResponse, FeatureValue, FeatureValueResponse,
+    Entity, EntitySchema, EntitySetSchema, ReferenceValueResponse, ReferenceValues, Prediction, PatientGroup, PatientStatics,
+    PatientTemporal
+} from "type";
 
 
 const API_URL = `${ROOT_URL}/api`;
@@ -23,7 +23,7 @@ export class RestClient {
 
     // patient
     public patientStatics: Resource<PatientStatics, null>;
-    public patientTemporal: Resource<patientTemporal, null>;
+    public patientTemporal: Resource<PatientTemporal, null>;
 
     // entity set
     public entitySchemas: Resource<EntitySchema, EntitySetSchema>;

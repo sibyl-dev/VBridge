@@ -4,7 +4,7 @@ import * as _ from "lodash"
 import { Button } from "antd";
 import { LineChartOutlined, TableOutlined } from "@ant-design/icons";
 
-import { IEventBin } from "data/event";
+import { IEventBin } from "type/event";
 import { getChildOrAppend, getScaleLinear, getScaleTime, getMargin, ChartOptions } from "./common";
 import "./Timeline.scss"
 import Chart, { ChartProps } from "./Chart";

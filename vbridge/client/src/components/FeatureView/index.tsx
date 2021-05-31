@@ -1,5 +1,5 @@
-import { Feature, FeatureSchema } from "data/feature";
-import { PatientStatics } from "data/patient";
+import { Feature, FeatureSchema } from "type/feature";
+import { PatientStatics } from "type/patient";
 import * as React from "react";
 import * as d3 from "d3";
 import { Button, Tooltip, Popover, Slider } from "antd"
@@ -11,9 +11,9 @@ import {
     ArrowDownOutlined, ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, CaretRightOutlined,
     FilterOutlined, LineChartOutlined, QuestionOutlined, SortAscendingOutlined, TableOutlined
 } from "@ant-design/icons"
-import { StatValues, ItemDict, ReferenceValues } from "data/entity";
+import { StatValues, ItemDict, ReferenceValues } from "type/entity";
 import AreaChart from "visualization/AreaChart";
-import { arrayShallowCompare, getReferenceValue, isDefined } from "data/common";
+import { arrayShallowCompare, getReferenceValue, isDefined } from "utils/common";
 
 import "./index.scss"
 import { SHAPContributions } from "./SHAPBand";

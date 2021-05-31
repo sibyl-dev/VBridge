@@ -3,7 +3,7 @@ import { Row, Col, Divider, Button } from "antd"
 import { beautifulPrinter, defaultCategoricalColor } from "visualization/common";
 import "./index.scss"
 import { IDataFrame } from "data-forge";
-import { FeatureSchema } from "data/feature";
+import { FeatureSchema } from "type/feature";
 import { PushpinOutlined } from "@ant-design/icons";
 
 export interface MetaViewProps {

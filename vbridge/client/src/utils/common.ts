@@ -1,6 +1,8 @@
 import * as _ from "lodash"
 import { AssertionError } from "assert";
-import { StatValues } from "./entity";
+import { StatValues } from "../type/entity";
+import { Index } from "react-virtualized";
+import { IDataFrame } from "data-forge";
 
 export function distinct<T>(value: T, index: number, self: Array<T>) {
     return self.indexOf(value) === index;
@@ -159,4 +161,25 @@ export function safeMap<K extends string | number | symbol, T>(map: Record<K, T>
         }
         return undefined;
     }
+}
+
+
+export function getColumnWidth(dataFrame: IDataFrame, includeIndex?: boolean,
+    maxWidth?: number, minWidth?: number) {
+    return ((params: Index) => {
+        let columnIndex = params.index;
+        if (!includeIndex) {
+            columnIndex += 1;
+        }
+        const column = dataFrame.getColumns().at(columnIndex);
+        const columnContent = column?.series.toArray();
+        columnContent?.push(column?.name);
+        const charLength = columnContent?.map(d => String(d).length);
+        let estLength = charLength && Math.max.apply(dataFrame, charLength) * 10 + 5;
+        if (maxWidth !== undefined && estLength)
+            estLength = Math.min(maxWidth, estLength);
+        if (minWidth !== undefined && estLength)
+            estLength = Math.max(minWidth, estLength);
+        return estLength || 120;
+    })
 }

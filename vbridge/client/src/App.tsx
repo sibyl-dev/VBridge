@@ -14,20 +14,20 @@ import DynamicView, { SignalMeta } from "./components/DynamicView"
 // import FilterView from "./components/FilterView"
 
 import API from "./router/api"
-import { PatientStatics } from 'data/patient';
-import { Entity, EntitySetSchema, ReferenceValueResponse } from 'data/entity';
-import { filterType } from 'data/filterType';
+import { PatientStatics } from 'type/patient';
+import { Entity, EntitySetSchema, ReferenceValueResponse } from 'type/entity';
+import { filterType } from 'type/filterType';
 
 import Panel from 'components/Panel';
-import { Feature, FeatureSchema } from 'data/feature';
+import { Feature, FeatureSchema } from 'type/feature';
 import { DataFrame, IDataFrame, fromCSV } from 'data-forge';
-import { distinct, isDefined } from 'data/common';
+import { distinct, isDefined } from 'utils/common';
 
 import { defaultCategoricalColor, getChildOrAppend, getOffsetById } from 'visualization/common';
 import { CloseOutlined } from '@material-ui/icons';
 
 import './App.css';
-import { Prediction } from 'data/model';
+import { Prediction } from 'type/model';
 import FeatureView from 'components/FeatureView';
 
 const { Header, Content } = Layout;

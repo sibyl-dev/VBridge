@@ -1,18 +1,18 @@
 import { Button, Card, Divider, Select, Spin } from "antd";
-import { PatientStatics } from "data/patient";
-import { Entity, ItemDict, ReferenceValueResponse, ReferenceValues, StatValues } from "data/entity";
+import { PatientStatics } from "type/patient";
+import { Entity, ItemDict, ReferenceValueResponse, ReferenceValues, StatValues } from "type/entity";
 import * as React from "react";
 import * as _ from "lodash"
 import { DataFrame, IDataFrame, ISeries } from "data-forge";
 import { defaultMargin, getMargin, getScaleLinear, getScaleTime, IMargin } from "visualization/common";
 import { CloseOutlined, ExpandAltOutlined, PushpinOutlined, ShrinkOutlined } from "@ant-design/icons";
-import { arrayShallowCompare } from "data/common";
+import { arrayShallowCompare } from "utils/common";
 import API from "router/api";
 import LineChart from "visualization/lineChart";
 
 import "./index.scss";
-import { FeatureSchema } from "data/feature";
-import { SignalExplanation } from "data/explanation";
+import { FeatureSchema } from "type/feature";
+import { SignalExplanation } from "type/explanation";
 
 export interface SignalMeta {
     entityId: string,

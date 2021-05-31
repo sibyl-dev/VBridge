@@ -1,9 +1,9 @@
 import * as React from "react";
 import * as dataForge from "data-forge"
 import PureTable from "../Table"
-import { Entity, ItemDict } from "data/entity";
-import { PatientStatics } from "data/patient";
-import { FeatureSchema } from "data/feature";
+import { Entity, ItemDict } from "type/entity";
+import { PatientStatics } from "type/patient";
+import { FeatureSchema } from "type/feature";
 
 import './index.css'
 

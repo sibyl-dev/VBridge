@@ -1,16 +1,16 @@
 import * as React from "react";
 import * as d3 from "d3";
 import * as _ from "lodash"
-import { PatientStatics } from "data/patient";
-import { Entity, ReferenceValueResponse } from "data/entity";
+import { PatientStatics } from "type/patient";
+import { Entity, ReferenceValueResponse } from "type/entity";
 import {
     QUATER_IN_MILI, defaultCategoricalColor, getScaleTime, IMargin, calIntervalsByQuarter,
     getRefinedStartEndTime, getQuarter
 } from "visualization/common";
-import { IEvent, IEventBin } from "data/event";
-import { FeatureSchema } from "data/feature";
+import { IEvent, IEventBin } from "type/event";
+import { FeatureSchema } from "type/feature";
 import { IDataFrame, ISeries } from "data-forge";
-import { isDefined } from "data/common";
+import { isDefined } from "utils/common";
 
 import "./index.scss"
 import Timeline from "visualization/Timeline";

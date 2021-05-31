@@ -1,10 +1,7 @@
 import { DataFrame } from "data-forge"
-import { DataFrameConfigFn, IDataFrame, IDataFrameConfig } from "data-forge/build/lib/dataframe";
-import { Index } from "react-virtualized";
+import { DataFrameConfigFn, IDataFrameConfig } from "data-forge/build/lib/dataframe";
 
 // export type columnType = 'numerical' | 'categorical' | 'timestamp';
-
-
 export type ItemDesc = {
     LABEL: string,
     LABEL_CN: string
@@ -50,23 +47,3 @@ export type entityId = string;
 export type ReferenceValues = Record<itemId, Record<columnId, StatValues>>;
 
 export type ReferenceValueResponse = Record<entityId, ReferenceValues>;
-
-export function getColumnWidth(dataFrame: IDataFrame, includeIndex?: boolean,
-    maxWidth?: number, minWidth?: number) {
-    return ((params: Index) => {
-        let columnIndex = params.index;
-        if (!includeIndex) {
-            columnIndex += 1;
-        }
-        const column = dataFrame.getColumns().at(columnIndex);
-        const columnContent = column?.series.toArray();
-        columnContent?.push(column?.name);
-        const charLength = columnContent?.map(d => String(d).length);
-        let estLength = charLength && Math.max.apply(dataFrame, charLength) * 10 + 5;
-        if (maxWidth !== undefined && estLength)
-            estLength = Math.min(maxWidth, estLength);
-        if (minWidth !== undefined && estLength)
-            estLength = Math.max(minWidth, estLength);
-        return estLength || 120;
-    })
-}

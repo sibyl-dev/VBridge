@@ -1,4 +1,4 @@
-import { shallowCompare } from "data/common";
+import { shallowCompare } from "utils/common";
 import * as _ from 'lodash';
 import * as React from 'react';
 

@@ -7,7 +7,7 @@ export type PatientStatics = {
     ageInDays?: number,
 };
 
-export type patientTemporal = any;
+export type PatientTemporal = any;
 
 export type PatientGroup = { 
     ids: number[],
