@@ -13,7 +13,7 @@ LOGGER = logging.getLogger(__name__)
 def get_item_dict(es, entity_id):
     item_dict = {}
     if entity_id is 'LABEVENTS':
-      item_dict = es['D_LABITEMS'].df.loc[:, ['LABEL', 'LABEL_CN']].to_dict('index')
+        item_dict = es['D_LABITEMS'].df.loc[:, ['LABEL', 'LABEL_CN']].to_dict('index')
     elif entity_id in ['CHARTEVENTS, LABEVENTS']:
         df = es['D_ITEMS'].df
         items = df[df['LINKSTO'] == entity_id].loc[:, ['LABEL', 'LABEL_CN']]
@@ -117,22 +117,31 @@ def get_record_range(fm):
     return jsonify(info)
 
 
-def get_reference_value(es, table_name, column_name):
-    table_info = META_INFO[table_name]
-    df = es[table_name].df
+def get_reference_values(es, entity_id):
+    entity_info = META_INFO[entity_id]
+    df = es[entity_id].df
     df = df[df['SUBJECT_ID'].isin(current_app.selected_subject_ids)]
     references = {}
-    for group in df.groupby(table_info.get('item_index')):
+    columns = entity_info.get('value_indexes', [])
+    for group in df.groupby(entity_info.get('item_index')):
         item_name = group[0]
-        mean, count, std = group[1][column_name].agg(['mean', 'count', 'std'])
-        references[item_name] = {
-            'mean': 0 if np.isnan(mean) else mean,
-            'std': 0 if np.isnan(std) else std,
-            'count': 0 if np.isnan(count) else count,
-            'ci95': [0 if np.isnan(mean - 1.96 * std) else (mean - 1.96 * std),
-                     0 if np.isnan(mean + 1.96 * std) else (mean + 1.96 * std)]
-        }
-    return jsonify(references)
+        item_references = {}
+        for col in columns:
+            mean, count, std = group[1][col].agg(['mean', 'count', 'std'])
+            item_references[col] = {
+                'mean': 0 if np.isnan(mean) else mean,
+                'std': 0 if np.isnan(std) else std,
+                'count': 0 if np.isnan(count) else count,
+                'ci95': [0 if np.isnan(mean - 1.96 * std) else (mean - 1.96 * std),
+                         0 if np.isnan(mean + 1.96 * std) else (mean + 1.96 * std)]
+            }
+            references[item_name] = item_references
+    return references
+
+
+def get_all_reference_values(es):
+    entity_ids = [entity['id'] for entity in get_entity_set_schema(es)]
+    return {id: get_reference_values(es, id) for id in entity_ids}
 
 
 class EntitySchema(Resource):
@@ -277,13 +286,9 @@ class PatientSelection(Resource):
             return res
 
 
-class ReferenceValue(Resource):
+class ReferenceValues(Resource):
     def __init__(self):
         self.es = current_app.es
-
-        parser_get = reqparse.RequestParser(bundle_errors=True)
-        parser_get.add_argument('column_id', type=str, required=True, location='args')
-        self.parser_get = parser_get
 
     def get(self, entity_id):
         """
@@ -298,33 +303,51 @@ class ReferenceValue(Resource):
               type: string
             required: true
             description: ID of the entity.
-          - name: column_id
-            in: query
-            schema:
-              type: string
-            required: true
-            description: ID of the column.
         responses:
           200:
             description: The reference value of the target attributes.
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/ReferenceRange'
+                  $ref: '#/components/schemas/ReferenceValues'
           400:
             $ref: '#/components/responses/ErrorMessage'
           500:
             $ref: '#/components/responses/ErrorMessage'
         """
         try:
-            args = self.parser_get.parse_args()
+            res = get_reference_values(self.es, entity_id)
         except Exception as e:
-            LOGGER.exception(str(e))
-            return {'message', str(e)}, 400
+            LOGGER.exception(e)
+            return {'message': str(e)}, 500
+        else:
+            return res
 
-        column_id = args['column_id']
+
+class AllReferenceValues(Resource):
+    def __init__(self):
+        self.es = current_app.es
+
+    def get(self):
+        """
+        Get the reference value of the target attributes.
+        ---
+        tags:
+          - entity set
+        responses:
+          200:
+            description: The reference value of the target attributes.
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ReferenceValues'
+          400:
+            $ref: '#/components/responses/ErrorMessage'
+          500:
+            $ref: '#/components/responses/ErrorMessage'
+        """
         try:
-            res = get_reference_value(self.es, entity_id, column_id)
+            res = get_all_reference_values(self.es)
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500

@@ -36,14 +36,20 @@ export class Entity<IndexT, ValueT> extends DataFrame<IndexT, ValueT> {
     }
 }
 
-export type AggrValues = {
+export type StatValues = {
     mean: number,
     std: number,
     count: number,
     ci95: [number, number],
 }
 
-export type ReferenceValues = Record<string, AggrValues>;
+export type itemId = string;
+export type columnId = string;
+export type entityId = string;
+
+export type ReferenceValues = Record<itemId, Record<columnId, StatValues>>;
+
+export type ReferenceValueResponse = Record<entityId, ReferenceValues>;
 
 export function getColumnWidth(dataFrame: IDataFrame, includeIndex?: boolean,
     maxWidth?: number, minWidth?: number) {

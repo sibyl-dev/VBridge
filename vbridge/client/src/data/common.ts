@@ -1,6 +1,6 @@
 import * as _ from "lodash"
 import { AssertionError } from "assert";
-import { AggrValues } from "./entity";
+import { StatValues } from "./entity";
 
 export function distinct<T>(value: T, index: number, self: Array<T>) {
     return self.indexOf(value) === index;
@@ -107,7 +107,7 @@ export const isDefined = <T>(input: T | undefined | null): input is T => {
     return typeof input !== 'undefined' && input !== null;
 };
 
-export function getReferenceValue(data: number[]): AggrValues {
+export function getReferenceValue(data: number[]): StatValues {
     if (data.length == 0) {
         return {
             mean: 0,

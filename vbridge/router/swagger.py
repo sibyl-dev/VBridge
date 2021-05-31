@@ -83,6 +83,9 @@ schemas = {
             },
         }
     },
+    'ReferenceValues': {
+
+    },
     'SignalExplanation': {
         'type': 'array',
         'items': {

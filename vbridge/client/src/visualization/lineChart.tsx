@@ -5,7 +5,7 @@ import "./lineChart.css"
 
 import { getChildOrAppend, getScaleLinear, getScaleTime, IMargin, getMargin } from "./common";
 import { ISeries } from "data-forge";
-import { ReferenceValues, AggrValues } from "data/entity";
+import { ReferenceValues, StatValues } from "data/entity";
 import { Segment } from "data/explanation";
 
 export type PointLayout = {
@@ -29,19 +29,18 @@ export interface LineChartOptions {
     drawYAxis?: boolean,
     drawDots?: boolean,
     drawAnnotations?: boolean,
-    drawReferences?: boolean,
 }
 
 export interface LineChartParams extends LineChartOptions {
     data: { dates: ISeries<number, Date>, values: ISeries<number, any> }
-    referenceValue?: AggrValues,
+    referenceValue?: StatValues,
     segments?: Segment[],
     svg: SVGElement,
 }
 
 export function drawLineChart(params: LineChartParams) {
     const { data, svg, referenceValue, segments, xScale, yScale, drawXAxis, drawYAxis,
-        drawDots, drawReferences, drawAnnotations } = params;
+        drawDots, drawAnnotations } = params;
     const dates = data.dates.toArray();
     const values = data.values.toArray();
     const root = d3.select(svg);
@@ -255,20 +254,18 @@ console.log(margin);
             .attr("x1", 0)
             .attr("x2", width)
             .attr("y1", y(referenceValue.mean))
-            .attr("y2", y(referenceValue.mean))
-            .attr("display", drawReferences ? 'block' : 'none');
+            .attr("y2", y(referenceValue.mean));
         if (referenceValue.ci95)
             getChildOrAppend<SVGRectElement, SVGGElement>(base, "rect", "reference-area")
                 .attr("width", width)
                 .attr("height", y(Math.max(0, referenceValue.ci95[0])) - y(referenceValue.ci95[1]))
-                .attr("transform", `translate(0, ${y(referenceValue.ci95[1])})`)
-                .attr("display", drawReferences ? 'block' : 'none');
+                .attr("transform", `translate(0, ${y(referenceValue.ci95[1])})`);
     }
 }
 
 export interface LineChartProps extends LineChartOptions {
     data: { dates: ISeries<number, Date>, values: ISeries<number, any> }
-    referenceValue?: AggrValues
+    referenceValue?: StatValues
     segments?: Segment[]
 }
 

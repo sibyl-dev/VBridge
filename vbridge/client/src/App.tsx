@@ -15,7 +15,7 @@ import DynamicView, { SignalMeta } from "./components/DynamicView"
 
 import API from "./router/api"
 import { PatientStatics } from 'data/patient';
-import { Entity, EntitySetSchema } from 'data/entity';
+import { Entity, EntitySetSchema, ReferenceValueResponse } from 'data/entity';
 import { filterType } from 'data/filterType';
 
 import Panel from 'components/Panel';
@@ -42,6 +42,9 @@ interface AppStates {
   featureSchema?: IDataFrame<number, FeatureSchema>,
   targetSchema?: IDataFrame<number, FeatureSchema>,
 
+  // dynamic information
+  referenceValues?: ReferenceValueResponse,
+
   //patient information
   patientTemporal?: Entity<number, any>[],
   patientStatics?: PatientStatics,
@@ -67,7 +70,6 @@ interface AppStates {
   // filterRange?: filterType,
   // patientGroup?: PatientGroup,
   // conditions?: { [key: string]: any },
-  referenceValues?: undefined,
 
   // others
   visible?: boolean,
@@ -153,8 +155,9 @@ class App extends React.Component<AppProps, AppStates>{
       targetSchema = new DataFrame(featureSchemaResponse.targets);
     }
     const entitySetSchema = await API.entitySchemas.all();
+    const referenceValues = await API.referenceValues.all();
 
-    this.setState({ subjectIds, featureSchema, targetSchema, entitySetSchema });
+    this.setState({ subjectIds, featureSchema, targetSchema, entitySetSchema, referenceValues });
   }
 
   private async loadPredictions() {
@@ -224,7 +227,7 @@ class App extends React.Component<AppProps, AppStates>{
   }
 
   private buildSignalsByFeature(feature: Feature): SignalMeta[] {
-    const { patientStatics: patientMeta } = this.state;
+    const { patientStatics, referenceValues } = this.state;
     let signalMetaList: SignalMeta[] = [];
     if (feature.children && feature.children.count() > 0) {
       for (const child of feature.children) {
@@ -234,24 +237,27 @@ class App extends React.Component<AppProps, AppStates>{
     else {
       const { entityId, whereItem, columnName, id: name, period } = feature;
       const entity = this.state.patientTemporal?.find(e => e.id === entityId);
-      if (entity && entity.schema && patientMeta) {
+      if (entity && entity.schema && patientStatics) {
         const { item_index, time_index } = entity.schema;
         // const { SURGERY_BEGIN_TIME: SurgeryBeginTime, SURGERY_END_TIME: SurgeryEndTime } = patientMeta;
-        const SurgeryBeginTime = new Date(patientMeta.SURGERY_BEGIN_TIME);
-        const SurgeryEndTime = new Date(patientMeta.SURGERY_END_TIME);
+        const SurgeryBeginTime = new Date(patientStatics.SURGERY_BEGIN_TIME);
+        const SurgeryEndTime = new Date(patientStatics.SURGERY_END_TIME);
         const startTime = (period === 'in-surgery') ? SurgeryBeginTime :
           new Date(SurgeryBeginTime.getTime() - 1000 * 60 * 60 * 24 * 2);
         const endTime = (period === 'in-surgery') ? SurgeryEndTime : SurgeryBeginTime;
-        if (item_index && time_index && entityId)
+        if (item_index && time_index && entityId) {
+          const itemId = whereItem[1] as string;
           signalMetaList.push({
-            tableName: entityId,
-            columnName: columnName,
-            itemName: whereItem[1] as string,
+            entityId: entityId,
+            columnId: columnName,
+            itemId: itemId,
             relatedFeatureNames: name ? [name] : [],
+            statValues: referenceValues && referenceValues[entityId][itemId][columnName],
             startTime: startTime,
             endTime: endTime,
             featurePeriods: () => [startTime, endTime],
           })
+        }
       }
     }
     return signalMetaList
@@ -265,7 +271,7 @@ class App extends React.Component<AppProps, AppStates>{
   private updateSignals(newSignalMeta: SignalMeta[]) {
     const rawSignalMeta = new DataFrame([...this.state.pinnedSignalMetas, ...newSignalMeta]);
     // const rawSignalMeta = new DataFrame([...newSignalMeta]);
-    const signalMetas: SignalMeta[] = rawSignalMeta.groupBy(row => row.itemName).toArray().map(group => {
+    const signalMetas: SignalMeta[] = rawSignalMeta.groupBy(row => row.itemId).toArray().map(group => {
       const sample = group.first();
       return {
         ...sample,
@@ -279,9 +285,9 @@ class App extends React.Component<AppProps, AppStates>{
 
   private pinSignal(signalMeta: SignalMeta) {
     const { pinnedSignalMetas } = this.state;
-    const pinnedSignalNames = pinnedSignalMetas.map(s => `${s.itemName}`);
-    if (pinnedSignalNames.includes(signalMeta.itemName)) {
-      this.setState({ pinnedSignalMetas: pinnedSignalMetas.filter(s => s.itemName !== signalMeta.itemName) });
+    const pinnedSignalNames = pinnedSignalMetas.map(s => `${s.itemId}`);
+    if (pinnedSignalNames.includes(signalMeta.itemId)) {
+      this.setState({ pinnedSignalMetas: pinnedSignalMetas.filter(s => s.itemId !== signalMeta.itemId) });
     }
     else {
       pinnedSignalMetas.push(signalMeta);
@@ -292,8 +298,8 @@ class App extends React.Component<AppProps, AppStates>{
   private removeSignal(targetSignal: SignalMeta) {
     const { pinnedSignalMetas, signalMetas } = this.state;
     this.setState({
-      pinnedSignalMetas: pinnedSignalMetas.filter(s => s.itemName !== targetSignal.itemName),
-      signalMetas: signalMetas.filter(s => s.itemName !== targetSignal.itemName),
+      pinnedSignalMetas: pinnedSignalMetas.filter(s => s.itemId !== targetSignal.itemId),
+      signalMetas: signalMetas.filter(s => s.itemId !== targetSignal.itemId),
     });
   }
 
@@ -316,23 +322,25 @@ class App extends React.Component<AppProps, AppStates>{
   }
 
   private buildRecordByPeriod(entityName: string, startTime: Date, endTime: Date): SignalMeta[] {
+    const { referenceValues } = this.state;
     const entity = this.state.patientTemporal?.find(e => e.id === entityName);
     const { item_index, time_index, value_indexes } = entity?.schema!;
     if (entity && item_index && time_index && value_indexes && value_indexes.length > 0) {
       const selectedDf = entity.where(row => startTime < new Date(row[time_index]) && new Date(row[time_index]) < endTime)
-        .groupBy(row => (row[item_index])).where(group => group.first()[item_index] !== 'SV1');
+        .groupBy(row => (row[item_index]));
       let records: SignalMeta[] = [];
       for (const itemDf of selectedDf) {
-        const itemRecords: SignalMeta[] = value_indexes.map(value_index => {
-          const itemName = itemDf.first()[item_index];
+        const itemRecords: SignalMeta[] = value_indexes.map(columnId => {
+          const itemId = itemDf.first()[item_index];
           return {
-            tableName: entity.id!,
-            columnName: value_index,
-            itemName: itemName,
+            entityId: entity.id,
+            columnId: columnId,
+            itemId: itemId,
             startTime: startTime,
             endTime: endTime,
+            statValues: referenceValues && referenceValues[entity.id][itemId][columnId],
             // TODO: check this
-            relatedFeatureNames: this.getRelatedFeatures(entityName, itemName, startTime, endTime)
+            relatedFeatureNames: this.getRelatedFeatures(entityName, itemId, startTime, endTime)
           }
         })
         records = [...records, ...itemRecords]
@@ -440,7 +448,7 @@ class App extends React.Component<AppProps, AppStates>{
 
     const headerHeight = document.getElementById('header')?.offsetHeight || 0;
     const positions = signalMetas.map(signal => {
-      const end = getOffsetById(`temporal-view-element-${signal.itemName}`);
+      const end = getOffsetById(`temporal-view-element-${signal.itemId}`);
       if (end && end.top > (headerHeight + timelineViewHeight + 30)
         && end.bottom < window.innerHeight) {
         const starts = signal.relatedFeatureNames.map(featureName =>
@@ -456,7 +464,7 @@ class App extends React.Component<AppProps, AppStates>{
           y1: (start.top + start.bottom) / 2,
           x2: end.left,
           y2: (end.top + end.bottom) / 2,
-          color: this.entityCategoricalColor(signal.tableName)
+          color: this.entityCategoricalColor(signal.entityId)
         }))
       }
     }).filter(isDefined).filter(d => d.length > 0);
@@ -623,7 +631,7 @@ class App extends React.Component<AppProps, AppStates>{
                   tableNames={entitySetSchema.map(d => d.id)}
                   patientStatics={patientStatics}
                   featureSchema={featureSchema}
-                  tableRecords={patientTemporal}
+                  patientTemporals={patientTemporal}
                   onSelectEvents={this.updateSignalFromTimeline}
                   entityCategoricalColor={this.entityCategoricalColor}
                   referenceValues={referenceValues}
@@ -642,21 +650,21 @@ class App extends React.Component<AppProps, AppStates>{
                   </div>
                 </div>
               }>
-              {patientStatics && featureSchema && patientTemporal && <DynamicView
-                className={"temporal-view-element"}
-                align={true}
-                patientMeta={patientStatics}
-                featureMeta={featureSchema}
-                tableRecords={patientTemporal}
-                signalMetas={signalMetas}
-                width={window.innerWidth - featureViewWidth - ProfileWidth - 60 - xPadding * 4}
-                color={this.entityCategoricalColor}
-                updateFocusedFeatures={this.updateFocusedFeatures}
-                updatePinnedFocusedFeatures={this.updatePinnedFocusedFeatures}
-                pinSignal={this.pinSignal}
-                removeSignal={this.removeSignal}
-                referenceValues={referenceValues}
-              />}
+              {patientStatics && featureSchema && patientTemporal &&
+                <DynamicView
+                  className={"temporal-view-element"}
+                  align={true}
+                  patientStatics={patientStatics}
+                  featureSchemas={featureSchema}
+                  patientTemporals={patientTemporal}
+                  signalMetas={signalMetas}
+                  width={window.innerWidth - featureViewWidth - ProfileWidth - 60 - xPadding * 4}
+                  color={this.entityCategoricalColor}
+                  updateFocusedFeatures={this.updateFocusedFeatures}
+                  updatePinnedFocusedFeatures={this.updatePinnedFocusedFeatures}
+                  pinSignal={this.pinSignal}
+                  removeSignal={this.removeSignal}
+                />}
             </Panel>
             <Panel initialWidth={ProfileWidth} initialHeight={window.innerHeight - headerHeight - 2 * yPadding}
               x={window.innerWidth - xPadding - ProfileWidth} y={yPadding}
@@ -687,13 +695,13 @@ class App extends React.Component<AppProps, AppStates>{
                 </div>
               </div>}>
               {tableViewMeta && patientTemporal && featureSchema && entitySetSchema &&
-              <TableView
-                featureMeta={featureSchema}
-                patientMeta={patientStatics}
-                tableNames={entitySetSchema.map(d => d.id)}
-                tableMeta={tableViewMeta}
-                tableRecords={patientTemporal}
-              />}
+                <TableView
+                  featureMeta={featureSchema}
+                  patientMeta={patientStatics}
+                  tableNames={entitySetSchema.map(d => d.id)}
+                  tableMeta={tableViewMeta}
+                  tableRecords={patientTemporal}
+                />}
             </Panel>
             }
             <svg className="app-link-svg" ref={this.ref} style={{ height: window.innerHeight - headerHeight }} />

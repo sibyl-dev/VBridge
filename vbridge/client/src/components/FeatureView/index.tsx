@@ -11,7 +11,7 @@ import {
     ArrowDownOutlined, ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, CaretRightOutlined,
     FilterOutlined, LineChartOutlined, QuestionOutlined, SortAscendingOutlined, TableOutlined
 } from "@ant-design/icons"
-import { AggrValues, ItemDict, ReferenceValues } from "data/entity";
+import { StatValues, ItemDict, ReferenceValues } from "data/entity";
 import AreaChart from "visualization/AreaChart";
 import { arrayShallowCompare, getReferenceValue, isDefined } from "data/common";
 
@@ -212,7 +212,7 @@ export interface FeatureListProps {
     cellWidth: (id: number) => number,
     entityCategoricalColor?: (entityName: string | undefined) => string,
     contextFeatureValues: IDataFrame<number, any>[],
-    getReferenceValue?: (name: string) => (AggrValues | undefined),
+    getReferenceValue?: (name: string) => (StatValues | undefined),
     focusedFeatures: string[],
     display?: 'normal' | 'dense',
 
@@ -388,7 +388,7 @@ export interface FeatureBlockProps {
     feature: Feature,
     prediction: number,
     contextFeatureValues: IDataFrame<number, any>[],
-    getReferenceValue?: (name: string) => (AggrValues | undefined),
+    getReferenceValue?: (name: string) => (StatValues | undefined),
     x: d3.ScaleLinear<number, number>,
     cellWidth: (id: number) => number,
     entityCategoricalColor?: (entityName: string | undefined) => string,

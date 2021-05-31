@@ -3,7 +3,7 @@ import * as dataForge from "data-forge"
 import * as _ from "lodash"
 import { FeatureSchema, FeatureSchemaResponse, FeatureValue, FeatureValueResponse } from "data/feature";
 import { PatientGroup, PatientStatics, patientTemporal } from "data/patient";
-import { Entity, EntitySchema, EntitySetSchema, ItemDict, ReferenceValues } from "data/entity";
+import { Entity, EntitySchema, EntitySetSchema, ItemDict, ReferenceValueResponse, ReferenceValues } from "data/entity";
 import { ROOT_URL, DEV_MODE } from "./env";
 import { filterType } from 'data/filterType';
 import Resource from './restResource';
@@ -27,7 +27,7 @@ export class RestClient {
 
     // entity set
     public entitySchemas: Resource<EntitySchema, EntitySetSchema>;
-    public referenceValues: Resource<ReferenceValues, null>;
+    public referenceValues: Resource<ReferenceValues, ReferenceValueResponse>;
 
     // feature
     public featureSchemas: Resource<FeatureSchema, FeatureSchemaResponse>;
