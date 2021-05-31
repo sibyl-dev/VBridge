@@ -20,7 +20,7 @@ import { filterType } from 'data/filterType';
 
 import Panel from 'components/Panel';
 import { Feature, FeatureSchema } from 'data/feature';
-import { DataFrame, IDataFrame } from 'data-forge';
+import { DataFrame, IDataFrame, fromCSV } from 'data-forge';
 import { distinct, isDefined } from 'data/common';
 
 import { defaultCategoricalColor, getChildOrAppend, getOffsetById } from 'visualization/common';
@@ -28,6 +28,7 @@ import { CloseOutlined } from '@material-ui/icons';
 
 import './App.css';
 import { Prediction } from 'data/model';
+import FeatureView from 'components/FeatureView';
 
 const { Header, Content } = Layout;
 const { Option } = Select;
@@ -128,7 +129,7 @@ class App extends React.Component<AppProps, AppStates>{
 
   componentDidUpdate(prevProps: AppProps, prevState: AppStates) {
     const { patientStatics: patientMeta, dynamicViewLink } = this.state;
-    if (prevState.patientStatics?.id !== patientMeta?.id) {
+    if (prevState.patientStatics?.SUBJECT_ID !== patientMeta?.SUBJECT_ID) {
       this.loadPredictions();
       this.setState({ pinnedSignalMetas: [] });
     }
@@ -159,7 +160,7 @@ class App extends React.Component<AppProps, AppStates>{
   private async loadPredictions() {
     const { patientStatics } = this.state;
     if (patientStatics) {
-      const predictions = await API.predictions.find(patientStatics.id);
+      const predictions = await API.predictions.find(patientStatics.SUBJECT_ID);
       this.setState({ predictions });
     }
   }
@@ -191,8 +192,9 @@ class App extends React.Component<AppProps, AppStates>{
   public async selectPatientId(subjectId: number) {
     const patientStatics = await API.patientStatics.find(subjectId);
     const patientTemporal = await this.loadPatientTemporal(subjectId);
+    const predictions = await API.predictions.find(subjectId);
     const target = 'lung complication'  // TODO: use self.state.targetSchemas
-    this.setState({ patientStatics, patientTemporal, target });
+    this.setState({ patientStatics, patientTemporal, target, predictions });
   }
 
   public judgeTheAge(days: number) {
@@ -213,9 +215,10 @@ class App extends React.Component<AppProps, AppStates>{
     const { entitySetSchema } = this.state;
     const tableRecords: Entity<number, any>[] = []
     if (entitySetSchema)
-      for (let entity of entitySetSchema) {
-        const records = await API.patientTemporal.find(subjectId, { entity_id: entity.id });
-        tableRecords.push(records)
+      for (let entitySchema of entitySetSchema) {
+        const records = await API.patientTemporal.find(subjectId, {}, { entity_id: entitySchema.id });
+        const entity = new Entity(entitySchema, fromCSV(records));
+        tableRecords.push(entity);
       }
     return tableRecords
   }
@@ -233,7 +236,9 @@ class App extends React.Component<AppProps, AppStates>{
       const entity = this.state.patientTemporal?.find(e => e.id === entityId);
       if (entity && entity.schema && patientMeta) {
         const { item_index, time_index } = entity.schema;
-        const { SURGERY_BEGIN_TIME: SurgeryBeginTime, SURGERY_END_TIME: SurgeryEndTime } = patientMeta;
+        // const { SURGERY_BEGIN_TIME: SurgeryBeginTime, SURGERY_END_TIME: SurgeryEndTime } = patientMeta;
+        const SurgeryBeginTime = new Date(patientMeta.SURGERY_BEGIN_TIME);
+        const SurgeryEndTime = new Date(patientMeta.SURGERY_END_TIME);
         const startTime = (period === 'in-surgery') ? SurgeryBeginTime :
           new Date(SurgeryBeginTime.getTime() - 1000 * 60 * 60 * 24 * 2);
         const endTime = (period === 'in-surgery') ? SurgeryEndTime : SurgeryBeginTime;
@@ -511,9 +516,8 @@ class App extends React.Component<AppProps, AppStates>{
 
   public render() {
 
-    const { subjectIds, entitySetSchema, patientStatics: patientMeta, patientTemporal: tableRecords, featureSchema, targetSchema, showTableView,
-      focusedFeatures, pinnedfocusedFeatures, target, predictions, tableViewMeta,
-      signalMetas, visible, referenceValues } = this.state;
+    const { subjectIds, entitySetSchema, patientStatics, patientTemporal, featureSchema, targetSchema, showTableView,
+      focusedFeatures, pinnedfocusedFeatures, target, predictions, tableViewMeta, signalMetas, visible, referenceValues } = this.state;
     const { headerHeight, featureViewWidth, timelineViewHeight, ProfileWidth, xPadding, yPadding } = this.layout;
 
     return (
@@ -581,7 +585,7 @@ class App extends React.Component<AppProps, AppStates>{
             </div>
           </Header>
           <Content>
-            {/* <Panel initialWidth={featureViewWidth}
+            <Panel initialWidth={featureViewWidth}
               initialHeight={window.innerHeight - headerHeight - yPadding * 2} x={xPadding} y={yPadding}
               title={<div className="view-title">
                 <span className="view-title-text">Feature View</span>
@@ -591,10 +595,10 @@ class App extends React.Component<AppProps, AppStates>{
                     checkedChildren="on" unCheckedChildren="off" />
                 </div>
               </div>}>
-              {featureSchema && target && predictions &&
+              {patientStatics && featureSchema && target && predictions &&
                 <FeatureView
                   className={"feature-view-element"}
-                  patientMeta={patientMeta}
+                  patientStatics={patientStatics}
                   featureMeta={featureSchema}
                   prediction={predictions[target]}
                   // selectedIds={patientGroup && patientGroup.ids}
@@ -605,7 +609,7 @@ class App extends React.Component<AppProps, AppStates>{
                   display={this.state.featureViewDense ? 'dense' : 'normal'}
                   target={target}
                 />}
-            </Panel> */}
+            </Panel>
             {/* <Panel initialWidth={layout.timelineViewWidth} initialHeight={layout.timelineViewHeight}
              */}
             <Panel initialWidth={window.innerWidth - featureViewWidth - ProfileWidth - xPadding * 4}
@@ -614,19 +618,19 @@ class App extends React.Component<AppProps, AppStates>{
               title={<div className="view-title">
                 <span className="view-title-text">Timeline View</span>
               </div>}>
-              {patientMeta && featureSchema && entitySetSchema && tableRecords && referenceValues &&
+              {patientStatics && featureSchema && entitySetSchema && patientTemporal &&
                 <TimelineView
                   tableNames={entitySetSchema.map(d => d.id)}
-                  patientMeta={patientMeta}
-                  featureMeta={featureSchema}
-                  tableRecords={tableRecords}
+                  patientStatics={patientStatics}
+                  featureSchema={featureSchema}
+                  tableRecords={patientTemporal}
                   onSelectEvents={this.updateSignalFromTimeline}
                   entityCategoricalColor={this.entityCategoricalColor}
                   referenceValues={referenceValues}
                 />}
             </Panel>
 
-            {/* <Panel initialWidth={window.innerWidth - featureViewWidth - ProfileWidth - xPadding * 4}
+            <Panel initialWidth={window.innerWidth - featureViewWidth - ProfileWidth - xPadding * 4}
               initialHeight={window.innerHeight - headerHeight - timelineViewHeight - yPadding * 3}
               x={featureViewWidth + xPadding * 2} y={timelineViewHeight + yPadding * 2}
               title={
@@ -638,12 +642,12 @@ class App extends React.Component<AppProps, AppStates>{
                   </div>
                 </div>
               }>
-              {patientMeta && featureSchema && tableRecords && <DynamicView
+              {patientStatics && featureSchema && patientTemporal && <DynamicView
                 className={"temporal-view-element"}
                 align={true}
-                patientMeta={patientMeta}
+                patientMeta={patientStatics}
                 featureMeta={featureSchema}
-                tableRecords={tableRecords}
+                tableRecords={patientTemporal}
                 signalMetas={signalMetas}
                 width={window.innerWidth - featureViewWidth - ProfileWidth - 60 - xPadding * 4}
                 color={this.entityCategoricalColor}
@@ -653,7 +657,7 @@ class App extends React.Component<AppProps, AppStates>{
                 removeSignal={this.removeSignal}
                 referenceValues={referenceValues}
               />}
-            </Panel> */}
+            </Panel>
             <Panel initialWidth={ProfileWidth} initialHeight={window.innerHeight - headerHeight - 2 * yPadding}
               x={window.innerWidth - xPadding - ProfileWidth} y={yPadding}
               title={<div className="view-title">
@@ -667,11 +671,11 @@ class App extends React.Component<AppProps, AppStates>{
                 className={"meta-view-element"}
                 patientIds={subjectIds}
                 featureMeta={featureSchema}
-                patientInfoMeta={patientMeta}
+                patientInfoMeta={patientStatics}
                 updateFocusedFeatures={this.updateFocusedFeatures}
                 updatePinnedFocusedFeatures={this.updatePinnedFocusedFeatures}
                 entityCategoricalColor={this.entityCategoricalColor}
-                days={patientMeta && patientMeta.ageInDays}
+                days={patientStatics && patientStatics.ageInDays}
               />
               }
             </Panel>
@@ -682,13 +686,13 @@ class App extends React.Component<AppProps, AppStates>{
                   <Button icon={<CloseOutlined />} type="link" onClick={() => this.setState({ showTableView: false })} />
                 </div>
               </div>}>
-              {tableViewMeta && tableRecords && featureSchema && entitySetSchema &&
+              {tableViewMeta && patientTemporal && featureSchema && entitySetSchema &&
               <TableView
                 featureMeta={featureSchema}
-                patientMeta={patientMeta}
+                patientMeta={patientStatics}
                 tableNames={entitySetSchema.map(d => d.id)}
                 tableMeta={tableViewMeta}
-                tableRecords={tableRecords}
+                tableRecords={patientTemporal}
               />}
             </Panel>
             }

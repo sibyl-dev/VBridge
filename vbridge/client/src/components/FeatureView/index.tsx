@@ -25,7 +25,7 @@ export interface FeatureViewProps {
     prediction: number,
     focusedFeatures: string[],
     className?: string,
-    patientMeta?: PatientStatics,
+    patientStatics: PatientStatics,
     selectedIds?: number[],
     entityCategoricalColor?: (entityName: string | undefined) => string,
     display?: 'normal' | 'dense',
@@ -109,72 +109,72 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
     }
 
     private async updateFeatures() {
-        let { patientMeta, featureMeta, target } = this.props
-        const subjectId = patientMeta?.id;
-        if (subjectId !== undefined) {
-            const featureValues = await API.featureValues.find(subjectId);
-            const shapValues = await API.shapValues.find({ subject_id: subjectId, target });
-            const whatIfShapValues = await API.cfShapValues.find({ subject_id: subjectId, target });
-            // level-1: individual features
-            const L1Features: IDataFrame<number, Feature> = featureMeta.select(row => {
-                const whatifResults = whatIfShapValues && whatIfShapValues[row['id']!];
-                let alias = row.alias;
-                return {
-                    ...row,
-                    alias,
-                    value: featureValues ? featureValues[row['id']!] : 0,
-                    contribution: shapValues ? shapValues[row['id']!] : 0,
-                    contributionIfNormal: whatifResults && whatifResults.shap,
-                    predictionIfNormal: whatifResults && whatifResults.prediction,
-                };
-            });
-            // level-2: group-by item & period
-            const individualFeatures = L1Features.where(row => row.whereItem.length == 0);
-            const whereFeatures = L1Features.where(row => row.whereItem.length > 0);
-            const groups = whereFeatures.groupBy(row => row.period + row.whereItem[1]).toArray();
-            const groupedFeature: IDataFrame<number, Feature> = new DataFrame(groups.map(group => {
-                const sample = group.first();
-                const itemName = sample.whereItem![1] as string;
-                // const itemLabel = itemDicts && sample.entityId && itemDicts(sample.entityId, itemName)?.LABEL;
-                const entityId = _.uniq(group.getSeries('entityId').toArray().filter(isDefined)).length > 1 ? undefined : sample.entityId;
-                return {
-                    ...sample,
-                    name: 'g-' + _.reduce(group.getSeries('name').toArray(), (a, b) => `${a}-${b}`),
-                    entityId: entityId,
-                    // alias: itemLabel || itemName,
-                    alias: itemName,
-                    value: undefined,
-                    primitive: undefined,
-                    contribution: _.sum(group.getSeries('contribution').toArray()),
-                    contributionIfNormal: undefined,
-                    children: group
-                };
-            }));
-            const L2Features = individualFeatures.concat(groupedFeature);
-            // level-3: group-by period
-            const features = new DataFrame(L2Features.groupBy(row => row.type).toArray().map(group => {
-                const sample = group.first();
-                const entityId = _.uniq(group.getSeries('entityId').toArray().filter(isDefined)).length > 1 ? undefined : sample.entityId;
-                return {
-                    ...sample,
-                    entityId: entityId,
-                    name: 'g-' + _.reduce(group.getSeries('name').toArray(), (a, b) => `${a}-${b}`),
-                    alias: sample.type,
-                    value: undefined,
-                    primitive: undefined,
-                    contribution: _.sum(group.getSeries('contribution').toArray()),
-                    contributionIfNormal: undefined,
-                    children: group
-                }
-            }))
-            this.setState({ features, shapValues: featureMeta.select(f => shapValues ? shapValues[f.id!] : 0).toArray() })
-        }
+        let { patientStatics: patientMeta, featureMeta, target } = this.props
+        console.log(patientMeta.SUBJECT_ID);
+        const subjectId = patientMeta.SUBJECT_ID;
+        const featureValues = await API.featureValues.find(subjectId);
+        const shapValues = await API.shapValues.find(subjectId, {}, { target });
+        const whatIfShapValues = await API.cfShapValues.find(subjectId, {}, { target });
+        // level-1: individual features
+        const L1Features: IDataFrame<number, Feature> = featureMeta.select(row => {
+            const whatifResults = whatIfShapValues && whatIfShapValues[row['id']!];
+            let alias = row.alias;
+            return {
+                ...row,
+                alias,
+                value: featureValues ? featureValues[row['id']!] : 0,
+                contribution: shapValues ? shapValues[row['id']!] : 0,
+                contributionIfNormal: whatifResults && whatifResults.shap,
+                predictionIfNormal: whatifResults && whatifResults.prediction,
+            };
+        });
+        // level-2: group-by item & period
+        const individualFeatures = L1Features.where(row => row.whereItem.length == 0);
+        const whereFeatures = L1Features.where(row => row.whereItem.length > 0);
+        const groups = whereFeatures.groupBy(row => row.period + row.whereItem[1]).toArray();
+        const groupedFeature: IDataFrame<number, Feature> = new DataFrame(groups.map(group => {
+            const sample = group.first();
+            const itemName = sample.whereItem![1] as string;
+            // const itemLabel = itemDicts && sample.entityId && itemDicts(sample.entityId, itemName)?.LABEL;
+            const entityId = _.uniq(group.getSeries('entityId').toArray().filter(isDefined)).length > 1 ? undefined : sample.entityId;
+            return {
+                ...sample,
+                name: 'g-' + _.reduce(group.getSeries('name').toArray(), (a, b) => `${a}-${b}`),
+                entityId: entityId,
+                // alias: itemLabel || itemName,
+                alias: itemName,
+                value: undefined,
+                primitive: undefined,
+                contribution: _.sum(group.getSeries('contribution').toArray()),
+                contributionIfNormal: undefined,
+                children: group
+            };
+        }));
+        const L2Features = individualFeatures.concat(groupedFeature);
+        // level-3: group-by period
+        const features = new DataFrame(L2Features.groupBy(row => row.type).toArray().map(group => {
+            const sample = group.first();
+            const entityId = _.uniq(group.getSeries('entityId').toArray().filter(isDefined)).length > 1 ? undefined : sample.entityId;
+            return {
+                ...sample,
+                entityId: entityId,
+                name: 'g-' + _.reduce(group.getSeries('name').toArray(), (a, b) => `${a}-${b}`),
+                alias: sample.type,
+                value: undefined,
+                primitive: undefined,
+                contribution: _.sum(group.getSeries('contribution').toArray()),
+                contributionIfNormal: undefined,
+                children: group
+            }
+        }))
+        console.log(features);
+        this.setState({ features, shapValues: featureMeta.select(f => shapValues ? shapValues[f.id!] : 0).toArray() })
     }
 
     componentDidUpdate(prevProps: FeatureViewProps, prevState: FeatureViewStates) {
-        const { selectedIds: groupIds, patientMeta, target } = this.props;
+        const { selectedIds: groupIds, patientStatics: patientMeta, target } = this.props;
         if (prevState.featureMatrix != this.state.featureMatrix
-            || prevProps.patientMeta?.id !== patientMeta?.id
+            || prevProps.patientStatics?.SUBJECT_ID !== patientMeta?.SUBJECT_ID
             || prevProps.target !== target || !arrayShallowCompare(prevProps.selectedIds, groupIds)) {
             this.updateFeatures();
             this.updateReferenceValues();

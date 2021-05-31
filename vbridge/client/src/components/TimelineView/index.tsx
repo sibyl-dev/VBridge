@@ -17,8 +17,8 @@ import Timeline from "visualization/Timeline";
 
 export interface TimelineViewProps {
     tableNames: string[],
-    patientMeta: PatientStatics,
-    featureMeta: IDataFrame<number, FeatureSchema>,
+    patientStatics: PatientStatics,
+    featureSchema: IDataFrame<number, FeatureSchema>,
     tableRecords: Entity<number, any>[],
     onSelectEvents?: (entityName: string, startDate: Date, endDate: Date) => void,
     entityCategoricalColor?: (entityName?: string) => string,
@@ -51,21 +51,21 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
     }
 
     public init() {
-        const { patientMeta } = this.props
-        let startDate = patientMeta.ADMITTIME;
-        let endDate = patientMeta.SURGERY_END_TIME;
+        const { patientStatics } = this.props
+        let startDate = new Date(patientStatics.ADMITTIME);
+        let endDate = new Date(patientStatics.SURGERY_END_TIME);
         if (startDate && endDate) {
             const intervalByQuarter = calIntervalsByQuarter(startDate, endDate, 9, 16);
             const extent = getRefinedStartEndTime(startDate, endDate, intervalByQuarter);
             const timeScale = getScaleTime(0, this.ref.current!.offsetWidth - this.margin.left
-                - this.margin.right - this.titleWidth, undefined, extent)
+                - this.margin.right - this.titleWidth, undefined, extent);
             this.setState({ startTime: extent[0], endTime: extent[1], timeScale: timeScale, intervalByQuarter },
                 () => this._extractEvents());
         }
     }
 
     public componentDidUpdate(prevProps: TimelineViewProps, prevStates: TimelineViewStates) {
-        if (prevProps.patientMeta !== this.props.patientMeta) {
+        if (prevProps.patientStatics !== this.props.patientStatics) {
             this.init()
         }
         if (prevStates.timeScale !== this.state.timeScale) {

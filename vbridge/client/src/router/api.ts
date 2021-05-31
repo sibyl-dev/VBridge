@@ -50,20 +50,20 @@ export class RestClient {
         this.server = axios.create(this.requestConfig);
 
         // add resources
-        this.patientStatics = new Resource(this.server, 'feature_statics');
-        this.patientTemporal = new Resource(this.server, 'patient_temporal');
+        this.patientStatics = new Resource(this.server, 'patient_statics/');
+        this.patientTemporal = new Resource(this.server, 'patient_temporal/');
 
-        this.entitySchemas = new Resource(this.server, 'entity_schema');
-        this.referenceValues = new Resource(this.server, 'reference_values');
+        this.entitySchemas = new Resource(this.server, 'entity_schema/');
+        this.referenceValues = new Resource(this.server, 'reference_values/');
 
-        this.featureSchemas = new Resource(this.server, 'feature_schemas');
-        this.featureValues = new Resource(this.server, 'feature_values');
+        this.featureSchemas = new Resource(this.server, 'feature_schemas/');
+        this.featureValues = new Resource(this.server, 'feature_values/');
 
-        this.predictions = new Resource(this.server, 'prediction_targets');
+        this.predictions = new Resource(this.server, 'predictions/');
 
-        this.shapValues = new Resource(this.server, 'shap_values');
-        this.cfShapValues = new Resource(this.server, 'counterfactual_shap_values');
-        this.signalExplanation = new Resource(this.server, 'signal_explanations');
+        this.shapValues = new Resource(this.server, 'shap_values/');
+        this.cfShapValues = new Resource(this.server, 'counterfactual_shap_values/');
+        this.signalExplanation = new Resource(this.server, 'signal_explanations/');
     }
 }
 
@@ -95,19 +95,6 @@ export async function getPatientRecords(params: {
 
     const table = new Entity(metaInfo, dataForge.fromCSV(csvResponse));
     return table;
-}
-
-export async function getTableNames(): Promise<string[]> {
-    const url = `${API_URL}/table_names`;
-    const response = await axios.get(url);
-    let tableNames = checkResponse(response, []);
-    return tableNames;
-}
-
-export async function getPatientIds(): Promise<number[]> {
-    const url = `${API_URL}/available_ids`;
-    const response = await axios.get(url);
-    return checkResponse(response, [])
 }
 
 export async function getPatientFilterRange(): Promise<filterType> {

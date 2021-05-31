@@ -1,5 +1,5 @@
 export type PatientStatics = {
-    id: number,
+    SUBJECT_ID: number,
     ADMITTIME: Date,
     GENDER: string,
     SURGERY_BEGIN_TIME: Date,

@@ -10,11 +10,13 @@ LOGGER = logging.getLogger(__name__)
 
 
 def get_shap_values(model_manager, subject_id, target):
+    subject_id = int(subject_id)
     shap_values = model_manager.explain(id=subject_id, target=target)
     return jsonify(shap_values.loc[0].to_dict())
 
 
 def get_what_if_shap_values(fm, model_manager, subject_id, target):
+    subject_id = int(subject_id)
     shap_values = {}
     if current_app.selected_subject_ids is not None:
         selected_fm = fm.loc[current_app.selected_subject_ids]
@@ -68,11 +70,10 @@ class ShapValues(Resource):
         self.model_manager = current_app.model_manager
 
         parser_get = reqparse.RequestParser(bundle_errors=True)
-        parser_get.add_argument('subject_id', type=int, required=True, location='args')
         parser_get.add_argument('target', type=str, required=True, location='args')
         self.parser_get = parser_get
 
-    def get(self):
+    def get(self, subject_id):
         """
         Get the SHAP explanations of a patient.
         ---
@@ -80,7 +81,7 @@ class ShapValues(Resource):
           - explanation
         parameters:
           - name: subject_id
-            in: query
+            in: path
             schema:
               type: integer
             required: true
@@ -108,8 +109,6 @@ class ShapValues(Resource):
         except Exception as e:
             LOGGER.exception(str(e))
             return {'message', str(e)}, 400
-
-        subject_id = args['subject_id']
         target = args['target']
         try:
             res = get_shap_values(self.model_manager, subject_id, target)
@@ -126,11 +125,10 @@ class ShapValuesIfNormal(Resource):
         self.model_manager = current_app.model_manager
 
         parser_get = reqparse.RequestParser(bundle_errors=True)
-        parser_get.add_argument('subject_id', type=int, required=True, location='args')
         parser_get.add_argument('target', type=str, required=True, location='args')
         self.parser_get = parser_get
 
-    def get(self):
+    def get(self, subject_id):
         """
         Modify the out-of-reference-range features to the closet normal values one by one and
         get the updated predictions and SHAP explanations.
@@ -139,7 +137,7 @@ class ShapValuesIfNormal(Resource):
           - explanation
         parameters:
           - name: subject_id
-            in: query
+            in: path
             schema:
               type: integer
             required: true
@@ -167,8 +165,6 @@ class ShapValuesIfNormal(Resource):
         except Exception as e:
             LOGGER.exception(str(e))
             return {'message', str(e)}, 400
-
-        subject_id = args['subject_id']
         target = args['target']
         try:
             res = get_what_if_shap_values(self.fm, self.model_manager, subject_id, target)

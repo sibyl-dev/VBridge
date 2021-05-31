@@ -34,6 +34,6 @@ def add_routes(app):
     # model
     api.add_resource(res.model.Prediction, API + 'predictions/<string:subject_id>')
     # explanation
-    api.add_resource(res.explanation.ShapValues, API + 'shap_values/')
-    api.add_resource(res.explanation.ShapValuesIfNormal, API + 'counterfactual_shap_values/')
+    api.add_resource(res.explanation.ShapValues, API + 'shap_values/<string:subject_id>')
+    api.add_resource(res.explanation.ShapValuesIfNormal, API + 'counterfactual_shap_values/<string:subject_id>')
     api.add_resource(res.signal_explanation.SignalExplanation, API + 'signal_explanations/')
