@@ -117,8 +117,6 @@ class App extends React.Component<AppProps, AppStates>{
 
     this.paintLink = this.paintLink.bind(this);
     this.removeLink = this.removeLink.bind(this);
-
-    this.tableNamesChange = this.tableNamesChange.bind(this)
   }
 
   componentDidMount() {
@@ -154,8 +152,10 @@ class App extends React.Component<AppProps, AppStates>{
     const referenceValues = await API.referenceValues.all();
     const featureMat = fromCSV(await API.featureValues.all(), { dynamicTyping: true });
 
-    this.setState({ subjectIds, featureSchema, targetSchema, entitySetSchema, 
-      referenceValues, featureMat });
+    this.setState({
+      subjectIds, featureSchema, targetSchema, entitySetSchema,
+      referenceValues, featureMat
+    });
   }
 
   private async loadPredictions() {
@@ -183,39 +183,15 @@ class App extends React.Component<AppProps, AppStates>{
   private onSelectSubjectId() {
     this.loadPredictions();
     this.loadFeatures();
+    this.loadPatientTemporal();
     this.setState({ pinnedSignalMetas: [] });
   }
 
-  // private async loadReferenceValues() {
-  //   const { tableNames } = this.state;
-  //   if (tableNames) {
-  //     const references: { name: string, referenceValues: ReferenceValueDict }[] = [];
-  //     for (const name of tableNames) {
-  //       let targetColumn = undefined;
-  //       if (name === 'CHARTEVENTS') {
-  //         targetColumn = 'VALUE';
-  //       }
-  //       if (name === 'SURGERY_VITAL_SIGNS') {
-  //         targetColumn = 'VALUE';
-  //       }
-  //       if (name === 'LABEVENTS') {
-  //         targetColumn = 'VALUENUM';
-  //       }
-  //       if (targetColumn) {
-  //         const referenceValues = await getReferenceValues({ table_name: name, column_name: targetColumn });
-  //         references.push({ name, referenceValues });
-  //       }
-  //     }
-  //     this.setState({ referenceValues: (tableName: string) => references.find(e => e.name === tableName)?.referenceValues })
-  //   }
-  // }
-
   public async selectSubjectId(subjectId: number) {
     const patientStatics = await API.patientStatics.find(subjectId);
-    const patientTemporal = await this.loadPatientTemporal(subjectId);
-    const predictions = await API.predictions.find(subjectId);
+    const patientPreds = await API.predictions.find(subjectId);
     const target = 'lung complication'  // TODO: use self.state.targetSchemas
-    this.setState({ patientStatics, patientTemporal, target, patientPreds: predictions }, this.onSelectSubjectId);
+    this.setState({ patientStatics, target, patientPreds }, this.onSelectSubjectId);
   }
 
   // private async filterPatients(conditions: { [key: string]: any }, changeornot: boolean) {
@@ -225,16 +201,18 @@ class App extends React.Component<AppProps, AppStates>{
   //   }
   // }
 
-  private async loadPatientTemporal(subjectId: number) {
-    const { entitySetSchema } = this.state;
-    const tableRecords: Entity<number, any>[] = []
-    if (entitySetSchema)
+  private async loadPatientTemporal() {
+    const { entitySetSchema, patientStatics } = this.state;
+    const patientTemporal: Entity<number, any>[] = []
+    if (entitySetSchema && patientStatics) {
+      const subjectId = patientStatics.SUBJECT_ID;
       for (let entitySchema of entitySetSchema) {
         const records = await API.patientTemporal.find(subjectId, {}, { entity_id: entitySchema.id });
         const entity = new Entity(entitySchema, fromCSV(records));
-        tableRecords.push(entity);
+        patientTemporal.push(entity);
       }
-    return tableRecords
+    }
+    this.setState({ patientTemporal });
   }
 
   private buildSignalsByFeature(feature: Feature): SignalMeta[] {
@@ -424,17 +402,6 @@ class App extends React.Component<AppProps, AppStates>{
     this.setState({ visible })
   };
 
-  private tableNamesChange(name: string) {
-    if (name == 'LABEVENTS')
-      return 'Lab Tests'
-    if (name == 'SURGERY_VITAL_SIGNS')
-      return 'Vital Signs'
-    if (name == 'CHARTEVENTS')
-      return 'Chart Events'
-    return 'Prescriptions'
-  }
-
-
   private entityCategoricalColor(entityName?: string) {
     const { entitySetSchema } = this.state;
     if (entityName && ['Demographic', 'Admission', 'Surgery', 'Patient Info', 'Surgery Info',
@@ -555,7 +522,7 @@ class App extends React.Component<AppProps, AppStates>{
                     {entitySetSchema?.map(entity =>
                       <div className="legend-block" key={entity.id}>
                         <div className='legend-rect' style={{ backgroundColor: this.entityCategoricalColor(entity.id) }} />
-                        <span className='legend-name'>{this.tableNamesChange(entity.id)}</span>
+                        <span className='legend-name'>{entity.alias || entity.id}</span>
                       </div>
                     )}
                     <div className="legend-block">
