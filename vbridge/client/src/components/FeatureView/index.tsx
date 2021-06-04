@@ -1,5 +1,3 @@
-import { Feature, FeatureSchema } from "type/feature";
-import { PatientStatics } from "type/patient";
 import * as React from "react";
 import * as d3 from "d3";
 import { Button, Tooltip, Popover, Slider } from "antd"
@@ -11,13 +9,13 @@ import {
     ArrowDownOutlined, ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, CaretRightOutlined,
     FilterOutlined, LineChartOutlined, QuestionOutlined, SortAscendingOutlined, TableOutlined
 } from "@ant-design/icons"
-import { StatValues, ItemDict, ReferenceValues } from "type/entity";
+import { Feature, FeatureSchema, StatValues, ReferenceValues, PatientStatics } from "type";
 import AreaChart from "visualization/AreaChart";
+import BarChart from "visualization/BarChart";
 import { arrayShallowCompare, getReferenceValue, isDefined } from "utils/common";
 
 import "./index.scss"
 import { SHAPContributions } from "./SHAPBand";
-import BarChart from "visualization/BarChart";
 
 export interface FeatureViewProps {
     featureMeta: IDataFrame<number, FeatureSchema>,
@@ -35,7 +33,6 @@ export interface FeatureViewProps {
 }
 
 export interface FeatureViewStates {
-    featureDisplayValues?: DataFrame,
     features?: IDataFrame<number, Feature>,
     shapValues?: number[],
     featureMatrix?: IDataFrame<number, any>,
@@ -109,21 +106,20 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
     }
 
     private async updateFeatures() {
-        let { patientStatics: patientMeta, featureMeta, target } = this.props
-        console.log(patientMeta.SUBJECT_ID);
-        const subjectId = patientMeta.SUBJECT_ID;
+        let { patientStatics, featureMeta, target } = this.props
+        const subjectId = patientStatics.SUBJECT_ID;
         const featureValues = await API.featureValues.find(subjectId);
         const shapValues = await API.shapValues.find(subjectId, {}, { target });
         const whatIfShapValues = await API.cfShapValues.find(subjectId, {}, { target });
         // level-1: individual features
         const L1Features: IDataFrame<number, Feature> = featureMeta.select(row => {
-            const whatifResults = whatIfShapValues && whatIfShapValues[row['id']!];
+            const whatifResults = whatIfShapValues && whatIfShapValues[row['id']];
             let alias = row.alias;
             return {
                 ...row,
                 alias,
-                value: featureValues ? featureValues[row['id']!] : 0,
-                contribution: shapValues ? shapValues[row['id']!] : 0,
+                value: featureValues ? featureValues[row['id']] : 0,
+                contribution: shapValues ? shapValues[row['id']] : 0,
                 contributionIfNormal: whatifResults && whatifResults.shap,
                 predictionIfNormal: whatifResults && whatifResults.prediction,
             };
@@ -167,8 +163,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                 children: group
             }
         }))
-        console.log(features);
-        this.setState({ features, shapValues: featureMeta.select(f => shapValues ? shapValues[f.id!] : 0).toArray() })
+        this.setState({ features, shapValues: featureMeta.select(f => shapValues ? shapValues[f.id] : 0).toArray() })
     }
 
     componentDidUpdate(prevProps: FeatureViewProps, prevState: FeatureViewStates) {
