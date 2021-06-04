@@ -1,34 +1,29 @@
 import React from 'react';
-import * as d3 from "d3"
+import * as d3 from "d3";
 import * as _ from 'lodash';
 
-import { Layout, Drawer, Tooltip, Button, Select, Switch } from 'antd'
-import { FilterOutlined } from '@ant-design/icons'
+import { Layout, Drawer, Tooltip, Button, Select, Switch } from 'antd';
+import { FilterOutlined } from '@ant-design/icons';
+import { CloseOutlined } from '@material-ui/icons';
 
-// import FeatureView from "./components/FeatureView"
-import MetaView from "./components/MetaView"
-import TableView, { TableMeta } from "./components/TableView"
-import TimelineView from "./components/TimelineView"
-
+import Panel from 'components/Panel';
+import MetaView from "./components/MetaView";
 import DynamicView, { SignalMeta } from "./components/DynamicView"
+import FeatureView from 'components/FeatureView';
+import TableView, { TableMeta } from "./components/TableView";
+import TimelineView from "./components/TimelineView";
 // import FilterView from "./components/FilterView"
 
 import API from "./router/api"
-import { PatientStatics } from 'type/patient';
-import { Entity, EntitySetSchema, ReferenceValueResponse } from 'type/entity';
-import { filterType } from 'type/filterType';
+import { Entity, EntitySetSchema, Feature, FeatureSchema, ReferenceValueResponse, PatientStatics, Prediction } from 'type';
 
-import Panel from 'components/Panel';
-import { Feature, FeatureSchema } from 'type/feature';
 import { DataFrame, IDataFrame, fromCSV } from 'data-forge';
 import { distinct, isDefined } from 'utils/common';
 
 import { defaultCategoricalColor, getChildOrAppend, getOffsetById } from 'visualization/common';
-import { CloseOutlined } from '@material-ui/icons';
 
 import './App.css';
-import { Prediction } from 'type/model';
-import FeatureView from 'components/FeatureView';
+import { buildFeatures } from 'utils/feature';
 
 const { Header, Content } = Layout;
 const { Option } = Select;
@@ -42,14 +37,17 @@ interface AppStates {
   featureSchema?: IDataFrame<number, FeatureSchema>,
   targetSchema?: IDataFrame<number, FeatureSchema>,
 
-  // dynamic information
-  referenceValues?: ReferenceValueResponse,
-
   //patient information
   patientTemporal?: Entity<number, any>[],
   patientStatics?: PatientStatics,
-  predictions?: Prediction,
+  patientPreds?: Prediction,
+  features?: IDataFrame<number, Feature>,
   target?: string,
+
+  //cohort information
+  selectIds?: number[],
+  featureMat?: IDataFrame<number, any>,
+  referenceValues?: ReferenceValueResponse,
 
   //for table view
   tableViewMeta?: TableMeta,
@@ -89,9 +87,11 @@ class App extends React.Component<AppProps, AppStates>{
       featureViewDense: false, dynamicViewLink: false, dynamicViewAlign: false
     };
 
-    this.selectPatientId = this.selectPatientId.bind(this);
+    this.selectSubjectId = this.selectSubjectId.bind(this);
     this.loadPatientTemporal = this.loadPatientTemporal.bind(this);
     this.loadPredictions = this.loadPredictions.bind(this);
+    this.loadFeatures = this.loadFeatures.bind(this);
+    this.onSelectSubjectId = this.onSelectSubjectId.bind(this);
     // this.loadReferenceValues = this.loadReferenceValues.bind(this);
     // this.filterPatients = this.filterPatients.bind(this)
     this.buildRecordByPeriod = this.buildRecordByPeriod.bind(this);
@@ -130,11 +130,7 @@ class App extends React.Component<AppProps, AppStates>{
   }
 
   componentDidUpdate(prevProps: AppProps, prevState: AppStates) {
-    const { patientStatics: patientMeta, dynamicViewLink } = this.state;
-    if (prevState.patientStatics?.SUBJECT_ID !== patientMeta?.SUBJECT_ID) {
-      this.loadPredictions();
-      this.setState({ pinnedSignalMetas: [] });
-    }
+    const { dynamicViewLink } = this.state;
     if (prevState.dynamicViewLink !== dynamicViewLink) {
       if (dynamicViewLink) {
         this.paintId = setInterval(this.paintLink);
@@ -156,16 +152,38 @@ class App extends React.Component<AppProps, AppStates>{
     }
     const entitySetSchema = await API.entitySchemas.all();
     const referenceValues = await API.referenceValues.all();
+    const featureMat = fromCSV(await API.featureValues.all(), { dynamicTyping: true });
 
-    this.setState({ subjectIds, featureSchema, targetSchema, entitySetSchema, referenceValues });
+    this.setState({ subjectIds, featureSchema, targetSchema, entitySetSchema, 
+      referenceValues, featureMat });
   }
 
   private async loadPredictions() {
     const { patientStatics } = this.state;
     if (patientStatics) {
       const predictions = await API.predictions.find(patientStatics.SUBJECT_ID);
-      this.setState({ predictions });
+      this.setState({ patientPreds: predictions });
     }
+  }
+
+  private async loadFeatures() {
+    const { featureSchema, patientStatics, target } = this.state;
+    if (featureSchema && patientStatics) {
+      const subjectId = patientStatics.SUBJECT_ID;
+      const featureValues = await API.featureValues.find(subjectId);
+      const shapValues = await API.shapValues.find(subjectId, {}, { target });
+      const whatIfShapValues = await API.cfShapValues.find(subjectId, {}, { target });
+      if (featureValues) {
+        const features = buildFeatures(featureSchema, featureValues, shapValues, whatIfShapValues);
+        this.setState({ features });
+      }
+    }
+  }
+
+  private onSelectSubjectId() {
+    this.loadPredictions();
+    this.loadFeatures();
+    this.setState({ pinnedSignalMetas: [] });
   }
 
   // private async loadReferenceValues() {
@@ -192,19 +210,12 @@ class App extends React.Component<AppProps, AppStates>{
   //   }
   // }
 
-  public async selectPatientId(subjectId: number) {
+  public async selectSubjectId(subjectId: number) {
     const patientStatics = await API.patientStatics.find(subjectId);
     const patientTemporal = await this.loadPatientTemporal(subjectId);
     const predictions = await API.predictions.find(subjectId);
     const target = 'lung complication'  // TODO: use self.state.targetSchemas
-    this.setState({ patientStatics, patientTemporal, target, predictions });
-  }
-
-  public judgeTheAge(days: number) {
-    if (days <= 28) return '< 1 month'
-    else if (days <= 12 * 30) return '< 1 year'
-    else if (days <= 36 * 30) return '1-3 years'
-    else return '> 3 years'
+    this.setState({ patientStatics, patientTemporal, target, patientPreds: predictions }, this.onSelectSubjectId);
   }
 
   // private async filterPatients(conditions: { [key: string]: any }, changeornot: boolean) {
@@ -524,8 +535,8 @@ class App extends React.Component<AppProps, AppStates>{
 
   public render() {
 
-    const { subjectIds, entitySetSchema, patientStatics, patientTemporal, featureSchema, targetSchema, showTableView,
-      focusedFeatures, pinnedfocusedFeatures, target, predictions, tableViewMeta, signalMetas, visible, referenceValues } = this.state;
+    const { subjectIds, entitySetSchema, patientStatics, patientTemporal, featureSchema, features, targetSchema, showTableView, featureMat,
+      focusedFeatures, pinnedfocusedFeatures, target, patientPreds: predictions, tableViewMeta, signalMetas, visible, referenceValues } = this.state;
     const { headerHeight, featureViewWidth, timelineViewHeight, ProfileWidth, xPadding, yPadding } = this.layout;
 
     return (
@@ -565,7 +576,7 @@ class App extends React.Component<AppProps, AppStates>{
                 </div>
                 <span className='header-name'>Patient: </span>
                 <div className='header-content'>
-                  <Select style={{ width: 120 }} onChange={this.selectPatientId} className="patient-selector">
+                  <Select style={{ width: 120 }} onChange={this.selectSubjectId} className="patient-selector">
                     {subjectIds && subjectIds.map((id, i) =>
                       <Option value={id} key={i}>{id}</Option>
                     )}
@@ -603,11 +614,11 @@ class App extends React.Component<AppProps, AppStates>{
                     checkedChildren="on" unCheckedChildren="off" />
                 </div>
               </div>}>
-              {patientStatics && featureSchema && target && predictions &&
+              {patientStatics && features && target && predictions &&
                 <FeatureView
                   className={"feature-view-element"}
-                  patientStatics={patientStatics}
-                  featureMeta={featureSchema}
+                  features={features}
+                  featureMat={featureMat}
                   prediction={predictions[target]}
                   // selectedIds={patientGroup && patientGroup.ids}
                   entityCategoricalColor={this.entityCategoricalColor}
@@ -615,7 +626,6 @@ class App extends React.Component<AppProps, AppStates>{
                   inspectFeatureInSignal={this.updateSignalsByFeature}
                   inspectFeatureInTable={this.updateTableViewFromFeatures}
                   display={this.state.featureViewDense ? 'dense' : 'normal'}
-                  target={target}
                 />}
             </Panel>
             {/* <Panel initialWidth={layout.timelineViewWidth} initialHeight={layout.timelineViewHeight}

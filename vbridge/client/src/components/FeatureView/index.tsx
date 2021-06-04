@@ -1,15 +1,14 @@
 import * as React from "react";
 import * as d3 from "d3";
 import { Button, Tooltip, Popover, Slider } from "antd"
-import API from "router/api";
-import { DataFrame, IDataFrame, fromCSV } from "data-forge";
+import { DataFrame, IDataFrame } from "data-forge";
 import * as _ from "lodash"
 import { getScaleLinear, beautifulPrinter, defaultCategoricalColor } from "visualization/common";
 import {
     ArrowDownOutlined, ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, CaretRightOutlined,
     FilterOutlined, LineChartOutlined, QuestionOutlined, SortAscendingOutlined, TableOutlined
 } from "@ant-design/icons"
-import { Feature, FeatureSchema, StatValues, ReferenceValues, PatientStatics } from "type";
+import { Feature, StatValues, ReferenceValues } from "type";
 import AreaChart from "visualization/AreaChart";
 import BarChart from "visualization/BarChart";
 import { arrayShallowCompare, getReferenceValue, isDefined } from "utils/common";
@@ -18,28 +17,24 @@ import "./index.scss"
 import { SHAPContributions } from "./SHAPBand";
 
 export interface FeatureViewProps {
-    featureMeta: IDataFrame<number, FeatureSchema>,
-    target: string,
-    prediction: number,
-    focusedFeatures: string[],
     className?: string,
-    patientStatics: PatientStatics,
-    selectedIds?: number[],
-    entityCategoricalColor?: (entityName: string | undefined) => string,
+    features: IDataFrame<number, Feature>,
+    featureMat?: IDataFrame<number, any>,
+    prediction?: number,
+
     display?: 'normal' | 'dense',
+    focusedFeatures: string[],
+    entityCategoricalColor?: (entityName: string | undefined) => string,
 
     inspectFeatureInSignal?: (feature: Feature) => void,
     inspectFeatureInTable?: (feature: Feature) => void,
 }
 
 export interface FeatureViewStates {
-    features?: IDataFrame<number, Feature>,
-    shapValues?: number[],
-    featureMatrix?: IDataFrame<number, any>,
-    selectedMatrix?: IDataFrame<number, any>,
-    selectedMatWithDesiredOutputs?: IDataFrame<number, any>,
-    selectedMatWithoutDesiredOutputs?: IDataFrame<number, any>,
-    referenceValues?: IDataFrame<string, ReferenceValues>,
+    groupedFeatures?: IDataFrame<number, Feature>,
+    desiredFeatureMat?: IDataFrame<number, any>,
+    undesiredFeatureMat?: IDataFrame<number, any>,
+    referenceValues?: Record<string, ReferenceValues>,
 }
 
 export default class FeatureView extends React.Component<FeatureViewProps, FeatureViewStates> {
@@ -49,54 +44,31 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
 
         this.state = {};
         this.defaultCellWidth = this.defaultCellWidth.bind(this);
-        this.getReferenceValues = this.getReferenceValues.bind(this);
         this.updateReferenceValues = this.updateReferenceValues.bind(this);
     }
 
     componentDidMount() {
-        this.loadFeatureMatAndRefs();
         this.updateFeatures();
-    }
-
-    // only run ones
-    private async loadFeatureMatAndRefs() {
-        const featureMatrix = fromCSV(await API.featureValues.all(), { dynamicTyping: true })
-            .setIndex('SUBJECT_ID');
-        this.setState({ featureMatrix });
+        this.updateReferenceValues();
     }
 
     // run when the group ids updates
     private updateReferenceValues() {
-        const { featureMeta, selectedIds } = this.props;
-        const { featureMatrix } = this.state;
-        if (featureMatrix) {
-            const featureNames = featureMeta.getSeries('name').toArray() as string[];
-            const selectedVectors = selectedIds && selectedIds.map(id => featureMatrix.at(id));
-            if (selectedVectors?.length == 0) {
-                alert("No patient in the selection.");
+        const { featureMat } = this.props;
+        if (featureMat) {
+            const desiredFeatureMat = featureMat.where(row => row['complication'] === 0);
+            const undesiredFeatureMat = featureMat.where(row => row['complication'] !== 0);
+            if (desiredFeatureMat.count() == 0) alert("No patient in the selection.");
+            else {
+                // const featureIds = 
+                // const referenceValues = new DataFrame({
+                //     index: featureNames,
+                //     values: featureNames.map(name =>
+                //         getReferenceValue(desiredFeatureMat.getSeries(name).toArray())
+                //     )
+                // })
+                this.setState({ desiredFeatureMat, undesiredFeatureMat });
             }
-            else if (selectedVectors) {
-                const selectedMatrix = selectedVectors && selectedVectors[0] ? new DataFrame(selectedVectors) : featureMatrix;
-                const selectedMatWithDesiredOutputs = selectedMatrix.where(row => row['complication'] === 0);
-                const selectedMatWithoutDesiredOutputs = selectedMatrix.where(row => row['complication'] !== 0);
-                if (selectedMatWithDesiredOutputs.count() == 0) alert("No patient in the selection.");
-                else {
-                    const referenceValues = new DataFrame({
-                        index: featureNames,
-                        values: featureNames.map(name =>
-                            getReferenceValue(selectedMatWithDesiredOutputs.getSeries(name).toArray())
-                        )
-                    })
-                    this.setState({ selectedMatrix, selectedMatWithDesiredOutputs, selectedMatWithoutDesiredOutputs });
-                }
-            }
-        }
-    }
-
-    private getReferenceValues(name: string) {
-        const { referenceValues } = this.state;
-        if (referenceValues) {
-            return referenceValues.at(name);
         }
     }
 
@@ -106,27 +78,10 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
     }
 
     private async updateFeatures() {
-        let { patientStatics, featureMeta, target } = this.props
-        const subjectId = patientStatics.SUBJECT_ID;
-        const featureValues = await API.featureValues.find(subjectId);
-        const shapValues = await API.shapValues.find(subjectId, {}, { target });
-        const whatIfShapValues = await API.cfShapValues.find(subjectId, {}, { target });
-        // level-1: individual features
-        const L1Features: IDataFrame<number, Feature> = featureMeta.select(row => {
-            const whatifResults = whatIfShapValues && whatIfShapValues[row['id']];
-            let alias = row.alias;
-            return {
-                ...row,
-                alias,
-                value: featureValues ? featureValues[row['id']] : 0,
-                contribution: shapValues ? shapValues[row['id']] : 0,
-                contributionIfNormal: whatifResults && whatifResults.shap,
-                predictionIfNormal: whatifResults && whatifResults.prediction,
-            };
-        });
+        const { features } = this.props
         // level-2: group-by item & period
-        const individualFeatures = L1Features.where(row => row.whereItem.length == 0);
-        const whereFeatures = L1Features.where(row => row.whereItem.length > 0);
+        const individualFeatures = features.where(row => row.whereItem.length == 0);
+        const whereFeatures = features.where(row => row.whereItem.length > 0);
         const groups = whereFeatures.groupBy(row => row.period + row.whereItem[1]).toArray();
         const groupedFeature: IDataFrame<number, Feature> = new DataFrame(groups.map(group => {
             const sample = group.first();
@@ -148,7 +103,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
         }));
         const L2Features = individualFeatures.concat(groupedFeature);
         // level-3: group-by period
-        const features = new DataFrame(L2Features.groupBy(row => row.type).toArray().map(group => {
+        const groupedFeatures = new DataFrame(L2Features.groupBy(row => row.type).toArray().map(group => {
             const sample = group.first();
             const entityId = _.uniq(group.getSeries('entityId').toArray().filter(isDefined)).length > 1 ? undefined : sample.entityId;
             return {
@@ -163,32 +118,29 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                 children: group
             }
         }))
-        this.setState({ features, shapValues: featureMeta.select(f => shapValues ? shapValues[f.id] : 0).toArray() })
+        this.setState({ groupedFeatures })
     }
 
-    componentDidUpdate(prevProps: FeatureViewProps, prevState: FeatureViewStates) {
-        const { selectedIds: groupIds, patientStatics: patientMeta, target } = this.props;
-        if (prevState.featureMatrix != this.state.featureMatrix
-            || prevProps.patientStatics?.SUBJECT_ID !== patientMeta?.SUBJECT_ID
-            || prevProps.target !== target || !arrayShallowCompare(prevProps.selectedIds, groupIds)) {
+    componentDidUpdate(prevProps: FeatureViewProps) {
+        const { features, featureMat } = this.props;
+        if (prevProps.featureMat != featureMat || prevProps.features != features) {
             this.updateFeatures();
             this.updateReferenceValues();
         }
     }
 
     public render() {
-        const { target, entityCategoricalColor, ...rest } = this.props;
-        const { features, shapValues, selectedMatWithDesiredOutputs, selectedMatWithoutDesiredOutputs } = this.state;
+        const { entityCategoricalColor, ...rest } = this.props;
+        const { groupedFeatures, desiredFeatureMat, undesiredFeatureMat } = this.state;
         const contextFeatureValues = [];
-        if (selectedMatWithDesiredOutputs) contextFeatureValues.push(selectedMatWithDesiredOutputs);
-        if (selectedMatWithoutDesiredOutputs) contextFeatureValues.push(selectedMatWithoutDesiredOutputs);
+        if (desiredFeatureMat) contextFeatureValues.push(desiredFeatureMat);
+        if (undesiredFeatureMat) contextFeatureValues.push(undesiredFeatureMat);
 
         return (
             <div className="feature-view">
-                {features && <FeatureList
+                {groupedFeatures && <FeatureList
                     {...rest}
-                    shapValues={shapValues}
-                    features={features}
+                    features={groupedFeatures}
                     cellWidth={this.defaultCellWidth}
                     contextFeatureValues={contextFeatureValues}
                     // getReferenceValue={this.getReferenceValues}
@@ -203,13 +155,14 @@ export interface FeatureListProps {
     className?: string,
     features: IDataFrame<number, Feature>,
     shapValues?: number[],
-    prediction: number,
+    prediction?: number,
     cellWidth: (id: number) => number,
-    entityCategoricalColor?: (entityName: string | undefined) => string,
     contextFeatureValues: IDataFrame<number, any>[],
-    getReferenceValue?: (name: string) => (StatValues | undefined),
+    referenceValue?: Record<string, StatValues>,
+
     focusedFeatures: string[],
     display?: 'normal' | 'dense',
+    entityCategoricalColor?: (entityName: string | undefined) => string,
 
     inspectFeatureInSignal?: (feature: Feature) => void,
     inspectFeatureInTable?: (feature: Feature) => void,
@@ -288,7 +241,6 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
                 vFeature.children.forEach(f => f.show = !f.show);
             }
         }
-        console.log(VFeatureList.filter(d => d.show));
         this.setState({ VFeatureList });
     }
 
@@ -381,7 +333,7 @@ export interface FeatureBlockProps {
     className?: string,
     depth: number,
     feature: Feature,
-    prediction: number,
+    prediction?: number,
     contextFeatureValues: IDataFrame<number, any>[],
     getReferenceValue?: (name: string) => (StatValues | undefined),
     x: d3.ScaleLinear<number, number>,
@@ -553,7 +505,7 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                             })}
                             {(contribution > x.domain()[1]) && <ArrowRightOutlined className="overflow-notation-right" />}
                             {(contribution < x.domain()[0]) && <ArrowLeftOutlined className="overflow-notation-left" />}
-                            {showWhatIf && predictionIfNormal && whatIfValue && <div className={"what-if-label"}>
+                            {showWhatIf && predictionIfNormal && whatIfValue && prediction && <div className={"what-if-label"}>
                                 <div className={"label-circle"} style={{ backgroundColor: defaultCategoricalColor(Math.round(prediction)) }}>
                                     {prediction > 0.5 ? 'High' : 'Low'}
                                 </div>
