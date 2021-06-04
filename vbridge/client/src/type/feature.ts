@@ -6,7 +6,14 @@ export interface FeatureSchema {
     primitive?: string,
     entityId?: string,
     columnName: string
-    whereItem: [string, string] | [],
+    item?: {
+        columnId: string,
+        itemId: string,
+        itemAlias?: {
+            LABEL: string,
+            LABEL_CN: string,
+        },
+    }
     period: 'in-surgery' | 'pre-surgery' | 'others',
     type: 'Pre-surgery' | 'In-surgery'
 };

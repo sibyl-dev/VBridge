@@ -224,7 +224,7 @@ class App extends React.Component<AppProps, AppStates>{
       }
     }
     else {
-      const { entityId, whereItem, columnName, id: name, period } = feature;
+      const { entityId, item, columnName, id: name, period } = feature;
       const entity = this.state.patientTemporal?.find(e => e.id === entityId);
       if (entity && entity.schema && patientStatics) {
         const { item_index, time_index } = entity.schema;
@@ -235,7 +235,7 @@ class App extends React.Component<AppProps, AppStates>{
           new Date(SurgeryBeginTime.getTime() - 1000 * 60 * 60 * 24 * 2);
         const endTime = (period === 'in-surgery') ? SurgeryEndTime : SurgeryBeginTime;
         if (item_index && time_index && entityId) {
-          const itemId = whereItem[1] as string;
+          const itemId = item!.itemId;
           signalMetaList.push({
             entityId: entityId,
             columnId: columnName,
@@ -297,7 +297,7 @@ class App extends React.Component<AppProps, AppStates>{
     let relatedFeatureNames: string[] = []
     if (featureMeta && patientMeta) {
       const { SURGERY_BEGIN_TIME: SurgeryBeginTime, SURGERY_END_TIME: SurgeryEndTime } = patientMeta;
-      const candidates = featureMeta.where(row => row.entityId === entityName && row.whereItem[1] === itemName);
+      const candidates = featureMeta.where(row => row.entityId === entityName && row.item?.itemId === itemName);
       if (startTime < SurgeryBeginTime && endTime.getTime() > (SurgeryBeginTime.getTime() - 1000 * 60 * 60 * 24 * 2)) {
         relatedFeatureNames = relatedFeatureNames.concat(
           candidates.where(row => row.period === 'pre-surgery').getSeries('name').toArray())
@@ -373,7 +373,7 @@ class App extends React.Component<AppProps, AppStates>{
     const { patientStatics: patientMeta } = this.state;
     // feature groups with multiple entities are not supported
     const getItemList = (feature: Feature) => {
-      const item = feature.whereItem.length > 1 ? feature.whereItem[1] : undefined;
+      const item = feature.item?.itemId;
       let items = item ? [item] : [];
       if (feature.children)
         for (const child of feature.children) {

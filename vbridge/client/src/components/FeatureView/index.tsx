@@ -80,12 +80,12 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
     private async updateFeatures() {
         const { features } = this.props
         // level-2: group-by item & period
-        const individualFeatures = features.where(row => row.whereItem.length == 0);
-        const whereFeatures = features.where(row => row.whereItem.length > 0);
-        const groups = whereFeatures.groupBy(row => row.period + row.whereItem[1]).toArray();
+        const individualFeatures = features.where(row => row.item === undefined);
+        const whereFeatures = features.where(row => row.item !== undefined);
+        const groups = whereFeatures.groupBy(row => row.period + row.item?.itemId).toArray();
         const groupedFeature: IDataFrame<number, Feature> = new DataFrame(groups.map(group => {
             const sample = group.first();
-            const itemName = sample.whereItem![1] as string;
+            const itemName = sample.item!.itemAlias?.LABEL || sample.item!.itemId;
             // const itemLabel = itemDicts && sample.entityId && itemDicts(sample.entityId, itemName)?.LABEL;
             const entityId = _.uniq(group.getSeries('entityId').toArray().filter(isDefined)).length > 1 ? undefined : sample.entityId;
             return {

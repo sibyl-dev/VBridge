@@ -12,11 +12,11 @@ LOGGER = logging.getLogger(__name__)
 
 def get_item_dict(es, entity_id):
     item_dict = {}
-    if entity_id is 'LABEVENTS':
+    if entity_id == 'LABEVENTS':
         item_dict = es['D_LABITEMS'].df.loc[:, ['LABEL', 'LABEL_CN']].to_dict('index')
-    elif entity_id in ['CHARTEVENTS, LABEVENTS']:
+    elif entity_id in ['CHARTEVENTS', 'LABEVENTS', 'SURGERY_VITAL_SIGNS']:
         df = es['D_ITEMS'].df
-        items = df[df['LINKSTO'] == entity_id].loc[:, ['LABEL', 'LABEL_CN']]
+        items = df[df['LINKSTO'] == entity_id.lower()].loc[:, ['LABEL', 'LABEL_CN']]
         item_dict = items.to_dict('index')
     return item_dict
 
