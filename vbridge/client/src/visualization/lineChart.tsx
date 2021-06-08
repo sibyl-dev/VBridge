@@ -5,8 +5,7 @@ import "./lineChart.css"
 
 import { getChildOrAppend, getScaleLinear, getScaleTime, IMargin, getMargin } from "./common";
 import { ISeries } from "data-forge";
-import { ReferenceValues, StatValues } from "type/entity";
-import { Segment } from "type/explanation";
+import { Segment, StatValues } from "type";
 
 export type PointLayout = {
     x: number,
@@ -64,8 +63,6 @@ export function drawLineChart(params: LineChartParams) {
     const y = yScale || getScaleLinear(0, height, undefined,
         [maxValue + yPadding, Math.max(minValue - yPadding, 0)]);
 
-console.log(margin);
-
     getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "x-axis-base")
         .attr("transform", `translate(0, ${height})`)
         .call(d3.axisBottom(t))
@@ -92,8 +89,6 @@ console.log(margin);
     const lower = referenceValue && referenceValue.ci95 && ((value: number) => value < referenceValue.ci95[0]);
     const higher = referenceValue && referenceValue.ci95 && ((value: number) => value > referenceValue.ci95[1]);
 
-    // let higherSegments: PointLayout[][] = [];
-    // let lowerSegments: PointLayout[][] = [];
     let outofCISegments: { type: 'high' | 'low', points: PointLayout[] }[] = []
     if (lower && higher) {
         let currentHigherBin: PointLayout[] = [];
@@ -127,16 +122,6 @@ console.log(margin);
             currentHigherBin = [];
         }
     }
-    // getChildOrAppend(base, 'path', 'line')
-    //     .datum(points)
-    //     .attr("class", "line")
-    //     .attr("d", line);
-    // const segmentLayouts: SegmentLayout[] | undefined = segments?.map(d => {
-    //     const involvedValues = 
-    //     return {...d}
-    // })
-
-
 
     pointPairs && getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "line-base")
         .selectAll(".line-seg")
@@ -155,33 +140,7 @@ console.log(margin);
         .classed("highlight", (d, i) => outofCI ? (outofCI(values[i]) && outofCI(values[i + 1])) : false)
         .classed("dashed", (d, i) => outofCI && !params.expand ? !(outofCI(values[i]) && outofCI(values[i + 1])) : false)
 
-    const annotBase = getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "point-anno-base")
-    // annotBase.selectAll(".point-anno-arrow")
-    //     .data(points)
-    //     .join(
-    //         enter => enter
-    //             .append("line")
-    //             .attr("class", "point-anno-arrow"),
-    //         update => update,
-    //         exit => { exit.remove() }
-    //     )
-    //     .attr("display", (d, i) => (outofCI && outofCI(values[i])) ? "block" : "none")
-    //     .attr("x1", d => d.x)
-    //     .attr("x2", d => d.x)
-    //     .attr("y1", d => d.y)
-    //     .attr("y2", (d, i) => {
-    //         if (lower && lower(values[i])) {
-    //             return d.y + 5;
-    //         }
-    //         if (higher && higher(values[i])) {
-    //             return d.y - 5;
-    //         }
-    //         return d.y;
-    //     })
-    //     .style("marker-end", "url(#arrowhead)");
-
-    const abnormalBase = getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "point-anno-base");
-    abnormalBase
+    getChildOrAppend<SVGGElement, SVGGElement>(base, "g", "point-anno-base")
         .selectAll(".point-anno-arrow")
         .data(outofCISegments)
         .join(
@@ -218,12 +177,10 @@ console.log(margin);
             update => update,
             exit => { exit.remove() }
         )
-        // .attr("display", (d, i) => drawDots || (outofCI && outofCI(values[i])) ? "block" : "none")
         .attr("display", d => beginEndOfSeg(d) === 'none' ? 'none' : 'block')
         .attr("cx", d => d.x)
         .attr("cy", d => d.y)
         .attr("r", 3)
-        // .classed("highlight", (d, i) => outofCI ? outofCI(values[i]) : false);
         .classed("highlight", d => beginEndOfSeg(d) === 'none' ? false : true)
 
     const padding = 5;
@@ -244,8 +201,6 @@ console.log(margin);
             .attr("y", d => y(d.maxValue) - 5)
             .attr("height", d => y(d.minValue) - y(d.maxValue) + 10)
             .attr("rx", 2)
-            // .attr("y", 0)
-            // .attr("height", height);
     }
 
 
@@ -254,12 +209,14 @@ console.log(margin);
             .attr("x1", 0)
             .attr("x2", width)
             .attr("y1", y(referenceValue.mean))
-            .attr("y2", y(referenceValue.mean));
+            .attr("y2", y(referenceValue.mean))
+            .style("display", params.expand ? "block" : "none");
         if (referenceValue.ci95)
             getChildOrAppend<SVGRectElement, SVGGElement>(base, "rect", "reference-area")
                 .attr("width", width)
                 .attr("height", y(Math.max(0, referenceValue.ci95[0])) - y(referenceValue.ci95[1]))
-                .attr("transform", `translate(0, ${y(referenceValue.ci95[1])})`);
+                .attr("transform", `translate(0, ${y(referenceValue.ci95[1])})`)
+                .style("display", params.expand ? "block" : "none");
     }
 }
 
@@ -305,10 +262,6 @@ export default class LineChart extends React.PureComponent<LineChartProps> {
                         refX="0" refY="5" orient="auto">
                         <polygon points="0 0, 10 5, 0 10" fill="#e13c60" />
                     </marker>
-                    {/* <marker id="arrowhead" viewBox="64 64 896 896"
-                        orient="auto">
-                        <path d = "M868 545.5L536.1 163a31.96 31.96 0 00-48.3 0L156 545.5a7.97 7.97 0 006 13.2h81c4.6 0 9-2 12.1-5.5L474 300.9V864c0 4.4 3.6 8 8 8h60c4.4 0 8-3.6 8-8V300.9l218.9 252.3c3 3.5 7.4 5.5 12.1 5.5h81c6.8 0 10.5-8 6-13.2z"/>
-                    </marker> */}
                 </defs>
             </svg>
         </div>

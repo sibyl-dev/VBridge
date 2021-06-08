@@ -19,11 +19,11 @@ import { Entity, EntitySetSchema, Feature, FeatureSchema, ReferenceValueResponse
 
 import { DataFrame, IDataFrame, fromCSV } from 'data-forge';
 import { distinct, isDefined } from 'utils/common';
+import { buildFeatures } from 'utils/feature';
 
 import { defaultCategoricalColor, getChildOrAppend, getOffsetById } from 'visualization/common';
 
 import './App.css';
-import { buildFeatures } from 'utils/feature';
 
 const { Header, Content } = Layout;
 const { Option } = Select;
@@ -45,7 +45,7 @@ interface AppStates {
   target?: string,
 
   //cohort information
-  selectIds?: number[],
+  selectedIds?: number[],
   featureMat?: IDataFrame<number, any>,
   referenceValues?: ReferenceValueResponse,
 
@@ -92,7 +92,6 @@ class App extends React.Component<AppProps, AppStates>{
     this.loadPredictions = this.loadPredictions.bind(this);
     this.loadFeatures = this.loadFeatures.bind(this);
     this.onSelectSubjectId = this.onSelectSubjectId.bind(this);
-    // this.loadReferenceValues = this.loadReferenceValues.bind(this);
     // this.filterPatients = this.filterPatients.bind(this)
     this.buildRecordByPeriod = this.buildRecordByPeriod.bind(this);
     this.updateSignalFromTimeline = this.updateSignalFromTimeline.bind(this);
@@ -228,7 +227,6 @@ class App extends React.Component<AppProps, AppStates>{
       const entity = this.state.patientTemporal?.find(e => e.id === entityId);
       if (entity && entity.schema && patientStatics) {
         const { item_index, time_index } = entity.schema;
-        // const { SURGERY_BEGIN_TIME: SurgeryBeginTime, SURGERY_END_TIME: SurgeryEndTime } = patientMeta;
         const SurgeryBeginTime = new Date(patientStatics.SURGERY_BEGIN_TIME);
         const SurgeryEndTime = new Date(patientStatics.SURGERY_END_TIME);
         const startTime = (period === 'in-surgery') ? SurgeryBeginTime :
