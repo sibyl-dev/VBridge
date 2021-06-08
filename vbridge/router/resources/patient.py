@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime
 
 from flask import Response, current_app, jsonify
 from flask_restful import Resource, reqparse
@@ -20,9 +19,6 @@ def get_patient_statics(es, subject_id):
         column_names = es[table_name].df.columns
         for col in column_names:
             info[col] = str(records[col].values[0])
-    # info['ageInDays'] = datetime.fromisoformat(info['SURGERY_BEGIN_TIME']) - \
-    #   datetime.fromisoformat(info['DOB'])
-
     return jsonify(info)
 
 
@@ -31,7 +27,6 @@ def get_patient_temporal(es, subject_id, table_name):
     subject_id = int(subject_id)
     cutoff_times = current_app.cutoff_times
     records = get_patient_records(es, table_name, subject_id, cutoff_times=cutoff_times)
-
     return Response(records.to_csv(), mimetype="text/csv")
 
 

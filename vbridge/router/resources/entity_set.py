@@ -2,7 +2,7 @@ import json
 import logging
 
 import numpy as np
-from flask import current_app, jsonify
+from flask import current_app
 from flask_restful import Resource, reqparse
 
 from vbridge.data_loader.settings import META_INFO, filter_variables
@@ -38,7 +38,6 @@ def get_entity_schema(es, entity_id):
         for i, col in enumerate(column_names):
             if col == table_info.get("time_index") or col in table_info.get("secondary_index", []):
                 info['types'][i] = 'timestamp'
-
     return info
 
 
@@ -93,28 +92,25 @@ def get_patient_group(es, filters):
     return {'ids': selected_subject_ids}
 
 
-def get_record_range(fm):
-    info = {}
-    for i, filter_name in enumerate(filter_variables):
-        # categorical
-        if filter_name == 'GENDER':
-            info[filter_name] = ['F', 'M']
-        elif filter_name == 'Age':
-            info[filter_name] = ['< 1 month', '< 1 year', '1-3 years', '> 3 years']
-            all_records = list(set(fm[filter_name]))
-            info['age'] = [min(all_records), max(all_records)]
-        elif filter_name == 'SURGERY_NAME':
-            all_records = []
-            for surgeryname in fm[filter_name]:
-                all_records = all_records + surgeryname
-            info[filter_name] = list(set(all_records))
-        elif fm[filter_name].dtype == object:
-            all_records = sorted(set(fm[filter_name]))
-            info[filter_name] = all_records
+def get_static_ranges(es):
+    ranges = []
+    for var in filter_variables:
+        df = es[var['entityId']].df
+        records = df[var['attributeId']].tolist()
+        if var['type'] == 'Numerical':
+            extent = [min(records), max(records)]
+        elif var['type'] == 'Categorical':
+            extent = sorted(set(records))
+        elif var['type'] == 'Multi-hot':
+            split_records = []
+            for record in records:
+                split_records += record.split('+')
+            extent = sorted(set(split_records))
         else:
-            all_records = list(set(fm[filter_name]))
-            info[filter_name] = [min(all_records), max(all_records)]
-    return jsonify(info)
+            raise ValueError("Unsupported variable type.")
+        var['extent'] = extent
+        ranges.append(var)
+    return ranges
 
 
 def get_reference_values(es, entity_id):
@@ -145,9 +141,6 @@ def get_all_reference_values(es):
 
 
 class EntitySchema(Resource):
-    def __init__(self):
-        self.es = current_app.es
-
     def get(self, entity_id):
         """
         Get the schema of the entity.
@@ -172,7 +165,7 @@ class EntitySchema(Resource):
             $ref: '#/components/responses/ErrorMessage'
         """
         try:
-            res = get_entity_schema(self.es, entity_id)
+            res = get_entity_schema(current_app.es, entity_id)
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500
@@ -181,9 +174,6 @@ class EntitySchema(Resource):
 
 
 class EntitySetSchema(Resource):
-
-    def __init__(self):
-        self.es = current_app.es
 
     def get(self):
         """
@@ -202,7 +192,7 @@ class EntitySetSchema(Resource):
             $ref: '#/components/responses/ErrorMessage'
         """
         try:
-            res = get_entity_set_schema(self.es)
+            res = get_entity_set_schema(current_app.es)
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500
@@ -211,9 +201,6 @@ class EntitySetSchema(Resource):
 
 
 class StaticRecordRange(Resource):
-
-    def __init__(self):
-        self.fm = current_app.fm
 
     def get(self):
         """
@@ -232,7 +219,7 @@ class StaticRecordRange(Resource):
             $ref: '#/components/responses/ErrorMessage'
         """
         try:
-            res = get_record_range(self.fm)
+            res = get_static_ranges(current_app.es)
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500
