@@ -31,7 +31,7 @@ def get_entity_schema(es, entity_id):
         info['alias'] = table_info.get('alias')
         info['item_dict'] = get_item_dict(es, entity_id)
         column_names = es[entity_id].df.columns
-        df = current_app.es[entity_id].df
+        df = es[entity_id].df
         # distinguish "categorical" and "numerical" columns
         info['types'] = ['categorical' if df[name].dtype == object
                          else 'numerical' for name in column_names]
@@ -45,51 +45,6 @@ def get_entity_set_schema(es):
     entity_ids = ['LABEVENTS', 'SURGERY_VITAL_SIGNS', 'CHARTEVENTS']
     schema = [get_entity_schema(es, entity_id) for entity_id in entity_ids]
     return schema
-
-
-# TODO: generalize the filtering function
-def get_patient_group(es, filters):
-    table_names = ['PATIENTS', 'SURGERY_INFO', 'ADMISSIONS']
-    number_variables = ['Height', 'Weight', 'Surgical time (minutes)']
-
-    selected_subject_ids = es['PATIENTS'].df['SUBJECT_ID'].to_list()
-
-    for i, table_name in enumerate(table_names):
-        df = es[table_name].df
-        df = df[df['SUBJECT_ID'].isin(selected_subject_ids)]
-        for item, value in filters.items():
-            if item in df.columns:
-                if item in number_variables:
-                    df = df[(df[item] >= value[0]) & (df[item] <= value[1])]
-                elif item == 'Age':
-                    filter_flag = False
-                    if '< 1 month' in value:
-                        filter_flag = filter_flag | (df[item] <= 1)
-                    if '1-3 years' in value:
-                        filter_flag = filter_flag | (
-                            df[item] >= 12) & (df[item] <= 36)
-                    if '< 1 year' in value:
-                        filter_flag = filter_flag | (
-                            df[item] >= 1) & (df[item] <= 12)
-                    if '> 3 years' in value:
-                        filter_flag = filter_flag | (df[item] >= 36)
-                    df = df[filter_flag]
-                elif item == 'SURGERY_NAME':
-                    # do nothing when he is []
-                    df = df[df.apply(lambda x: np.array([t in x[item] for t in value]).all(),
-                                     axis='columns')]
-                elif item == 'SURGERY_POSITION':
-                    df = df[df.apply(lambda x: np.array([t in x[item] for t in value]).any(),
-                                     axis='columns')]
-                elif item == 'GENDER':
-                    df = df[df[item].isin(value)]
-                else:
-                    raise UserWarning("Condition: {} will not be considered.".format(item))
-
-        selected_subject_ids = df['SUBJECT_ID'].drop_duplicates().values.tolist()
-
-    current_app.selected_subject_ids = selected_subject_ids
-    return {'ids': selected_subject_ids}
 
 
 def get_static_ranges(es):
@@ -113,10 +68,30 @@ def get_static_ranges(es):
     return ranges
 
 
-def get_reference_values(es, entity_id):
+def get_patient_groups(es, filters):
+    subjectIds = es['PATIENTS'].df.index.tolist()
+    for var in filters:
+        df = es[var['entityId']].df
+        df = df[df['SUBJECT_ID'].isin(subjectIds)]
+        col = var['attributeId']
+        extent = var['extent']
+        if var['type'] == 'Numerical':
+            df = df[df[col] >= extent[0] & df[col] <= extent[1]]
+        elif var['type'] == 'Categorical':
+            df = df[df[col].isin(extent)]
+        elif var['type'] == 'Multi-hot':
+            df = df[df.apply(lambda x: np.array([t in x[col] for t in extent]).all(),
+                             axis='columns')]
+        else:
+            raise ValueError("Unsupported variable type.")
+        subjectIds = df['SUBJECT_ID'].drop_duplicates().values.tolist()
+    return subjectIds
+
+
+def get_reference_values(es, entity_id, subject_ids):
     entity_info = META_INFO[entity_id]
     df = es[entity_id].df
-    df = df[df['SUBJECT_ID'].isin(current_app.selected_subject_ids)]
+    df = df[df['SUBJECT_ID'].isin(subject_ids)]
     references = {}
     columns = entity_info.get('value_indexes', [])
     for group in df.groupby(entity_info.get('item_index')):
@@ -229,11 +204,8 @@ class StaticRecordRange(Resource):
 
 class PatientSelection(Resource):
     def __init__(self):
-        self.es = current_app.es
-        self.fm = current_app.fm
-
         parser_get = reqparse.RequestParser(bundle_errors=True)
-        parser_get.add_argument('filters', type=str, required=True, location='args')
+        parser_get.add_argument('filters', type=str, location='args')
         self.parser_get = parser_get
 
     def put(self):
@@ -243,8 +215,9 @@ class PatientSelection(Resource):
         tags:
           - entity set
         parameters:
-          - name: filter
+          - name: filters
             in: query
+            required: true
             schema:
               type: string
         responses:
@@ -259,13 +232,14 @@ class PatientSelection(Resource):
         """
         try:
             args = self.parser_get.parse_args()
-            filters = json.loads(args['filters'])
+            filters = json.loads(args.get('filters', '[]'))
         except Exception as e:
             LOGGER.exception(str(e))
             return {'message', str(e)}, 400
 
         try:
-            res = get_patient_group(self.es, filters)
+            res = get_patient_groups(current_app.es, filters)
+            current_app.selected_subject_ids = res
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500
@@ -274,8 +248,6 @@ class PatientSelection(Resource):
 
 
 class ReferenceValues(Resource):
-    def __init__(self):
-        self.es = current_app.es
 
     def get(self, entity_id):
         """
@@ -303,7 +275,7 @@ class ReferenceValues(Resource):
             $ref: '#/components/responses/ErrorMessage'
         """
         try:
-            res = get_reference_values(self.es, entity_id)
+            res = get_reference_values(current_app.es, entity_id, current_app.selected_subject_ids)
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500
@@ -312,8 +284,6 @@ class ReferenceValues(Resource):
 
 
 class AllReferenceValues(Resource):
-    def __init__(self):
-        self.es = current_app.es
 
     def get(self):
         """
@@ -334,7 +304,7 @@ class AllReferenceValues(Resource):
             $ref: '#/components/responses/ErrorMessage'
         """
         try:
-            res = get_all_reference_values(self.es)
+            res = get_all_reference_values(current_app.es)
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500

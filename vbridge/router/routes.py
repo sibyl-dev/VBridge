@@ -29,7 +29,7 @@ def add_routes(app):
     api.add_resource(res.entity_set.EntitySetSchema, API + 'entity_schema/')
     api.add_resource(res.entity_set.EntitySchema, API + 'entity_schema/<string:entity_id>')
     api.add_resource(res.entity_set.StaticRecordRange, API + 'record_ranges/')
-    # api.add_resource(res.entity_set.PatientSelection, API + 'patient_selection/')
+    api.add_resource(res.entity_set.PatientSelection, API + 'patient_selection/')
     api.add_resource(res.entity_set.AllReferenceValues, API + 'reference_values/')
     api.add_resource(res.entity_set.ReferenceValues, API + 'reference_values/<string:entity_id>')
     # model
