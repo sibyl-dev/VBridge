@@ -28,13 +28,14 @@ def add_routes(app):
     # entity-set
     api.add_resource(res.entity_set.EntitySetSchema, API + 'entity_schema/')
     api.add_resource(res.entity_set.EntitySchema, API + 'entity_schema/<string:entity_id>')
-    api.add_resource(res.entity_set.StaticRecordRange, API + 'record_ranges/')
+    api.add_resource(res.entity_set.ColumnExtents, API + 'column_extents/')
     api.add_resource(res.entity_set.PatientSelection, API + 'patient_selection/')
-    api.add_resource(res.entity_set.AllReferenceValues, API + 'reference_values/')
-    api.add_resource(res.entity_set.ReferenceValues, API + 'reference_values/<string:entity_id>')
+    api.add_resource(res.entity_set.ReferenceValues, API + 'reference_values/')
+    api.add_resource(res.entity_set.ReferenceValue, API + 'reference_values/<string:entity_id>')
     # model
     api.add_resource(res.model.Prediction, API + 'predictions/<string:subject_id>')
     # explanation
     api.add_resource(res.explanation.ShapValues, API + 'shap_values/<string:subject_id>')
-    api.add_resource(res.explanation.ShapValuesIfNormal, API + 'counterfactual_shap_values/<string:subject_id>')
+    api.add_resource(res.explanation.ShapValuesIfNormal, API +
+                     'counterfactual_shap_values/<string:subject_id>')
     api.add_resource(res.signal_explanation.SignalExplanation, API + 'signal_explanations/')

@@ -35,7 +35,7 @@ def get_feature_schemas(fl, es):
             'id': f.get_name(),
             'primitive': leve2_leaf_node and leve2_leaf_node.primitive.name,
             'entityId': leaf_node.entity_id,
-            'columnName': leaf_node.get_name(),
+            'columnId': leaf_node.get_name(),
         }
 
         if leve2_leaf_node and ('where' in leve2_leaf_node.__dict__):
@@ -63,7 +63,7 @@ def get_feature_schemas(fl, es):
             feature_type = 'Pre-surgery'
         else:
             if f.get_name() in ['Height', 'Weight', 'Age',
-                                'ADMISSIONS.ICD10_CODE_CN', 
+                                'ADMISSIONS.ICD10_CODE_CN',
                                 'ADMISSIONS.PATIENTS.GENDER']:
                 feature_type = 'Pre-surgery'
             else:
@@ -174,7 +174,11 @@ class FeatureValues(Resource):
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/FeatureValues'
+                  type: object
+                  additionalProperties:
+                    oneOf:
+                      - type: number
+                        type: string
           500:
             $ref: '#/components/responses/ErrorMessage'
         """

@@ -223,7 +223,7 @@ class App extends React.Component<AppProps, AppStates>{
       }
     }
     else {
-      const { entityId, item, columnName, id: name, period } = feature;
+      const { entityId, item, columnId: columnName, id: name, period } = feature;
       const entity = this.state.patientTemporal?.find(e => e.id === entityId);
       if (entity && entity.schema && patientStatics) {
         const { item_index, time_index } = entity.schema;

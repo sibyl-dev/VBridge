@@ -7,9 +7,9 @@ from flask_restful import Resource, reqparse
 LOGGER = logging.getLogger(__name__)
 
 
-def get_explain_signal(fm, ex, subject_id, item_id):
-    if current_app.selected_subject_ids is not None:
-        reference_fm = fm.loc[current_app.selected_subject_ids]
+def get_explain_signal(fm, ex, subject_id, item_id, selected_subject_ids=None):
+    if selected_subject_ids is not None:
+        reference_fm = fm.loc[selected_subject_ids]
         reference_fm = reference_fm[reference_fm['complication'] == 0]
     else:
         reference_fm = fm
@@ -42,8 +42,6 @@ def get_explain_signal(fm, ex, subject_id, item_id):
 
 class SignalExplanation(Resource):
     def __init__(self):
-        self.fm = current_app.fm
-        self.ex = current_app.ex
 
         parser_get = reqparse.RequestParser(bundle_errors=True)
         parser_get.add_argument('subject_id', type=int, required=True, location='args')
@@ -90,7 +88,8 @@ class SignalExplanation(Resource):
         subject_id = args['subject_id']
         item_id = args['item_id']
         try:
-            res = get_explain_signal(self.fm, self.ex, subject_id, item_id)
+            res = get_explain_signal(current_app.fm, current_app.ex, subject_id, item_id,
+                                     current_app.selected_subject_ids)
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500

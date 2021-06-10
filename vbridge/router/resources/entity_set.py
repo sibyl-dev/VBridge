@@ -51,7 +51,7 @@ def get_static_ranges(es):
     ranges = []
     for var in filter_variables:
         df = es[var['entityId']].df
-        records = df[var['attributeId']].tolist()
+        records = df[var['columnId']].tolist()
         if var['type'] == 'Numerical':
             extent = [min(records), max(records)]
         elif var['type'] == 'Categorical':
@@ -110,9 +110,10 @@ def get_reference_values(es, entity_id, subject_ids):
     return references
 
 
-def get_all_reference_values(es):
+def get_all_reference_values(es, subject_ids):
     entity_ids = [entity['id'] for entity in get_entity_set_schema(es)]
-    return {id: get_reference_values(es, id) for id in entity_ids}
+    return {entity_id: get_reference_values(es, entity_id, subject_ids)
+            for entity_id in entity_ids}
 
 
 class EntitySchema(Resource):
@@ -152,7 +153,7 @@ class EntitySetSchema(Resource):
 
     def get(self):
         """
-        Get the schema of the entity.
+        Get the schema of all entities.
         ---
         tags:
           - entity set
@@ -162,7 +163,9 @@ class EntitySetSchema(Resource):
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/EntitySetSchema'
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/EntitySchema'
           500:
             $ref: '#/components/responses/ErrorMessage'
         """
@@ -175,7 +178,7 @@ class EntitySetSchema(Resource):
             return res
 
 
-class StaticRecordRange(Resource):
+class ColumnExtents(Resource):
 
     def get(self):
         """
@@ -189,7 +192,9 @@ class StaticRecordRange(Resource):
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/DefaultRange'
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ColumnExtent'
           500:
             $ref: '#/components/responses/ErrorMessage'
         """
@@ -247,7 +252,7 @@ class PatientSelection(Resource):
             return res
 
 
-class ReferenceValues(Resource):
+class ReferenceValue(Resource):
 
     def get(self, entity_id):
         """
@@ -283,7 +288,7 @@ class ReferenceValues(Resource):
             return res
 
 
-class AllReferenceValues(Resource):
+class ReferenceValues(Resource):
 
     def get(self):
         """
@@ -297,14 +302,16 @@ class AllReferenceValues(Resource):
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/ReferenceValues'
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ReferenceValues'
           400:
             $ref: '#/components/responses/ErrorMessage'
           500:
             $ref: '#/components/responses/ErrorMessage'
         """
         try:
-            res = get_all_reference_values(current_app.es)
+            res = get_all_reference_values(current_app.es, current_app.selected_subject_ids)
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500

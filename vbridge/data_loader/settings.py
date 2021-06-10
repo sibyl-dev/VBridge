@@ -177,32 +177,32 @@ ignore_variables = {
 filter_variables = [
     {
         'entityId': 'SURGERY_INFO',
-        'attributeId': 'Height',
+        'columnId': 'Height',
         'type': 'Numerical'
     },
     {
         'entityId': 'SURGERY_INFO',
-        'attributeId': 'Weight',
+        'columnId': 'Weight',
         'type': 'Numerical'
     },
     {
         'entityId': 'PATIENTS',
-        'attributeId': 'GENDER',
+        'columnId': 'GENDER',
         'type': 'Categorical'
     },
     {
         'entityId': 'SURGERY_INFO',
-        'attributeId': 'SURGERY_NAME',
+        'columnId': 'SURGERY_NAME',
         'type': 'Multi-hot'
     },
     {
         'entityId': 'SURGERY_INFO',
-        'attributeId': 'Surgical time (minutes)',
+        'columnId': 'Surgical time (minutes)',
         'type': 'Numerical'
     },
     {
         'entityId': 'SURGERY_INFO',
-        'attributeId': 'Age',
+        'columnId': 'Age',
         'type': 'Numerical'
     },
 ]

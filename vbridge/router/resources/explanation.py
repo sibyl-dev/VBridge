@@ -99,6 +99,8 @@ class ShapValues(Resource):
               application/json:
                 schema:
                   type: object
+                  additionalProperties:
+                    type: number
           400:
             $ref: '#/components/responses/ErrorMessage'
           500:
@@ -155,6 +157,8 @@ class ShapValuesIfNormal(Resource):
               application/json:
                 schema:
                   type: object
+                  additionalProperties:
+                    type: number
           400:
             $ref: '#/components/responses/ErrorMessage'
           500:

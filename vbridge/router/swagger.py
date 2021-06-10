@@ -4,7 +4,6 @@ schemas = {
     'PatientStatic': {
         'type': 'object',
         'properties': {
-            'GENDER': {'type': 'string'},
             'SUBJECT_ID': {'type': 'string'},
             'ADMITTIME': {'type': 'string'},
             'SURGERY_BEGIN_TIME': {'type': 'string'},
@@ -12,22 +11,48 @@ schemas = {
         },
         'additionalProperties': {}
     },
+    'ColumnExtent': {
+        'type': 'object',
+        'properties': {
+            'entityId': {'type': 'string'},
+            'columnId': {'type': 'string'},
+            'extent': {
+                'oneOf': [
+                    {
+                        'type': 'array',
+                        'items': {'type': 'string'},
+                    },
+                    {
+                        'type': 'array',
+                        'items': {'type': 'number'},
+                    },
+                ]
+            },
+        }
+    },
     'FeatureSchema': {
         'type': 'object',
         'properties': {
             'name': {'type': 'string'},
             'alias': {'type': 'string'},
             'type': {'type': 'string'},
-            'whereItem': {
-                'type': 'array',
-                'items': {
-                    'type': 'string',
+            'item': {
+                'type': 'object',
+                'properties': {
+                    'columnId': {'type': 'string'},
+                    'itemId': {'type': 'string'},
+                    'itemAlias': {
+                        'type': 'object',
+                        'properties': {
+                            'LABEL': {'type': 'string'},
+                            'LABEL_CN': {'type': 'string'},
+                        }
+                    }
                 },
-                'maxItems': 2
             },
             'primitive': {'type': 'string'},
             'entityId': {'type': 'string'},
-            'columnName': {'type': 'string'},
+            'columnId': {'type': 'string'},
             'period': {'type': 'string'},
         }
     },
@@ -47,44 +72,23 @@ schemas = {
             'type': {'type': 'string'}  # todo: enumerate
         }
     },
-    'EntitySetSchema': {
-        'type': 'object',
-        'properties': {
-            'subject_ids': {
-                'type': 'array',
-                'items': {
-                    'type': 'string',
-                }
-            },
-            'entity_ids': {
-                'type': 'array',
-                'items': {
-                    'type': 'string',
-                }
-            },
-            'entity_schemas': {
-                'type': 'array',
-                'items': {
-                    'type': 'object',
-                    'properties': {
-                        'name': {'type': 'string'},
-                        'alias': {'type': 'string'},
-                        'time_index': {'type': 'string'},
-                        'item_index': {'type': 'string'},
-                        'value_indexes': {
-                            'type': 'array',
-                            'items': {
-                                'type': 'string',
-                            },
-                        },
-                        'type': {'type': 'string'}  # todo: enumerate
-                    }
-                }
-            },
-        }
-    },
     'ReferenceValues': {
-
+        'type': 'object',
+        'additionalProperties:': {
+            'type': 'object',
+            'additionalProperties:': {
+                'mean': {'type': 'number'},
+                'std': {'type': 'number'},
+                'count': {'type': 'number'},
+                'ci95': {
+                    'type': 'array',
+                    'items': {
+                        'type': 'number'
+                    },
+                    'maxItems': 2
+                },
+            }
+        }
     },
     'SignalExplanation': {
         'type': 'array',

@@ -32,9 +32,6 @@ def get_patient_temporal(es, subject_id, table_name):
 
 class StaticInfo(Resource):
 
-    def __init__(self):
-        self.es = current_app.es
-
     def get(self, subject_id):
         """
         Get a patient's static information by ID
@@ -61,7 +58,7 @@ class StaticInfo(Resource):
             $ref: '#/components/responses/ErrorMessage'
         """
         try:
-            res = get_patient_statics(self.es, subject_id)
+            res = get_patient_statics(current_app.es, subject_id)
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500
@@ -71,8 +68,6 @@ class StaticInfo(Resource):
 
 class TemporalInfo(Resource):
     def __init__(self):
-        self.es = current_app.es
-
         parser_get = reqparse.RequestParser(bundle_errors=True)
         parser_get.add_argument('entity_id', type=str, required=True, location='args')
         self.parser_get = parser_get
@@ -117,7 +112,7 @@ class TemporalInfo(Resource):
         table_name = args['entity_id']
 
         try:
-            res = get_patient_temporal(self.es, subject_id, table_name)
+            res = get_patient_temporal(current_app.es, subject_id, table_name)
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500

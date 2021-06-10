@@ -5,7 +5,7 @@ export interface FeatureSchema {
     alias: string,
     primitive?: string,
     entityId?: string,
-    columnName: string
+    columnId: string
     item?: {
         columnId: string,
         itemId: string,
