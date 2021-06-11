@@ -8,7 +8,7 @@ import {
     ArrowDownOutlined, ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, CaretRightOutlined,
     FilterOutlined, LineChartOutlined, QuestionOutlined, SortAscendingOutlined, TableOutlined
 } from "@ant-design/icons"
-import { Feature, StatValues, ReferenceValues } from "type";
+import { Feature, StatValues } from "type";
 import AreaChart from "visualization/AreaChart";
 import BarChart from "visualization/BarChart";
 import { arrayShallowCompare, getReferenceValue, isDefined } from "utils/common";
@@ -34,7 +34,7 @@ export interface FeatureViewStates {
     groupedFeatures?: IDataFrame<number, Feature>,
     desiredFeatureMat?: IDataFrame<number, any>,
     undesiredFeatureMat?: IDataFrame<number, any>,
-    referenceValues?: Record<string, ReferenceValues>,
+    referenceValues?: IDataFrame<string, StatValues>,
 }
 
 export default class FeatureView extends React.Component<FeatureViewProps, FeatureViewStates> {
@@ -60,14 +60,14 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
             const undesiredFeatureMat = featureMat.where(row => row['complication'] !== 0);
             if (desiredFeatureMat.count() == 0) alert("No patient in the selection.");
             else {
-                // const featureIds = 
-                // const referenceValues = new DataFrame({
-                //     index: featureNames,
-                //     values: featureNames.map(name =>
-                //         getReferenceValue(desiredFeatureMat.getSeries(name).toArray())
-                //     )
-                // })
-                this.setState({ desiredFeatureMat, undesiredFeatureMat });
+                const featureIds = featureMat.getColumnNames();
+                const referenceValues = new DataFrame({
+                    index: featureIds,
+                    values: featureIds.map(name =>
+                        getReferenceValue(desiredFeatureMat.getSeries(name).toArray())
+                    )
+                })
+                this.setState({ desiredFeatureMat, undesiredFeatureMat, referenceValues });
             }
         }
     }
@@ -131,7 +131,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
 
     public render() {
         const { entityCategoricalColor, ...rest } = this.props;
-        const { groupedFeatures, desiredFeatureMat, undesiredFeatureMat } = this.state;
+        const { groupedFeatures, desiredFeatureMat, undesiredFeatureMat, referenceValues } = this.state;
         const contextFeatureValues = [];
         if (desiredFeatureMat) contextFeatureValues.push(desiredFeatureMat);
         if (undesiredFeatureMat) contextFeatureValues.push(undesiredFeatureMat);
@@ -143,7 +143,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                     features={groupedFeatures}
                     cellWidth={this.defaultCellWidth}
                     contextFeatureValues={contextFeatureValues}
-                    // getReferenceValue={this.getReferenceValues}
+                    referenceValues={referenceValues}
                     entityCategoricalColor={entityCategoricalColor}
                 />}
             </div>
@@ -158,7 +158,7 @@ export interface FeatureListProps {
     prediction?: number,
     cellWidth: (id: number) => number,
     contextFeatureValues: IDataFrame<number, any>[],
-    referenceValue?: Record<string, StatValues>,
+    referenceValues?: IDataFrame<string, StatValues>,
 
     focusedFeatures: string[],
     display?: 'normal' | 'dense',
@@ -335,7 +335,7 @@ export interface FeatureBlockProps {
     feature: Feature,
     prediction?: number,
     contextFeatureValues: IDataFrame<number, any>[],
-    getReferenceValue?: (name: string) => (StatValues | undefined),
+    referenceValues?: IDataFrame<string, StatValues>,
     x: d3.ScaleLinear<number, number>,
     cellWidth: (id: number) => number,
     entityCategoricalColor?: (entityName: string | undefined) => string,
@@ -397,14 +397,12 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
 
     render() {
         const { feature, x, cellWidth, entityCategoricalColor, inspectFeatureInSignal, inspectFeatureInTable,
-            className, depth, contextFeatureValues, focusedFeatures, getReferenceValue, display,
+            className, depth, contextFeatureValues, focusedFeatures, referenceValues, display,
             prediction, threshold } = this.props;
         const { collapsed, showDistibution, showWhatIf } = this.state
         const { id: name, alias, value, contribution, children, entityId, predictionIfNormal } = feature;
-        // const referenceValue = feature.id ? getReferenceValue(feature.id) : undefined;
-        const referenceValue = undefined;
+        const referenceValue = referenceValues ? referenceValues.at(feature.id) : undefined;
 
-        // console.log('referenceValue', feature.name, referenceValue, value,)
         let outofRange: 'none' | 'low' | 'high' = 'none';
         let whatIfValue = undefined;
         if (referenceValue && typeof (value) === typeof (0.0)) {
@@ -499,20 +497,22 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                         </div>
                         <div className={"feature-block-cell feature-contribution"} style={{ width: cellWidth(2) }}>
                             {SHAPContributions({
-                                contribution: feature.contribution, contributionIfNormal: feature.contributionIfNormal, x, height: 14,
+                                contribution: feature.contribution, 
+                                contributionIfNormal: showWhatIf ? feature.contributionIfNormal : undefined, 
+                                x, height: 14,
                                 posRectStyle: { fill: !collapsed ? '#f8a3bf' : undefined },
                                 negRectStyle: { fill: !collapsed ? '#9abce4' : undefined }
                             })}
                             {(contribution > x.domain()[1]) && <ArrowRightOutlined className="overflow-notation-right" />}
                             {(contribution < x.domain()[0]) && <ArrowLeftOutlined className="overflow-notation-left" />}
-                            {showWhatIf && predictionIfNormal && whatIfValue && prediction && <div className={"what-if-label"}>
-                                <div className={"label-circle"} style={{ backgroundColor: defaultCategoricalColor(Math.round(prediction)) }}>
+                            {showWhatIf && whatIfValue && <div className={"what-if-label"}>
+                                {prediction && <div className={"label-circle"} style={{ backgroundColor: defaultCategoricalColor(Math.round(prediction)) }}>
                                     {prediction > 0.5 ? 'High' : 'Low'}
-                                </div>
+                                </div>}
                                 <ArrowRightOutlined />
-                                <div className={"label-circle"} style={{ backgroundColor: defaultCategoricalColor(Math.round(predictionIfNormal)) }}>
+                                {predictionIfNormal && <div className={"label-circle"} style={{ backgroundColor: defaultCategoricalColor(Math.round(predictionIfNormal)) }}>
                                     {predictionIfNormal > 0.5 ? 'High' : 'Low'}
-                                </div>
+                                </div>}
                             </div>}
                         </div>
                     </div>

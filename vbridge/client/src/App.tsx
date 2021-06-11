@@ -88,6 +88,7 @@ class App extends React.Component<AppProps, AppStates>{
     };
 
     this.selectSubjectId = this.selectSubjectId.bind(this);
+    this.selectPredictionTarget = this.selectPredictionTarget.bind(this);
     this.loadPatientTemporal = this.loadPatientTemporal.bind(this);
     this.loadPredictions = this.loadPredictions.bind(this);
     this.loadFeatures = this.loadFeatures.bind(this);
@@ -191,6 +192,10 @@ class App extends React.Component<AppProps, AppStates>{
     const patientPreds = await API.predictions.find(subjectId);
     const target = 'lung complication'  // TODO: use self.state.targetSchemas
     this.setState({ patientStatics, target, patientPreds }, this.onSelectSubjectId);
+  }
+
+  private selectPredictionTarget(target: string) {
+    this.setState({ target }, this.loadFeatures);
   }
 
   // private async filterPatients(conditions: { [key: string]: any }, changeornot: boolean) {
@@ -516,7 +521,6 @@ class App extends React.Component<AppProps, AppStates>{
 
                 <div className='legend-area'>
                   <div className="category-legend-container">
-
                     {entitySetSchema?.map(entity =>
                       <div className="legend-block" key={entity.id}>
                         <div className='legend-rect' style={{ backgroundColor: this.entityCategoricalColor(entity.id) }} />
@@ -552,7 +556,7 @@ class App extends React.Component<AppProps, AppStates>{
                     <Tooltip title={d.id} placement="top" key={d.id}>
                       <div className={'prediction-icon' + (target && d.id === target ? " selected" : "") +
                         ((predictions && predictions[d.id] > 0.5000) ? " active" : " inactive")}
-                        onClick={() => this.setState({ target: d.id })}>
+                        onClick={() => this.selectPredictionTarget(d.id)}>
                         <span>{d.id.toUpperCase()[0]} </span>
                       </div>
                     </Tooltip>
