@@ -3,7 +3,7 @@ import * as dataForge from "data-forge"
 import { AutoSizer, MultiGrid, GridCellProps, CellMeasurer, CellMeasurerCache, Index, } from "react-virtualized"
 import 'react-virtualized/styles.css';
 import './index.css'
-import { Entity, getColumnWidth } from "data/table";
+import { getColumnWidth } from "utils/common";
 
 export interface PureTableProps {
     dataFrame: dataForge.IDataFrame<number, any>,

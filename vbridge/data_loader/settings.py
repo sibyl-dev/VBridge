@@ -109,7 +109,7 @@ META_INFO = {
         'time_index': 'CHARTTIME',
         'item_index': 'ITEMID',
         'value_indexes': ['VALUE'],
-        'alias': 'Chart Signs',
+        'alias': 'Chart Events',
     },
     'INPUTEVENTS': {
         'foreign_index': ['SUBJECT_ID', 'HADM_ID', 'ICUSTAY_ID'],
@@ -174,74 +174,35 @@ ignore_variables = {
     'D_ICD_DIAGNOSES': ['ROW_ID']
 }
 
-filter_variable = ['Height', 'Weight', 'Surgical time (minutes)', 'GENDER', 'Age',
-                   'SURGERY_NAME', ]
-filter_variable1 = {
-    'PATIENTS': ['GENDER'],
-    'ADMISSIONS': ['LANGUAGE', 'RELIGION', 'MARITAL_STATUS', 'ETHNICITY', 'ADMISSION_DEPARTMENT',
-                   'INSURANCE', 'DIAGNOSIS', 'ICD10_CODE_CN', ],
-    'SURGERY_INFO': ['Age', 'Height', 'Weight',
-                     'SURGERY_NAME',
-                     'ANES_METHOD',
-                     'SURGERY_POSITION',
-                     # 'Preoperative oxygen saturation (%)',
-                     # 'Oxygen saturation (%)',
-                     'Surgical time (minutes)',
-                     # 'CPB time (minutes)',
-                     # 'Aortic cross-clamping time (times)',
-                     'complication',
-                     'lung complication',
-                     'cardiac complication',
-                     'arrhythmia complication',
-                     'infectious complication',
-                     'other complication', ]
-}
-
-interesting_variables = {'PATIENTS': ['GENDER', 'DOB'],
-                         'ADMISSIONS': ['ADMITTIME', 'ADMISSION_DEPARTMENT',
-                                        'INSURANCE', 'LANGUAGE', 'RELIGION', 'MARITAL_STATUS',
-                                        'ETHNICITY', 'EDREGTIME', 'DIAGNOSIS', 'ICD10_CODE_CN'],
-                         'ICUSTAYS': ['FIRST_CAREUNIT', 'LAST_CAREUNIT', 'FIRST_WARDID',
-                                      'LAST_WARDID', 'INTIME', 'OUTTIME', 'LOS'],
-                         'SURGERY_INFO': ['ANES_START_TIME',
-                                          'ANES_END_TIME',
-                                          'SURGERY_BEGIN_TIME',
-                                          'SURGERY_END_TIME',
-                                          'SURGERY_NAME',
-                                          'ANES_METHOD',
-                                          'SURGERY_POSITION',
-                                          'Height',
-                                          'Weight',
-                                          'Preoperative oxygen saturation (%)',
-                                          'Oxygen saturation (%)',
-                                          'Surgical time (minutes)',
-                                          'CPB time (minutes)',
-                                          'Aortic cross-clamping time (times)',
-                                          'complication',
-                                          'lung complication',
-                                          'cardiac complication',
-                                          'arrhythmia complication',
-                                          'infectious complication',
-                                          'other complication',
-                                          'Age'],
-                         'DIAGNOSES_ICD': ['SEQ_NUM', 'ICD10_CODE_CN', 'Diag_Category'],
-                         'SURGERY_VITAL_SIGNS': ['ITEM_NO', 'ITEMID', 'VALUE', 'MONITOR_TIME'],
-                         'EMR_SYMPTOMS': ['SYMPTOM_NAME_CN', 'SYMPTOM_NAME', 'SYMPTOM_ATTRIBUTE',
-                                          'RECORDTIME'],
-                         'LABEVENTS': ['ITEMID', 'VALUENUM', 'VALUEUOM', 'FLAG', 'CHARTTIME'],
-                         #  'LABEVENTS': ['ITEMID', 'VALUE', 'VALUEUOM', 'FLAG', 'CHARTTIME'],
-                         'MICROBIOLOGYEVENTS': ['SPEC_ITEMID', 'SPEC_TYPE_DESC', 'ORG_ITEMID',
-                                                'ORG_NAME', 'AB_ITEMID', 'AB_NAME',
-                                                'DILUTION_TEXT', 'DILUTION_COMPARISON',
-                                                'DILUTION_VALUE', 'INTERPRETATION', 'CHARTTIME'],
-                         'OR_EXAM_REPORTS': ['EXAMTIME', 'REPORTTIME', 'EXAM_ITEM_TYPE_NAME',
-                                             'EXAM_ITEM_NAME', 'EXAM_PART_NAME'],
-                         'CHARTEVENTS': ['ITEMID', 'VALUE', 'VALUENUM', 'VALUEUOM', 'CHARTTIME'],
-                         'INPUTEVENTS': ['AMOUNT', 'AMOUNTUOM', 'CHARTTIME'],
-                         'OUTPUTEVENTS': ['ITEMID', 'VALUE', 'VALUEUOM', 'CHARTTIME'],
-                         'PRESCRIPTIONS': ['STARTDATE', 'ENDDATE', 'DRUG_NAME', 'DRUG_NAME_EN',
-                                           'PROD_STRENGTH', 'DRUG_NAME_GENERIC', 'DOSE_VAL_RX',
-                                           'DOSE_UNIT_RX', 'DRUG_FORM'],
-                         'D_ITEMS': ['LABEL_CN', 'LABEL', 'LINKSTO', 'CATEGORY', 'UNITNAME'],
-                         'D_LABITEMS': ['LABEL_CN', 'LABEL', 'FLUID', 'CATEGORY', 'LOINC_CODE'],
-                         'D_ICD_DIAGNOSES': ['ICD10_CODE_CN', 'ICD10_CODE', 'TITLE_CN', 'TITLE']}
+filter_variables = [
+    {
+        'entityId': 'SURGERY_INFO',
+        'columnId': 'Height',
+        'type': 'Numerical'
+    },
+    {
+        'entityId': 'SURGERY_INFO',
+        'columnId': 'Weight',
+        'type': 'Numerical'
+    },
+    {
+        'entityId': 'PATIENTS',
+        'columnId': 'GENDER',
+        'type': 'Categorical'
+    },
+    {
+        'entityId': 'SURGERY_INFO',
+        'columnId': 'SURGERY_NAME',
+        'type': 'Multi-hot'
+    },
+    {
+        'entityId': 'SURGERY_INFO',
+        'columnId': 'Surgical time (minutes)',
+        'type': 'Numerical'
+    },
+    {
+        'entityId': 'SURGERY_INFO',
+        'columnId': 'Age',
+        'type': 'Numerical'
+    },
+]

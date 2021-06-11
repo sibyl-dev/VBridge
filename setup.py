@@ -16,8 +16,12 @@ install_requires = [
     'featuretools>=0.23,<0.24',
     'xgboost>=1.4.1,<1.5',
     'shap>=0.39.0,<0.40',
+
+    # Flask
     'flask>=1.1.0,<1.2',
-    'flask-cors>=3.0,<3.1'
+    'flask-restful>=0.3.8,<0.4.0',
+    'flask-cors>=3.0,<3.1',
+    'flasgger==0.9.5',
 ]
 
 setup_requires = [

@@ -1,7 +1,7 @@
 import * as d3 from "d3";
 import * as _ from "lodash";
 import { getScaleBand, countCategories, isArrays } from "./common";
-import { transMax } from '../data/common';
+import { transMax } from '../utils/common';
 
 export interface BarChartLayoutStyle {
     height: number,

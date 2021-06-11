@@ -22,16 +22,3 @@ export interface IEventBin {
     items?: string[],
     abnormalItems?: string[]
 }
-
-export type Segment = {
-    startTime: Date,
-    endTime: Date,
-    contriSum: number,
-    maxValue: number,
-    minValue: number
-}
-
-export type SegmentExplanation = {
-    featureName: string,
-    segments: Segment[]
-}

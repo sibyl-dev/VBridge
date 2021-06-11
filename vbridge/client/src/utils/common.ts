@@ -1,5 +1,8 @@
 import * as _ from "lodash"
 import { AssertionError } from "assert";
+import { StatValues } from "../type/entity";
+import { Index } from "react-virtualized";
+import { IDataFrame } from "data-forge";
 
 export function distinct<T>(value: T, index: number, self: Array<T>) {
     return self.indexOf(value) === index;
@@ -106,16 +109,7 @@ export const isDefined = <T>(input: T | undefined | null): input is T => {
     return typeof input !== 'undefined' && input !== null;
 };
 
-export type ReferenceValue = {
-    mean: number,
-    std: number,
-    count: number,
-    ci95: [number, number],
-}
-
-export type ReferenceValueDict = (itemName: string) => (ReferenceValue | undefined);
-
-export function getReferenceValue(data: number[]): ReferenceValue {
+export function getReferenceValue(data: number[]): StatValues {
     if (data.length == 0) {
         return {
             mean: 0,
@@ -158,4 +152,34 @@ export function timeDeltaPrinter(startTime: Date, endTime: Date) {
             return `${Math.floor(deltaHour / 24)}d`
         }
     }
+}
+
+export function safeMap<K extends string | number | symbol, T>(map: Record<K, T>) {
+    return (itemName: K) => {
+        if (_.has(map, itemName)) {
+            return map[itemName];
+        }
+        return undefined;
+    }
+}
+
+
+export function getColumnWidth(dataFrame: IDataFrame, includeIndex?: boolean,
+    maxWidth?: number, minWidth?: number) {
+    return ((params: Index) => {
+        let columnIndex = params.index;
+        if (!includeIndex) {
+            columnIndex += 1;
+        }
+        const column = dataFrame.getColumns().at(columnIndex);
+        const columnContent = column?.series.toArray();
+        columnContent?.push(column?.name);
+        const charLength = columnContent?.map(d => String(d).length);
+        let estLength = charLength && Math.max.apply(dataFrame, charLength) * 10 + 5;
+        if (maxWidth !== undefined && estLength)
+            estLength = Math.min(maxWidth, estLength);
+        if (minWidth !== undefined && estLength)
+            estLength = Math.max(minWidth, estLength);
+        return estLength || 120;
+    })
 }

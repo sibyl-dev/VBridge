@@ -1,14 +1,14 @@
 import collections
 
-import pandas as pd
 import numpy as np
-import sklearn
+import pandas as pd
 import shap
-from sklearn.model_selection import train_test_split
-from sklearn.utils import class_weight
+import sklearn
 from sklearn.base import TransformerMixin
 from sklearn.impute import SimpleImputer
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.utils import class_weight
 from xgboost import XGBClassifier
 
 classification_metrics = {
@@ -131,11 +131,11 @@ class OneHotEncoder(TransformerMixin):
         for column_name in X.columns:
             if X[column_name].dtype == object:
                 values = X[column_name]
-                if values.apply(lambda row: type(row) == list).all():
+                if values.apply(lambda row: isinstance(row, list)).all():
                     counts = values.apply(collections.Counter).reset_index(drop=True)
                     sub_df = pd.DataFrame.from_records(counts, index=values.index).fillna(0)
                     selected_dummies = sub_df.sum(axis=0) \
-                                           .sort_values(ascending=False).index[:self.topk]
+                        .sort_values(ascending=False).index[:self.topk]
                     dummies = sub_df[selected_dummies]
                     others = sub_df[[col for col in sub_df.columns if col not in selected_dummies]]
                     dummies['Others'] = others.any(axis=1)
@@ -155,7 +155,7 @@ class OneHotEncoder(TransformerMixin):
         X = pd.DataFrame(X)
         for column_name, selected_dummies in self._dummy_dict.items():
             values = X[column_name]
-            if values.apply(lambda row: type(row) == list).all():
+            if values.apply(lambda row: isinstance(row, list)).all():
                 counts = values.apply(collections.Counter).reset_index(drop=True)
                 sub_df = pd.DataFrame.from_records(counts, index=values.index).fillna(0)
                 dummies = sub_df.loc[:, sub_df.columns.isin(selected_dummies)]

@@ -1,9 +1,6 @@
-import { Feature, FeatureMeta } from "data/feature";
-import { PatientMeta } from "data/patient";
 import * as React from "react";
 import * as d3 from "d3";
 import { Button, Tooltip, Popover, Slider } from "antd"
-import { getFeatureMatrix, getFeatureValues, getSHAPValues, getWhatIfSHAPValues } from "router/api";
 import { DataFrame, IDataFrame } from "data-forge";
 import * as _ from "lodash"
 import { getScaleLinear, beautifulPrinter, defaultCategoricalColor } from "visualization/common";
@@ -11,39 +8,33 @@ import {
     ArrowDownOutlined, ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, CaretRightOutlined,
     FilterOutlined, LineChartOutlined, QuestionOutlined, SortAscendingOutlined, TableOutlined
 } from "@ant-design/icons"
-import { ItemDict } from "data/table";
+import { Feature, StatValues } from "type";
 import AreaChart from "visualization/AreaChart";
-import { arrayShallowCompare, getReferenceValue, isDefined, ReferenceValue } from "data/common";
+import BarChart from "visualization/BarChart";
+import { arrayShallowCompare, getReferenceValue, isDefined } from "utils/common";
 
 import "./index.scss"
 import { SHAPContributions } from "./SHAPBand";
-import BarChart from "visualization/BarChart";
 
 export interface FeatureViewProps {
-    featureMeta: IDataFrame<number, FeatureMeta>,
-    target: string,
-    prediction: number,
-    focusedFeatures: string[],
     className?: string,
-    patientMeta?: PatientMeta,
-    selectedIds?: number[],
-    itemDicts?: ItemDict,
-    entityCategoricalColor?: (entityName: string | undefined) => string,
+    features: IDataFrame<number, Feature>,
+    featureMat?: IDataFrame<number, any>,
+    prediction?: number,
+
     display?: 'normal' | 'dense',
+    focusedFeatures: string[],
+    entityCategoricalColor?: (entityName: string | undefined) => string,
 
     inspectFeatureInSignal?: (feature: Feature) => void,
     inspectFeatureInTable?: (feature: Feature) => void,
 }
 
 export interface FeatureViewStates {
-    featureDisplayValues?: DataFrame,
-    features?: IDataFrame<number, Feature>,
-    shapValues?: number[],
-    featureMatrix?: IDataFrame<number, any>,
-    selectedMatrix?: IDataFrame<number, any>,
-    selectedMatWithDesiredOutputs?: IDataFrame<number, any>,
-    selectedMatWithoutDesiredOutputs?: IDataFrame<number, any>,
-    referenceValues?: IDataFrame<string, ReferenceValue>,
+    groupedFeatures?: IDataFrame<number, Feature>,
+    desiredFeatureMat?: IDataFrame<number, any>,
+    undesiredFeatureMat?: IDataFrame<number, any>,
+    referenceValues?: IDataFrame<string, StatValues>,
 }
 
 export default class FeatureView extends React.Component<FeatureViewProps, FeatureViewStates> {
@@ -53,53 +44,31 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
 
         this.state = {};
         this.defaultCellWidth = this.defaultCellWidth.bind(this);
-        this.getReferenceValues = this.getReferenceValues.bind(this);
         this.updateReferenceValues = this.updateReferenceValues.bind(this);
     }
 
     componentDidMount() {
-        this.loadFeatureMatAndRefs();
         this.updateFeatures();
-    }
-
-    // only run ones
-    private async loadFeatureMatAndRefs() {
-        const featureMatrix = await getFeatureMatrix();
-        this.setState({ featureMatrix });
+        this.updateReferenceValues();
     }
 
     // run when the group ids updates
     private updateReferenceValues() {
-        const { featureMeta, selectedIds } = this.props;
-        const { featureMatrix } = this.state;
-        if (featureMatrix) {
-            const featureNames = featureMeta.getSeries('name').toArray() as string[];
-            const selectedVectors = selectedIds && selectedIds.map(id => featureMatrix.at(id));
-            if (selectedVectors?.length == 0) {
-                alert("No patient in the selection.");
+        const { featureMat } = this.props;
+        if (featureMat) {
+            const desiredFeatureMat = featureMat.where(row => row['complication'] === 0);
+            const undesiredFeatureMat = featureMat.where(row => row['complication'] !== 0);
+            if (desiredFeatureMat.count() == 0) alert("No patient in the selection.");
+            else {
+                const featureIds = featureMat.getColumnNames();
+                const referenceValues = new DataFrame({
+                    index: featureIds,
+                    values: featureIds.map(name =>
+                        getReferenceValue(desiredFeatureMat.getSeries(name).toArray())
+                    )
+                })
+                this.setState({ desiredFeatureMat, undesiredFeatureMat, referenceValues });
             }
-            else if (selectedVectors) {
-                const selectedMatrix = selectedVectors && selectedVectors[0] ? new DataFrame(selectedVectors) : featureMatrix;
-                const selectedMatWithDesiredOutputs = selectedMatrix.where(row => row['complication'] === 0);
-                const selectedMatWithoutDesiredOutputs = selectedMatrix.where(row => row['complication'] !== 0);
-                if (selectedMatWithDesiredOutputs.count() == 0) alert("No patient in the selection.");
-                else {
-                    const referenceValues = new DataFrame({
-                        index: featureNames,
-                        values: featureNames.map(name =>
-                            getReferenceValue(selectedMatWithDesiredOutputs.getSeries(name).toArray())
-                        )
-                    })
-                    this.setState({ selectedMatrix, selectedMatWithDesiredOutputs, selectedMatWithoutDesiredOutputs, referenceValues });
-                }
-            }
-        }
-    }
-
-    private getReferenceValues(name: string) {
-        const { referenceValues } = this.state;
-        if (referenceValues) {
-            return referenceValues.at(name);
         }
     }
 
@@ -109,93 +78,72 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
     }
 
     private async updateFeatures() {
-        let { patientMeta, featureMeta, itemDicts, target } = this.props
-        const subject_id = patientMeta?.subjectId;
-        if (subject_id !== undefined) {
-            const featureValues = await getFeatureValues({ subject_id });
-            const shapValues = await getSHAPValues({ subject_id, target });
-            const whatIfShapValues = await getWhatIfSHAPValues({ subject_id, target });
-            // level-1: individual features
-            const L1Features: IDataFrame<number, Feature> = featureMeta.select(row => {
-                const whatifResults = whatIfShapValues(row['name']!);
-                let alias = row.alias;
-                return {
-                    ...row,
-                    alias,
-                    value: featureValues(row['name']!),
-                    contribution: shapValues(row['name']!),
-                    contributionIfNormal: whatifResults && whatifResults.shap,
-                    predictionIfNormal: whatifResults && whatifResults.prediction,
-                };
-            });
-            // level-2: group-by item & period
-            const individualFeatures = L1Features.where(row => row.whereItem.length == 0);
-            const whereFeatures = L1Features.where(row => row.whereItem.length > 0);
-            const groups = whereFeatures.groupBy(row => row.period + row.whereItem[1]).toArray();
-            const groupedFeature: IDataFrame<number, Feature> = new DataFrame(groups.map(group => {
-                const sample = group.first();
-                const itemName = sample.whereItem![1] as string;
-                const itemLabel = itemDicts && sample.entityId && itemDicts(sample.entityId, itemName)?.LABEL;
-                const entityId = _.uniq(group.getSeries('entityId').toArray().filter(isDefined)).length > 1 ? undefined : sample.entityId;
-                return {
-                    ...sample,
-                    name: 'g-' + _.reduce(group.getSeries('name').toArray(), (a, b) => `${a}-${b}`),
-                    entityId: entityId,
-                    alias: itemLabel || itemName,
-                    value: undefined,
-                    primitive: undefined,
-                    contribution: _.sum(group.getSeries('contribution').toArray()),
-                    contributionIfNormal: undefined,
-                    children: group
-                };
-            }));
-            const L2Features = individualFeatures.concat(groupedFeature);
-            // level-3: group-by period
-            const features = new DataFrame(L2Features.groupBy(row => row.type).toArray().map(group => {
-                const sample = group.first();
-                const entityId = _.uniq(group.getSeries('entityId').toArray().filter(isDefined)).length > 1 ? undefined : sample.entityId;
-                return {
-                    ...sample,
-                    entityId: entityId,
-                    name: 'g-' + _.reduce(group.getSeries('name').toArray(), (a, b) => `${a}-${b}`),
-                    alias: sample.type,
-                    value: undefined,
-                    primitive: undefined,
-                    contribution: _.sum(group.getSeries('contribution').toArray()),
-                    contributionIfNormal: undefined,
-                    children: group
-                }
-            }))
-            this.setState({ features, shapValues: featureMeta.select(f => shapValues(f.name!)).toArray() })
-        }
+        const { features } = this.props
+        // level-2: group-by item & period
+        const individualFeatures = features.where(row => row.item === undefined);
+        const whereFeatures = features.where(row => row.item !== undefined);
+        const groups = whereFeatures.groupBy(row => row.period + row.item?.itemId).toArray();
+        const groupedFeature: IDataFrame<number, Feature> = new DataFrame(groups.map(group => {
+            const sample = group.first();
+            const itemName = sample.item!.itemAlias?.LABEL || sample.item!.itemId;
+            // const itemLabel = itemDicts && sample.entityId && itemDicts(sample.entityId, itemName)?.LABEL;
+            const entityId = _.uniq(group.getSeries('entityId').toArray().filter(isDefined)).length > 1 ? undefined : sample.entityId;
+            return {
+                ...sample,
+                name: 'g-' + _.reduce(group.getSeries('name').toArray(), (a, b) => `${a}-${b}`),
+                entityId: entityId,
+                // alias: itemLabel || itemName,
+                alias: itemName,
+                value: undefined,
+                primitive: undefined,
+                contribution: _.sum(group.getSeries('contribution').toArray()),
+                contributionIfNormal: undefined,
+                children: group
+            };
+        }));
+        const L2Features = individualFeatures.concat(groupedFeature);
+        // level-3: group-by period
+        const groupedFeatures = new DataFrame(L2Features.groupBy(row => row.type).toArray().map(group => {
+            const sample = group.first();
+            const entityId = _.uniq(group.getSeries('entityId').toArray().filter(isDefined)).length > 1 ? undefined : sample.entityId;
+            return {
+                ...sample,
+                entityId: entityId,
+                name: 'g-' + _.reduce(group.getSeries('name').toArray(), (a, b) => `${a}-${b}`),
+                alias: sample.type,
+                value: undefined,
+                primitive: undefined,
+                contribution: _.sum(group.getSeries('contribution').toArray()),
+                contributionIfNormal: undefined,
+                children: group
+            }
+        }))
+        this.setState({ groupedFeatures })
     }
 
-    componentDidUpdate(prevProps: FeatureViewProps, prevState: FeatureViewStates) {
-        const { selectedIds: groupIds, patientMeta, target } = this.props;
-        if (prevState.featureMatrix != this.state.featureMatrix
-            || prevProps.patientMeta?.subjectId !== patientMeta?.subjectId
-            || prevProps.target !== target || !arrayShallowCompare(prevProps.selectedIds, groupIds)) {
+    componentDidUpdate(prevProps: FeatureViewProps) {
+        const { features, featureMat } = this.props;
+        if (prevProps.featureMat != featureMat || prevProps.features != features) {
             this.updateFeatures();
             this.updateReferenceValues();
         }
     }
 
     public render() {
-        const { target, entityCategoricalColor, ...rest } = this.props;
-        const { features, shapValues, selectedMatWithDesiredOutputs, selectedMatWithoutDesiredOutputs } = this.state;
+        const { entityCategoricalColor, ...rest } = this.props;
+        const { groupedFeatures, desiredFeatureMat, undesiredFeatureMat, referenceValues } = this.state;
         const contextFeatureValues = [];
-        if (selectedMatWithDesiredOutputs) contextFeatureValues.push(selectedMatWithDesiredOutputs);
-        if (selectedMatWithoutDesiredOutputs) contextFeatureValues.push(selectedMatWithoutDesiredOutputs);
+        if (desiredFeatureMat) contextFeatureValues.push(desiredFeatureMat);
+        if (undesiredFeatureMat) contextFeatureValues.push(undesiredFeatureMat);
 
         return (
             <div className="feature-view">
-                {features && <FeatureList
+                {groupedFeatures && <FeatureList
                     {...rest}
-                    shapValues={shapValues}
-                    features={features}
+                    features={groupedFeatures}
                     cellWidth={this.defaultCellWidth}
                     contextFeatureValues={contextFeatureValues}
-                    getReferenceValue={this.getReferenceValues}
+                    referenceValues={referenceValues}
                     entityCategoricalColor={entityCategoricalColor}
                 />}
             </div>
@@ -207,13 +155,14 @@ export interface FeatureListProps {
     className?: string,
     features: IDataFrame<number, Feature>,
     shapValues?: number[],
-    prediction: number,
+    prediction?: number,
     cellWidth: (id: number) => number,
-    entityCategoricalColor?: (entityName: string | undefined) => string,
     contextFeatureValues: IDataFrame<number, any>[],
-    getReferenceValue: (name: string) => (ReferenceValue | undefined),
+    referenceValues?: IDataFrame<string, StatValues>,
+
     focusedFeatures: string[],
     display?: 'normal' | 'dense',
+    entityCategoricalColor?: (entityName: string | undefined) => string,
 
     inspectFeatureInSignal?: (feature: Feature) => void,
     inspectFeatureInTable?: (feature: Feature) => void,
@@ -287,12 +236,11 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
     private flipShowState(feature: Feature) {
         const { VFeatureList } = this.state;
         for (const vFeature of VFeatureList) {
-            if (vFeature.feature.name === feature.name) {
+            if (vFeature.feature.id === feature.id) {
                 vFeature.show = !vFeature.show;
                 vFeature.children.forEach(f => f.show = !f.show);
             }
         }
-        console.log(VFeatureList.filter(d => d.show));
         this.setState({ VFeatureList });
     }
 
@@ -385,9 +333,9 @@ export interface FeatureBlockProps {
     className?: string,
     depth: number,
     feature: Feature,
-    prediction: number,
+    prediction?: number,
     contextFeatureValues: IDataFrame<number, any>[],
-    getReferenceValue: (name: string) => (ReferenceValue | undefined),
+    referenceValues?: IDataFrame<string, StatValues>,
     x: d3.ScaleLinear<number, number>,
     cellWidth: (id: number) => number,
     entityCategoricalColor?: (entityName: string | undefined) => string,
@@ -429,7 +377,7 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
     }
 
     private hasFeature(feature: Feature, featureNames: string[]): boolean {
-        if (feature.name && featureNames.includes(feature.name))
+        if (feature.id && featureNames.includes(feature.id))
             return true;
         if (feature.children?.where(row => this.hasFeature(row, featureNames)).count())
             return true;
@@ -449,13 +397,12 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
 
     render() {
         const { feature, x, cellWidth, entityCategoricalColor, inspectFeatureInSignal, inspectFeatureInTable,
-            className, depth, contextFeatureValues, focusedFeatures, getReferenceValue, display,
+            className, depth, contextFeatureValues, focusedFeatures, referenceValues, display,
             prediction, threshold } = this.props;
         const { collapsed, showDistibution, showWhatIf } = this.state
-        const { name, alias, value, contribution, children, entityId, predictionIfNormal } = feature;
-        const referenceValue = feature.name ? getReferenceValue(feature.name) : undefined;
+        const { id: name, alias, value, contribution, children, entityId, predictionIfNormal } = feature;
+        const referenceValue = referenceValues ? referenceValues.at(feature.id) : undefined;
 
-        // console.log('referenceValue', feature.name, referenceValue, value,)
         let outofRange: 'none' | 'low' | 'high' = 'none';
         let whatIfValue = undefined;
         if (referenceValue && typeof (value) === typeof (0.0)) {
@@ -488,7 +435,7 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
 
         let id: string | undefined = undefined
         if (isLeaf)
-            id = `${className}-${feature.name}`;
+            id = `${className}-${feature.id}`;
         else if (collapsed) {
             const childrenNames = feature.children?.getSeries('name').where(d => d);
             if (childrenNames && childrenNames.count()) {
@@ -531,15 +478,15 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                                     whatIfValue={showWhatIf ? whatIfValue : undefined}
                                     mode="side-by-side"
                                 /> : (typeof (value) === 'string') ? <BarChart
-                                        data={contextFeatureValues?.map(mat => mat.getSeries(name).toArray()) as string[][]}
-                                        height={70}
-                                        width={cellWidth(1) + 40}
-                                        drawBottomAxis={true}
-                                        margin={{ left: 10, bottom: 20 }}
-                                        // referenceValue={value}
-                                        // whatIfValue={showWhatIf ? whatIfValue : undefined}
-                                        mode="side-by-side"
-                                    /> : <div />
+                                    data={contextFeatureValues?.map(mat => mat.getSeries(name).toArray()) as string[][]}
+                                    height={70}
+                                    width={cellWidth(1) + 40}
+                                    drawBottomAxis={true}
+                                    margin={{ left: 10, bottom: 20 }}
+                                    // referenceValue={value}
+                                    // whatIfValue={showWhatIf ? whatIfValue : undefined}
+                                    mode="side-by-side"
+                                /> : <div />
                                 : <Tooltip title={typeof (value) == typeof (0.0) ? beautifulPrinter(value) : value}>
                                     <span className={"feature-block-cell-text"}>
                                         {outofRange === 'low' && <ArrowDownOutlined />}
@@ -550,20 +497,22 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                         </div>
                         <div className={"feature-block-cell feature-contribution"} style={{ width: cellWidth(2) }}>
                             {SHAPContributions({
-                                contribution: feature.contribution, contributionIfNormal: feature.contributionIfNormal, x, height: 14,
+                                contribution: feature.contribution, 
+                                contributionIfNormal: showWhatIf ? feature.contributionIfNormal : undefined, 
+                                x, height: 14,
                                 posRectStyle: { fill: !collapsed ? '#f8a3bf' : undefined },
                                 negRectStyle: { fill: !collapsed ? '#9abce4' : undefined }
                             })}
                             {(contribution > x.domain()[1]) && <ArrowRightOutlined className="overflow-notation-right" />}
                             {(contribution < x.domain()[0]) && <ArrowLeftOutlined className="overflow-notation-left" />}
-                            {showWhatIf && predictionIfNormal && whatIfValue && <div className={"what-if-label"}>
-                                <div className={"label-circle"} style={{ backgroundColor: defaultCategoricalColor(Math.round(prediction)) }}>
+                            {showWhatIf && whatIfValue && <div className={"what-if-label"}>
+                                {prediction && <div className={"label-circle"} style={{ backgroundColor: defaultCategoricalColor(Math.round(prediction)) }}>
                                     {prediction > 0.5 ? 'High' : 'Low'}
-                                </div>
+                                </div>}
                                 <ArrowRightOutlined />
-                                <div className={"label-circle"} style={{ backgroundColor: defaultCategoricalColor(Math.round(predictionIfNormal)) }}>
+                                {predictionIfNormal && <div className={"label-circle"} style={{ backgroundColor: defaultCategoricalColor(Math.round(predictionIfNormal)) }}>
                                     {predictionIfNormal > 0.5 ? 'High' : 'Low'}
-                                </div>
+                                </div>}
                             </div>}
                         </div>
                     </div>
@@ -590,7 +539,7 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
             {(!collapsed) && children?.toArray().map(feature =>
                 <FeatureBlock
                     {...this.props}
-                    key={feature.name || `${feature.period}-${feature.entityId}-${feature.alias}`}
+                    key={feature.id || `${feature.period}-${feature.entityId}-${feature.alias}`}
                     depth={depth + 1}
                     feature={feature}
                 />)}
