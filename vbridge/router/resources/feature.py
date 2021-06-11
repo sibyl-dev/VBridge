@@ -19,8 +19,7 @@ def get_feature_schemas(fl, es):
     def get_level2_leaf(feature):
         if len(feature.base_features) == 0:
             return None
-        elif len(feature.base_features) > 0 and \
-            len(feature.base_features[0].base_features) == 0:
+        elif len(feature.base_features) > 0 and len(feature.base_features[0].base_features) == 0:
             return feature
         else:
             return get_level2_leaf(feature.base_features[0])
@@ -40,7 +39,6 @@ def get_feature_schemas(fl, es):
 
         if leve2_leaf_node and ('where' in leve2_leaf_node.__dict__):
             entity_dict = get_item_dict(es, info['entityId'])
-            print(entity_dict)
             filter_name = leve2_leaf_node.where.get_name()
             info['item'] = {
                 'columnId': filter_name.split(' = ')[0],
