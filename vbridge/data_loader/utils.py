@@ -1,23 +1,29 @@
 import os
+import pathlib
 import pickle
 
 import pandas as pd
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-output_dir = os.path.join(ROOT, 'data/intermediate/')
+output_workspace = os.path.join(ROOT, 'data/intermediate/mortality')
 
 
-def save_entityset(entityset):
+def save_entityset(entityset, name=''):
+    output_dir = os.path.join(output_workspace, name)
+    pathlib.Path(output_dir).mkdir(parents=True, exist_ok=True)
     with open(os.path.join(output_dir, 'entityset'), 'wb') as f:
         pickle.dump(entityset, f)
 
 
-def load_entityset():
+def load_entityset(name=''):
+    output_dir = os.path.join(output_workspace, name)
     with open(os.path.join(output_dir, 'entityset'), 'rb') as f:
         return pickle.load(f)
 
 
-def save_fm(df, fm_list, token=''):
+def save_fm(df, fm_list, token='', name=''):
+    output_dir = os.path.join(output_workspace, name)
+    pathlib.Path(output_dir).mkdir(parents=True, exist_ok=True)
     if str(token) != '':
         token = '_' + str(token)
     with open(os.path.join(output_dir, 'fl{}.pkl'.format(token)), 'wb') as f:
@@ -25,7 +31,8 @@ def save_fm(df, fm_list, token=''):
     df.to_csv(os.path.join(output_dir, 'fm{}.csv'.format(token)))
 
 
-def load_fm(token=''):
+def load_fm(token='', name=''):
+    output_dir = os.path.join(output_workspace, name)
     if str(token) != '':
         token = '_' + str(token)
     with open(os.path.join(output_dir, 'fl{}.pkl'.format(token)), 'rb') as f:
@@ -34,7 +41,8 @@ def load_fm(token=''):
     return df, fm_list
 
 
-def exist_fm(token=''):
+def exist_fm(token='', name=''):
+    output_dir = os.path.join(output_workspace, name)
     if str(token) != '':
         token = '_' + str(token)
     return os.path.exists(os.path.join(output_dir, 'fl{}.pkl'.format(token))) and \

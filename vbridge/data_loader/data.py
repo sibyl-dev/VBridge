@@ -4,39 +4,26 @@ from copy import deepcopy
 import featuretools as ft
 import pandas as pd
 
-from vbridge.data_loader.settings import META_INFO, RELATIONSHIPS
+from vbridge.data_loader.pic_schema import META_INFO, RELATIONSHIPS
 from vbridge.data_loader.utils import load_entityset, remove_nan_entries, save_entityset
 
-ROOT = os.path.dirname(os.path.dirname(__file__))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 PIC_dir = os.path.join(ROOT, 'data/raw/PIC_mini/')
-output_dir = os.path.join(ROOT, 'data/intermediate/')
 
 
-def load_pic(save=True, verbose=True):
-    es = ft.EntitySet(id="pic")
-
+def create_entityset(name, save=True, verbose=True):
+    es = ft.EntitySet(id=name)
+    # Add the entities to the entityset
     for table_name, info in META_INFO.items():
-
         table_df = pd.read_csv(os.path.join(PIC_dir, '{}.csv'.format(table_name)),
                                date_parser=pd.to_datetime)
-
-        # Create unique surgery id
-        if table_name in ['SURGERY_INFO', 'SURGERY_VITAL_SIGNS']:
-            table_df['UNI_OPER_ID'] = (table_df['HADM_ID'] - 100000) * 64 + table_df[
-                'VISIT_ID'] * 8 + table_df['OPER_ID']
-
-        if table_name == 'SURGERY_INFO':
-            table_df = table_df[~table_df['UNI_OPER_ID'].duplicated()]
-            add_info = pd.read_csv(os.path.join(PIC_dir, 'surgery_additional_features.csv'))
-            table_df = pd.merge(table_df, add_info)
-            # table_df['SURGERY_NAME'] = table_df['SURGERY_NAME'].apply(lambda row: row.split('+'))
-
+        # Remove entries with missing identifiers
         index = info.get('index', 'ROW_ID')
-        index_columns = info.get('foreign_index', []) + [index]
+        index_columns = info.get('identifiers', []) + [index]
         table_df = remove_nan_entries(table_df, index_columns, verbose=verbose)
 
-        for col, t in info.get('types', {}).items():
-            table_df[col] = table_df[col].astype(t)
+        for col in index_columns:
+            table_df[col] = table_df[col].astype('str')
 
         es.entity_from_dataframe(entity_id=table_name,
                                  dataframe=table_df,
@@ -44,9 +31,9 @@ def load_pic(save=True, verbose=True):
                                  time_index=info.get('time_index', None),
                                  secondary_time_index=info.get('secondary_index', None))
 
+    # Add the relationships to the entityset
     for parent, primary_key, child, foreign_key in RELATIONSHIPS:
         new_relationship = ft.Relationship(es[parent][primary_key], es[child][foreign_key])
-
         es = es.add_relationship(new_relationship)
 
     if save:
