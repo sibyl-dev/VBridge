@@ -45,13 +45,6 @@ class Model:
         self._model = XGBClassifier(use_label_encoder=False, **kwargs)
         self._explainer = None
 
-
-    # @staticmethod
-    # def train_test_split(X, y, test_size=0.2, shuffle=True):
-    #     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size,
-    #                                                         shuffle=shuffle)
-    #     return X_train, X_test, y_train, y_test
-
     @property
     def model(self):
         return self._model
@@ -97,11 +90,28 @@ class Model:
         shap_values = pd.DataFrame(self._explainer.shap_values(X), columns=dummy_columns)
         for original_col, dummies in self._one_hot_encoder.dummy_dict.items():
             sub_dummy_column = ["{}_{}".format(original_col, cat) for cat in dummies]
-            assert np.array([col in dummy_columns for col in sub_dummy_column]).all()
+            assert [col in dummy_columns for col in sub_dummy_column].all()
             if original_col + "_Others" in dummy_columns:
                 sub_dummy_column.append(original_col + "_Others")
             shap_values[original_col] = shap_values.loc[:, sub_dummy_column].sum(axis=1)
         return shap_values.reindex(columns=columns)
+
+    def save(self, path=None):
+        if path is None:
+            path = os.path.join(output_workspace, 'model.pkl')
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, 'wb') as pickle_file:
+            pickle.dump(self, pickle_file)
+
+    @staticmethod
+    def load(path=None):
+        if path is None:
+            path = os.path.join(output_workspace, 'model.pkl')
+        with open(path, 'rb') as pickle_file:
+            obj = pickle.load(pickle_file)
+        if not isinstance(obj, Model):
+            raise ValueError('Serialized object is not a Modeler instance')
+        return obj
 
 
 class ModelManager:
@@ -179,6 +189,6 @@ class ModelManager:
             path = os.path.join(output_workspace, 'model_manager.pkl')
         with open(path, 'rb') as pickle_file:
             obj = pickle.load(pickle_file)
-        # if not isinstance(obj, ModelManager):
-        #     raise ValueError('Serialized object is not a Modeler instance')
+        if not isinstance(obj, ModelManager):
+            raise ValueError('Serialized object is not a Modeler instance')
         return obj
