@@ -5,39 +5,43 @@ import featuretools as ft
 import pandas as pd
 
 from vbridge.data_loader.pic_schema import META_INFO, RELATIONSHIPS
-from vbridge.data_loader.utils import load_entityset, remove_nan_entries, save_entityset
+from vbridge.data_loader.utils import load_entityset, exist_entityset, \
+    remove_nan_entries, save_entityset
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 PIC_dir = os.path.join(ROOT, 'data/raw/PIC_mini/')
 
 
-def create_entityset(name, save=True, verbose=True):
-    es = ft.EntitySet(id=name)
-    # Add the entities to the entityset
-    for table_name, info in META_INFO.items():
-        table_df = pd.read_csv(os.path.join(PIC_dir, '{}.csv'.format(table_name)),
-                               date_parser=pd.to_datetime)
-        # Remove entries with missing identifiers
-        index = info.get('index', 'ROW_ID')
-        index_columns = info.get('identifiers', []) + [index]
-        table_df = remove_nan_entries(table_df, index_columns, verbose=verbose)
+def create_entityset(name, load_exist=True, save=True, verbose=True):
+    if load_exist and exist_entityset(name):
+        es = load_entityset(name)
+    else:
+        es = ft.EntitySet(id=name)
+        # Add the entities to the entityset
+        for table_name, info in META_INFO.items():
+            table_df = pd.read_csv(os.path.join(PIC_dir, '{}.csv'.format(table_name)),
+                                date_parser=pd.to_datetime)
+            # Remove entries with missing identifiers
+            index = info.get('index', 'ROW_ID')
+            index_columns = info.get('identifiers', []) + [index]
+            table_df = remove_nan_entries(table_df, index_columns, verbose=verbose)
 
-        for col in index_columns:
-            table_df[col] = table_df[col].astype('str')
+            for col in index_columns:
+                table_df[col] = table_df[col].astype('str')
 
-        es.entity_from_dataframe(entity_id=table_name,
-                                 dataframe=table_df,
-                                 index=index,
-                                 time_index=info.get('time_index', None),
-                                 secondary_time_index=info.get('secondary_index', None))
+            es.entity_from_dataframe(entity_id=table_name,
+                                    dataframe=table_df,
+                                    index=index,
+                                    time_index=info.get('time_index', None),
+                                    secondary_time_index=info.get('secondary_index', None))
 
-    # Add the relationships to the entityset
-    for parent, primary_key, child, foreign_key in RELATIONSHIPS:
-        new_relationship = ft.Relationship(es[parent][primary_key], es[child][foreign_key])
-        es = es.add_relationship(new_relationship)
+        # Add the relationships to the entityset
+        for parent, primary_key, child, foreign_key in RELATIONSHIPS:
+            new_relationship = ft.Relationship(es[parent][primary_key], es[child][foreign_key])
+            es = es.add_relationship(new_relationship)
 
-    if save:
-        save_entityset(es)
+        if save:
+            save_entityset(es, name=name)
 
     return es
 
@@ -103,32 +107,4 @@ def select_entries(es):
         entity.df = df
 
     es['SURGERY_INFO'].df = surgery_df
-    return es
-
-
-def load_pre_surgery_es(es=None, save=True, verbose=True):
-    if es is None:
-        try:
-            es = load_entityset()
-        except FileNotFoundError:
-            es = load_pic(save=save, verbose=verbose)
-    else:
-        es = deepcopy(es)
-    es = select_entries(es)
-    es = filter_entries(es, period='pre-surgery')
-    es = select_entries(es)
-    return es
-
-
-def load_in_surgery_es(es=None, save=True, verbose=True):
-    if es is None:
-        try:
-            es = load_entityset()
-        except FileNotFoundError:
-            es = load_pic(save=save, verbose=verbose)
-    else:
-        es = deepcopy(es)
-    es = select_entries(es)
-    es = filter_entries(es, period='in-surgery')
-    es = select_entries(es)
     return es

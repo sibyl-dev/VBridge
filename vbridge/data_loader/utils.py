@@ -11,14 +11,19 @@ output_workspace = os.path.join(ROOT, 'data/intermediate/mortality')
 def save_entityset(entityset, name=''):
     output_dir = os.path.join(output_workspace, name)
     pathlib.Path(output_dir).mkdir(parents=True, exist_ok=True)
-    with open(os.path.join(output_dir, 'entityset'), 'wb') as f:
+    with open(os.path.join(output_dir, 'entityset.pkl'), 'wb') as f:
         pickle.dump(entityset, f)
 
 
 def load_entityset(name=''):
     output_dir = os.path.join(output_workspace, name)
-    with open(os.path.join(output_dir, 'entityset'), 'rb') as f:
+    with open(os.path.join(output_dir, 'entityset.pkl'), 'rb') as f:
         return pickle.load(f)
+
+
+def exist_entityset(name=''):
+    output_dir = os.path.join(output_workspace, name)
+    return os.path.exists(os.path.join(output_dir, 'entityset.pkl'))
 
 
 def save_fm(df, fm_list, token='', name=''):

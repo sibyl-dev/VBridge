@@ -1,7 +1,6 @@
 import os
 import pickle
 
-import numpy as np
 import pandas as pd
 import shap
 import sklearn
@@ -49,10 +48,6 @@ class Model:
     def model(self):
         return self._model
 
-    @model.setter
-    def model(self, model):
-        self._model = model
-
     def fit(self, X, y, explain=True):
         y_train = y.values
 
@@ -90,7 +85,7 @@ class Model:
         shap_values = pd.DataFrame(self._explainer.shap_values(X), columns=dummy_columns)
         for original_col, dummies in self._one_hot_encoder.dummy_dict.items():
             sub_dummy_column = ["{}_{}".format(original_col, cat) for cat in dummies]
-            assert [col in dummy_columns for col in sub_dummy_column].all()
+            assert all([col in dummy_columns for col in sub_dummy_column])
             if original_col + "_Others" in dummy_columns:
                 sub_dummy_column.append(original_col + "_Others")
             shap_values[original_col] = shap_values.loc[:, sub_dummy_column].sum(axis=1)
@@ -121,9 +116,11 @@ class ModelManager:
         self.y_train = pd.DataFrame(index=self.X_train.index)
         self.y_test = pd.DataFrame(index=self.X_test.index)
 
-    def add_model(self, model, label, name=None):
+    def add_model(self, label, model=None, name=None):
         if name is None:
             name = "model-{}".format(len(self._models))
+        if model is None:
+            model = Model()
         self._models[name] = model
         self.y_train[name] = label.loc[self.y_train.index]
         self.y_test[name] = label.loc[self.y_test.index]
@@ -151,14 +148,12 @@ class ModelManager:
             else:
                 raise ValueError("Invalid id.")
             X = X.to_frame().T
-            for target_name, model in self._models.items():
-                scores[target_name] = model.transform(X)[0, 1]
         elif X is not None:
             X = X
-            for target_name, model in self._models.items():
-                scores[target_name] = model.transform(X)[:, 1]
         else:
-            raise ValueError("id and X should not be both None.")
+            X = pd.concat([self.X_train, self.X_test])
+        for target_name, model in self._models.items():
+                scores[target_name] = model.transform(X)[:, 1]
         return scores
 
     def explain(self, id=None, X=None, target='complication'):
@@ -173,8 +168,8 @@ class ModelManager:
         elif X is not None:
             X = X
         else:
-            raise ValueError("id and X should not be both None.")
-        return self.model[target].SHAP(X)
+            X = pd.concat([self.X_train, self.X_test])
+        return self.models[target].SHAP(X)
 
     def save(self, path=None):
         if path is None:
