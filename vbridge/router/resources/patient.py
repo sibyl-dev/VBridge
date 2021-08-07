@@ -3,30 +3,27 @@ import logging
 from flask import Response, current_app, jsonify
 from flask_restful import Resource, reqparse
 
-from vbridge.data_loader.data import get_patient_records
+from vbridge.data_loader.pic_schema import ignore_variables
+from vbridge.utils import get_forward_entities, get_records
 
 LOGGER = logging.getLogger(__name__)
 
 
-def get_patient_statics(es, subject_id):
-    # TODO: string ids
-    subject_id = int(subject_id)
-    info = {'subjectId': subject_id}
-    table_names = ['PATIENTS', 'ADMISSIONS', 'SURGERY_INFO']
-    for table_name in table_names:
-        df = es[table_name].df
-        records = df[df['SUBJECT_ID'] == subject_id]
-        column_names = es[table_name].df.columns
-        for col in column_names:
-            info[col] = str(records[col].values[0])
+def get_patient_statics(es, target_entity_id, subject_id):
+    info = {}
+    entity_ids = get_forward_entities(es, target_entity_id)
+    for entity_id in entity_ids:
+        df = es[entity_id].df
+        records = df[df['SUBJECT_ID'] == subject_id].to_dict()
+        ignore_vars = ignore_variables.get(entity_id, [])
+        info[entity_id] = {k: v for k, v in records.items() if k not in ignore_vars}
+        # TODO: filter by secondary time index
     return jsonify(info)
 
 
-def get_patient_temporal(es, subject_id, table_name):
-    # TODO: string ids
-    subject_id = int(subject_id)
-    cutoff_times = current_app.cutoff_times
-    records = get_patient_records(es, table_name, subject_id, cutoff_times=cutoff_times)
+def get_patient_temporal(es, entity_id, subject_id, target_entity_id=None, cutoff_times=None):
+    records = get_records(es, entity_id, subject_id,
+                          target_entity_id=target_entity_id, cutoff_times=cutoff_times)
     return Response(records.to_csv(), mimetype="text/csv")
 
 
@@ -58,7 +55,8 @@ class StaticInfo(Resource):
             $ref: '#/components/responses/ErrorMessage'
         """
         try:
-            res = get_patient_statics(current_app.es, subject_id)
+            settings = current_app.settings
+            res = get_patient_statics(settings['entityset'], settings['target_entity'], subject_id)
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500
@@ -105,14 +103,15 @@ class TemporalInfo(Resource):
         """
         try:
             args = self.parser_get.parse_args()
+            entity_id = args['entity_id']
         except Exception as e:
             LOGGER.exception(str(e))
             return {'message', str(e)}, 400
 
-        table_name = args['entity_id']
-
         try:
-            res = get_patient_temporal(current_app.es, subject_id, table_name)
+            settings = current_app.settings
+            res = get_patient_temporal(settings['entityset'], entity_id, subject_id,
+                                       settings['target_entity'], settings['cutoff_time'])
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500
