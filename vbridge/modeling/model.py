@@ -10,8 +10,8 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.utils import class_weight
 from xgboost import XGBClassifier
 
-from vbridge.data_loader.utils import output_workspace
 from vbridge.modeling.primitive.onehotencoder import OneHotEncoder
+from vbridge.utils import output_workspace
 
 classification_metrics = {
     'Accuracy': sklearn.metrics.accuracy_score,
@@ -81,7 +81,6 @@ class Model:
         X = self._scaler.transform(X)
         dummy_columns = self._one_hot_encoder.dummy_columns
 
-        # print('SHAP', X, dummy_columns)
         shap_values = pd.DataFrame(self._explainer.shap_values(X), columns=dummy_columns)
         for original_col, dummies in self._one_hot_encoder.dummy_dict.items():
             sub_dummy_column = ["{}_{}".format(original_col, cat) for cat in dummies]
@@ -110,11 +109,14 @@ class Model:
 
 
 class ModelManager:
-    def __init__(self, fm):
+    def __init__(self, fm, es=None, task=None):
         self._models = {}
         self.X_train, self.X_test = train_test_split(fm)
         self.y_train = pd.DataFrame(index=self.X_train.index)
         self.y_test = pd.DataFrame(index=self.X_test.index)
+        if task is not None and es is not None:
+            for name, label_fn in task.get_labels():
+                self.add_model(label_fn(es), name=name)
 
     def add_model(self, label, model=None, name=None):
         if name is None:

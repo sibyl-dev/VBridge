@@ -7,7 +7,6 @@ LOGGER = logging.getLogger(__name__)
 
 
 def get_prediction(model_manager, subject_id):
-    subject_id = int(subject_id)
     predictions = model_manager.predict_proba(subject_id)
     return jsonify(predictions)
 

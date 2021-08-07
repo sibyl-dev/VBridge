@@ -6,7 +6,7 @@ from featuretools.selection import (
     remove_low_information_features, )
 
 from vbridge.data_loader.pic_schema import ignore_variables
-from vbridge.data_loader.utils import exist_fm, load_fm, save_fm
+from vbridge.utils import exist_fm, load_fm, save_fm, find_path
 
 
 class Exists(ft.primitives.AggregationPrimitive):
@@ -28,9 +28,11 @@ class Exists(ft.primitives.AggregationPrimitive):
 
 class Featurization:
 
-    def __init__(self, es, target_entity):
+    def __init__(self, es, task):
         self.es = es
-        self.target_entity = target_entity
+        self.task = task
+        self.target_entity = task.target_entity
+        self.entity_ids = task.forward_entities + task.backward_entities
         self.es.add_last_time_indexes()
         self._add_interesting_values()
 
@@ -53,7 +55,7 @@ class Featurization:
         uninterpretable_cols = []
         for column in fm.columns:
             if np.array([prefix in column for prefix in where_prefix]).any() \
-                and ' WHERE ' not in column:
+                    and ' WHERE ' not in column:
                 uninterpretable_cols.append(column)
         print("Remove: ", uninterpretable_cols)
         for column in uninterpretable_cols:
@@ -98,26 +100,24 @@ class Featurization:
         med_counts = self.es['PRESCRIPTIONS'].df['DRUG_NAME_EN'].value_counts()
         self.es["PRESCRIPTIONS"]["DRUG_NAME_EN"].interesting_values = med_counts[:20].index
 
-    def generate_features(self, entity_list=None, cutoff_time=None,
-                          select=True, save=True, load_exist=True, verbose=True):
+    def generate_features(self, select=True, save=True, load_exist=True, verbose=True):
         if load_exist and exist_fm():
             fm, fl = load_fm()
         else:
             fp = []
-            if entity_list is None:
-                entity_list = ['PATIENTS', 'CHARTEVENTS', 'SURGERY_VITAL_SIGNS', 'LABEVENTS']
-            if 'PATIENTS' in entity_list:
-                fp.append(self._patients(cutoff_time=cutoff_time,
-                                        save=save, load_exist=load_exist, verbose=verbose))
-            if 'CHARTEVENTS' in entity_list:
-                fp.append(self._chart_events(cutoff_time=cutoff_time,
+            cutoff_times = self.task.get_cutoff_times(self.es)
+            if 'PATIENTS' in self.entity_ids:
+                fp.append(self._patients(cutoff_times=cutoff_times,
+                                         save=save, load_exist=load_exist, verbose=verbose))
+            if 'CHARTEVENTS' in self.entity_ids:
+                fp.append(self._chart_events(cutoff_times=cutoff_times,
+                                             save=save, load_exist=load_exist, verbose=verbose))
+            if 'SURGERY_VITAL_SIGNS' in self.entity_ids:
+                fp.append(self._vital_signs(cutoff_times=cutoff_times,
                                             save=save, load_exist=load_exist, verbose=verbose))
-            if 'SURGERY_VITAL_SIGNS' in entity_list:
-                fp.append(self._vital_signs(cutoff_time=cutoff_time,
-                                            save=save, load_exist=load_exist, verbose=verbose))
-            if 'LABEVENTS' in entity_list:
-                fp.append(self._lab_tests(cutoff_time=cutoff_time,
-                                        save=save, load_exist=load_exist, verbose=verbose))
+            if 'LABEVENTS' in self.entity_ids:
+                fp.append(self._lab_tests(cutoff_times=cutoff_times,
+                                          save=save, load_exist=load_exist, verbose=verbose))
 
             fm, fl = Featurization.merge_features([f[0] for f in fp], [f[1] for f in fp])
             fm, fl = Featurization.remove_uninterpretable_features(fm, fl)
@@ -127,28 +127,6 @@ class Featurization:
                 save_fm(fm, fl)
         return fm, fl
 
-    def _find_path(self, target_entity):
-        """Find a path of the source entity to the target_entity.
-        """
-        cached_nodes = [target_entity]
-        parent_dict = {target_entity: None}
-        while len(cached_nodes):
-            parent_node = cached_nodes.pop()
-            if parent_node == self.target_entity:
-                break
-            child_nodes = [e[0] for e in self.es.get_backward_entities(parent_node)] \
-                          + [e[0] for e in self.es.get_forward_entities(parent_node)]
-            for child in child_nodes:
-                if child not in parent_dict:
-                    parent_dict[child] = parent_node
-                    cached_nodes.append(child)
-        node = self.target_entity
-        paths = [[node]]
-        while node != target_entity:
-            node = parent_dict[node]
-            paths.append(paths[-1] + [node])
-        return paths
-
     def _get_cutoff_times(self, entity_id=None, time_index=None, offset=None):
         if entity_id is None:
             entity_id = self.target_entity
@@ -157,29 +135,29 @@ class Featurization:
 
         if entity_id == self.target_entity:
             target = self.es[self.target_entity]
-            cutoff_time = target.df.loc[:, [target.index, time_index]]
+            cutoff_times = target.df.loc[:, [target.index, time_index]]
         else:
             forward_path = self.es.find_forward_paths(self.target_entity, entity_id)
 
-    def _generate_features(self, target_entity=None, cutoff_time=None,
+    def _generate_features(self, target_entity=None, cutoff_times=None,
                            add_prefix=True, save=True, load_exist=True, **kwargs):
 
-        if cutoff_time is None:
+        if cutoff_times is None:
             target = self.es[self.target_entity]
-            cutoff_time = target.df.loc[:, [target.index, target.time_index]]
-            cutoff_time.columns = ['instance_id', 'time']
+            cutoff_times = target.df.loc[:, [target.index, target.time_index]]
+            cutoff_times.columns = ['instance_id', 'time']
 
         if load_exist and exist_fm(target_entity):
             fm, fl = load_fm(target_entity)
         else:
             fm, fl = ft.dfs(entityset=self.es,
                             target_entity=self.target_entity,
-                            allowed_paths=self._find_path(target_entity),
+                            allowed_paths=find_path(self.es, self.target_entity, target_entity),
                             ignore_variables=ignore_variables,
-                            cutoff_time=cutoff_time,
+                            cutoff_times=cutoff_times,
                             **kwargs)
             # if add_prefix:
-            #     fm, fl = Featurization.add_prefix(fm, fl, cutoff_time)
+            #     fm, fl = Featurization.add_prefix(fm, fl, cutoff_times)
         if save:
             save_fm(fm, fl, target_entity)
         return fm, fl
