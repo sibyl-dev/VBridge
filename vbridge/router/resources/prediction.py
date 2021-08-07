@@ -6,24 +6,28 @@ from flask_restful import Resource
 LOGGER = logging.getLogger(__name__)
 
 
-def get_prediction(model_manager, subject_id):
-    predictions = model_manager.predict_proba(subject_id)
+def get_prediction_description():
+    pass
+
+
+def get_prediction_values(model_manager, direct_id=None):
+    predictions = model_manager.predict_proba(direct_id)
     return jsonify(predictions)
 
 
 class Prediction(Resource):
 
-    def get(self, subject_id):
+    def get(self, direct_id):
         """
         Get the prediction results of a target patient.
         ---
         tags:
           - model
         parameters:
-          - name: subject_id
+          - name: direct_id
             in: path
             schema:
-              type: integer
+              type: str
             required: true
             description: ID of the target patient.
         responses:
@@ -41,7 +45,7 @@ class Prediction(Resource):
             $ref: '#/components/responses/ErrorMessage'
         """
         try:
-            res = get_prediction(current_app.model_manager, subject_id)
+            res = get_prediction_values(current_app.model_manager, direct_id)
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500

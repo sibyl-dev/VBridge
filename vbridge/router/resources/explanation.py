@@ -4,8 +4,6 @@ import pandas as pd
 from flask import current_app, jsonify
 from flask_restful import Resource, reqparse
 
-from vbridge.modeling.modeler import Modeler
-
 LOGGER = logging.getLogger(__name__)
 
 
@@ -23,7 +21,7 @@ def get_what_if_shap_values(fm, model_manager, subject_id, target):
         selected_fm = selected_fm[selected_fm['complication'] == 0]
     else:
         selected_fm = fm
-    targets = Modeler.prediction_targets()
+    targets = model_manager.models.keys()
     stat = selected_fm.agg(['mean', 'count', 'std']).T
     stat['low'] = stat['mean'] - stat['std'] * 1.96
     stat['high'] = stat['mean'] + stat['std'] * 1.96

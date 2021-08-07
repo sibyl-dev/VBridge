@@ -120,6 +120,16 @@ def get_records(entityset, entity_id, subject_id, other_ids=None,
                                           'PATIENTS').loc[subject_id, 'time']
 
         entity_df = entity_df[entity_df[time_index] <= timestamp]
-    # TODO modify records according to secondary time index
+    # TODO filter records according to secondary time index
 
     return entity_df
+
+
+def get_item_dict(es):
+    item_dict = {'LABEVENTS': es['D_LABITEMS'].df.loc[:, ['LABEL', 'LABEL_CN']].to_dict('index')}
+    for entity_id in ['CHARTEVENTS', 'LABEVENTS', 'SURGERY_VITAL_SIGNS']:
+        df = es['D_ITEMS'].df
+        # TODO: Change 'LABEL' to 'LABEL_CN' for Chinese labels
+        items = df[df['LINKSTO'] == entity_id.lower()].loc[:, 'LABEL']
+        item_dict[entity_id] = items.to_dict()
+    return item_dict
