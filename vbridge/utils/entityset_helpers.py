@@ -24,15 +24,15 @@ def get_forward_entities(entityset, entity_id):
     return ids
 
 
-def get_forward_attributes(entityset, entity_id, direct_id, interesting_ids=None):
+def get_forward_attributes(entityset, target_entity, direct_id, interesting_ids=None):
     info = []
-    entity_id_pipe = [(entity_id, direct_id)]
+    entity_id_pipe = [(target_entity, direct_id)]
     while len(entity_id_pipe):
         entity_id, direct_id = entity_id_pipe.pop()
         if interesting_ids is not None and entity_id not in interesting_ids:
             continue
         df = entityset[entity_id].df
-        info = [{'name': entity_id, **(df.loc[direct_id].to_dict())}] + info
+        info = [{'entityId': entity_id, **(df.loc[direct_id].to_dict())}] + info
         for child_id, relationship_path in entityset.get_forward_entities(entity_id):
             relation = parse_relationship_path(relationship_path)
             entity_id_pipe.append((child_id, df.loc[direct_id][relation['parent_variable_id']]))
@@ -62,7 +62,7 @@ def find_path(entityset, source_entity, target_entity):
         if parent_node == source_entity:
             break
         child_nodes = [e[0] for e in entityset.get_backward_entities(parent_node)] \
-                    + [e[0] for e in entityset.get_forward_entities(parent_node)]
+                      + [e[0] for e in entityset.get_forward_entities(parent_node)]
         for child in child_nodes:
             if child not in parent_dict:
                 parent_dict[child] = parent_node
@@ -108,8 +108,7 @@ def transfer_cutoff_times(entityset, cutoff_times, source_entity, target_entity,
     return cutoff_times
 
 
-def get_records(entityset, entity_id, subject_id, other_ids=None,
-                target_entity_id=None, cutoff_times=None):
+def get_records(entityset, subject_id, entity_id, other_ids=None, cutoff_time=None):
     entity = entityset[entity_id].df
 
     # select records by SUBJECT_ID
@@ -128,11 +127,8 @@ def get_records(entityset, entity_id, subject_id, other_ids=None,
 
     # select records before or at the cutoff_time
     time_index = META_INFO[entity_id].get('time_index')
-    if time_index is not None and cutoff_times is not None and target_entity_id is not None:
-        timestamp = transfer_cutoff_times(entityset, cutoff_times, target_entity_id,
-                                          'PATIENTS').loc[subject_id, 'time']
-
-        entity_df = entity_df[entity_df[time_index] <= timestamp]
+    if cutoff_time is not None and time_index is not None:
+        entity_df = entity_df[entity_df[time_index] <= cutoff_time]
     # TODO filter records according to secondary time index
 
     return entity_df
