@@ -2,14 +2,50 @@ import os
 
 schemas = {
     'PatientStatic': {
-        'type': 'object',
-        'properties': {
-            'SUBJECT_ID': {'type': 'string'},
-            'ADMITTIME': {'type': 'string'},
-            'SURGERY_BEGIN_TIME': {'type': 'string'},
-            'SURGERY_END_TIME': {'type': 'string'},
+        'type': 'array',
+        'items': {
+            'type': 'object',
+            'required': [
+                'entityId'
+            ],
+            'properties': {
+                'entityId': {'type': 'string'},
+            },
+            'additionalProperties': {
+                'oneOf': [
+                    {'type': 'string'},
+                    {'type': 'number'},
+                ]
+            }
         },
-        'additionalProperties': {}
+        'example': [{
+                "DOB": "2065-09-01 15:44:00",
+                "GENDER": "M",
+                "entityId": "PATIENTS"
+        }],
+    },
+    'PatientTemporal': {
+        'type': 'object',
+        'additionalProperties': {
+            'type': 'object',
+            'additionalProperties': {
+                'type': 'object',
+                'additionalProperties': {
+                    'oneOf': [
+                        {'type': 'string'},
+                        {'type': 'number'},
+                    ]
+                }
+            }
+        },
+        'example': {
+            "CHARTEVENTS": {
+                "CHARTTIME": {
+                    "559792": "2065-10-17 07:21:46",
+                    "561305": "2065-10-15 21:50:02",
+                }
+            }
+        }
     },
     'ColumnExtent': {
         'type': 'object',
@@ -124,16 +160,16 @@ schemas = {
 
 tags = [
     {
-        'name': 'patient',
-        'description': 'Everything about individual patients.'
+        'name': 'entityset',
+        'description': 'Everything about the entity set.'
     }, {
         'name': 'feature',
         'description': 'Everything about features.'
     }, {
-        'name': 'entity set',
-        'description': 'Everything about the entity set.'
+        'name': 'patient',
+        'description': 'Everything about the health records on individual patients.'
     }, {
-        'name': 'model',
+        'name': 'prediction',
         'description': 'Everything about model predictions.'
     }, {
         'name': 'explanation',

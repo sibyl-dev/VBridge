@@ -1,14 +1,14 @@
-from . import entityset, entity_filter, feature_explanation, feature, prediction, patient, \
+from . import entityset, patient_filter, feature_explanation, feature, prediction, patient, \
     reference_value, signal_explanation, task
 
 __all__ = [
     'patient',
     'feature',
     'entityset',
-    'entity_filter',
+    'patient_filter',
     'prediction',
     'reference_value',
-    'feature_explanation.py',
+    'feature_explanation',
     'signal_explanation',
     'task'
 ]

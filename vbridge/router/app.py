@@ -45,27 +45,27 @@ def create_app():
     settings['target_entity'] = task.target_entity
     settings['cutoff_time'] = task.get_cutoff_times(es)
 
-    try:
-        fm, fl = load_fm()
-    except FileNotFoundError:
-        feat = Featurization(es, task)
-        fm, fl = feat.generate_features(load_exist=True)
-    fm.index = fm.index.astype('str')
-    settings['feature_matrix'] = fm
-    settings['feature_list'] = fl
+    # try:
+    #     fm, fl = load_fm()
+    # except FileNotFoundError:
+    #     feat = Featurization(es, task)
+    #     fm, fl = feat.generate_features(load_exist=True)
+    # fm.index = fm.index.astype('str')
+    # settings['feature_matrix'] = fm
+    # settings['feature_list'] = fl
 
     # load model
-    try:
-        model_manager = ModelManager.load()
-    except FileNotFoundError:
-        model_manager = ModelManager(fm, es, task)
-        model_manager.fit_all()
-        print(model_manager.evaluate())
-        model_manager.save()
-    settings['models'] = model_manager
-
-    # load similar patient group
-    settings['selected_ids'] = fm.index
+    # try:
+    #     model_manager = ModelManager.load()
+    # except FileNotFoundError:
+    #     model_manager = ModelManager(fm, es, task)
+    #     model_manager.fit_all()
+    #     print(model_manager.evaluate())
+    #     model_manager.save()
+    # settings['models'] = model_manager
+    #
+    # # load similar patient group
+    # settings['selected_ids'] = fm.index
 
     # load explainer
     # app.ex = Explainer(es, fm, model_manager)
