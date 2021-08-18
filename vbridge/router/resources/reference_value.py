@@ -1,5 +1,4 @@
 import logging
-from collections.abc import Iterable
 
 import numpy as np
 from flask import current_app
@@ -10,11 +9,20 @@ from vbridge.data_loader.pic_schema import META_INFO
 LOGGER = logging.getLogger(__name__)
 
 
-def get_reference_values(es, entity_ids, subject_ids=None):
-    if isinstance(entity_ids, Iterable):
-        return {e_id: get_reference_values(es, e_id, subject_ids) for e_id in entity_ids}
-    entity_info = META_INFO[entity_ids]
-    df = es[entity_ids].df
+def get_reference_values_by_entity(es, entity_id, subject_ids=None):
+    """Get the reference values for each item in the required entity.
+
+    Args:
+        es: featuretools.EntitySet, the entity set that includes all patients' health records.
+        entity_id: string, the identifier of the required entity
+        subject_ids: list, the indexes of the relevant cohort where the reference values are
+            derived.
+
+    Returns:
+        A dict describing the reference values for each item in the required entity.
+    """
+    entity_info = META_INFO[entity_id]
+    df = es[entity_id].df
     # TODO: filter by time
     if subject_ids is not None:
         df = df[df['SUBJECT_ID'].isin(subject_ids)]
@@ -36,11 +44,27 @@ def get_reference_values(es, entity_ids, subject_ids=None):
     return references
 
 
+def get_reference_values(es, task, subject_ids=None):
+    """Get the reference values for each item in the required entities.
+
+    Args:
+        es: featuretools.EntitySet, the entity set that includes all patients' health records.
+        task: Task, an object describing the prediction task and other settings.
+        subject_ids: list, the indexes of the relevant cohort where the reference values are
+            derived.
+
+    Returns:
+        A list including dicts of the reference values for each item in the required entity.
+    """
+    return {e_id: get_reference_values_by_entity(es, e_id, subject_ids)
+            for e_id in task.backward_entities}
+
+
 class ReferenceValue(Resource):
 
     def get(self, entity_id):
         """
-        Get the reference value of the target attributes.
+        Get the reference values for each item in the required entity.
         ---
         tags:
           - entity set
@@ -65,7 +89,8 @@ class ReferenceValue(Resource):
         """
         try:
             settings = current_app.settings
-            res = get_reference_values(settings['entityset'], entity_id, settings['selected_ids'])
+            res = get_reference_values_by_entity(settings['entityset'],
+                                                 entity_id, settings['selected_ids'])
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500
@@ -77,7 +102,7 @@ class ReferenceValues(Resource):
 
     def get(self):
         """
-        Get the reference value of the target attributes.
+        Get the reference values for each item in are entities used for prediction.
         ---
         tags:
           - entity set
@@ -98,7 +123,7 @@ class ReferenceValues(Resource):
         try:
             settings = current_app.settings
             res = get_reference_values(settings['entityset'],
-                                       settings['task']['backward_entities'],
+                                       settings['task'],
                                        settings['selected_ids'])
         except Exception as e:
             LOGGER.exception(e)
