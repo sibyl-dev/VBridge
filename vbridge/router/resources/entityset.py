@@ -30,7 +30,7 @@ def get_entity_description(es, entity_id):
     return info
 
 
-def get_entityset_description(es, entity_ids):
+def get_entity_descriptions(es, entity_ids):
     schema = [get_entity_description(es, entity_id) for entity_id in entity_ids]
     return schema
 
@@ -91,8 +91,8 @@ class EntitySetSchema(Resource):
         """
         try:
             settings = current_app.settings
-            res = get_entityset_description(settings['entityset'],
-                                            settings['task']['backward_entities'])
+            res = get_entity_descriptions(settings['entityset'],
+                                          settings['task']['backward_entities'])
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500

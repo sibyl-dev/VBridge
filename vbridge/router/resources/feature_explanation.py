@@ -7,26 +7,25 @@ from flask_restful import Resource, reqparse
 LOGGER = logging.getLogger(__name__)
 
 
-def get_shap_values(model_manager, subject_id, target):
-    subject_id = int(subject_id)
-    shap_values = model_manager.explain(id=subject_id, target=target)
+def get_shap_values(model_manager, direct_id, target):
+    shap_values = model_manager.explain(id=direct_id, target=target)
     return jsonify(shap_values.loc[0].to_dict())
 
 
-def get_what_if_shap_values(fm, model_manager, subject_id, target):
-    subject_id = int(subject_id)
+def get_what_if_shap_values(fm, model_manager, direct_id, target):
     shap_values = {}
-    if current_app.selected_subject_ids is not None:
-        selected_fm = fm.loc[current_app.selected_subject_ids]
-        selected_fm = selected_fm[selected_fm['complication'] == 0]
-    else:
-        selected_fm = fm
+    # if current_app.selected_subject_ids is not None:
+    #     selected_fm = fm.loc[current_app.selected_subject_ids]
+    #     selected_fm = selected_fm[selected_fm['complication'] == 0]
+    # else:
+    #     selected_fm = fm
+    # TODO: select the entries according to the filters
     targets = model_manager.models.keys()
-    stat = selected_fm.agg(['mean', 'count', 'std']).T
+    stat = fm.agg(['mean', 'count', 'std']).T
     stat['low'] = stat['mean'] - stat['std'] * 1.96
     stat['high'] = stat['mean'] + stat['std'] * 1.96
 
-    target_fv = fm.loc[subject_id]
+    target_fv = fm.loc[direct_id]
 
     # What-if analysis on out-of-distribution high values
     high_features = target_fv[target_fv > stat['high']].index

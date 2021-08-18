@@ -23,15 +23,16 @@ def get_feature_descriptions(fl, es=None, in_hierarchy=True):
 
 
 def get_feature_values(fm):
-    return Response(fm.to_csv(), mimetype="text/csv")
+    entries = fm.to_dict()
+    return jsonify(entries)
 
 
-def get_feature_value_by_id(fm, direct_id):
+def get_feature_value(fm, direct_id):
     entry = fm.loc[direct_id].fillna('N/A').to_dict()
     return jsonify(entry)
 
 
-class FeatureMeta(Resource):
+class FeatureSchema(Resource):
 
     def get(self):
         """
@@ -120,7 +121,7 @@ class FeatureValues(Resource):
         """
         try:
             settings = current_app.settings
-            res = get_feature_value_by_id(settings['feature_matrix'], direct_id)
+            res = get_feature_value(settings['feature_matrix'], direct_id)
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500
