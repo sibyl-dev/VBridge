@@ -19,9 +19,9 @@ schemas = {
             }
         },
         'example': [{
-                "DOB": "2065-09-01 15:44:00",
-                "GENDER": "M",
-                "entityId": "PATIENTS"
+            "DOB": "2065-09-01 15:44:00",
+            "GENDER": "M",
+            "entityId": "PATIENTS"
         }],
     },
     'PatientTemporal': {
@@ -132,6 +132,18 @@ schemas = {
                     },
                     'maxItems': 2
                 },
+            }
+        },
+        'example': {
+            "LABEVENTS": {
+                "5002": {
+                    "VALUENUM": {
+                        "mean": 1.63,
+                        "std": 2.20,
+                        "count": 16785,
+                        "ci95": [-2.68, 5.96]
+                    }
+                }
             }
         }
     },
