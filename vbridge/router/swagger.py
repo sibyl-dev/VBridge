@@ -95,7 +95,7 @@ schemas = {
     'EntitySchema': {
         'type': 'object',
         'properties': {
-            'name': {'type': 'string'},
+            'entityId': {'type': 'string'},
             'alias': {'type': 'string'},
             'time_index': {'type': 'string'},
             'item_index': {'type': 'string'},
@@ -105,7 +105,16 @@ schemas = {
                     'type': 'string',
                 },
             },
-            'type': {'type': 'string'}  # todo: enumerate
+            'item_dict': {
+                'type': 'object',
+                'properties': {
+                    'type': 'string'
+                }
+            },
+            'types': {
+                'type': 'array',
+                'items': {'type': 'string'}  # todo: enumerate
+            }
         }
     },
     'ReferenceValues': {
@@ -160,7 +169,7 @@ schemas = {
 
 tags = [
     {
-        'name': 'entityset',
+        'name': 'entity set',
         'description': 'Everything about the entity set.'
     }, {
         'name': 'feature',

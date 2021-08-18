@@ -10,7 +10,16 @@ LOGGER = logging.getLogger(__name__)
 
 
 def get_entity_description(es, entity_id):
-    info = {'id': entity_id}
+    """Get the descriptions to the required entity by id.
+
+    Args:
+        es: featuretools.EntitySet, the entity set that includes all patients' health records.
+        entity_id: string, the identifier of the required entity.
+
+    Returns:
+        A dict describing the required entity.
+    """
+    info = {'entityId': entity_id}
     item_dict = get_item_dict(es)
     if entity_id in META_INFO:
         table_info = META_INFO[entity_id]
@@ -31,6 +40,15 @@ def get_entity_description(es, entity_id):
 
 
 def get_entity_descriptions(es, entity_ids):
+    """Get the descriptions to the required entities by id.
+
+    Args:
+        es: featuretools.EntitySet, the entity set that includes all patients' health records.
+        entity_ids: list, the identifiers of the required entities.
+
+    Returns:
+        A list including the descriptions of the required entities.
+    """
     schema = [get_entity_description(es, entity_id) for entity_id in entity_ids]
     return schema
 
@@ -48,10 +66,10 @@ class EntitySchema(Resource):
             schema:
               type: string
             required: true
-            description: ID of the entity.
+            description: Identifier of the required entity.
         responses:
           200:
-            description: The schema of the entity.
+            description: The schema of the required entity.
             content:
               application/json:
                 schema:
@@ -79,7 +97,7 @@ class EntitySetSchema(Resource):
           - entity set
         responses:
           200:
-            description: The schema of the entity.
+            description: The schema of all entities used for prediction.
             content:
               application/json:
                 schema:
@@ -92,7 +110,7 @@ class EntitySetSchema(Resource):
         try:
             settings = current_app.settings
             res = get_entity_descriptions(settings['entityset'],
-                                          settings['task']['backward_entities'])
+                                          settings['task'].backward_entities)
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500
