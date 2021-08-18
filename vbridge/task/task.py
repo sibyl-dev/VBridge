@@ -38,7 +38,11 @@ class Task:
         return self._forward_entities
 
     def get_labels(self, es):
-        return {label: fn(es) for label, fn in self._label_fns.items}
+        return {label: info['label_values'](es) for label, info in self._label_fns.items()}
+
+    def get_label_desc(self):
+        return {label: {k: v for k, v in info.items() if k != 'label_values'} 
+        for label, info in self._label_fns.items()}
 
 
 def pic_48h_in_admission_mortality_task():
@@ -59,5 +63,11 @@ def pic_48h_in_admission_mortality_task():
         cutoff_times_fn=get_cutoff_times,
         backward_entities=['LABEVENTS', 'SURGERY_VITAL_SIGNS', 'CHARTEVENTS'],
         forward_entities=['PATIENTS', 'ADMISSIONS'],
-        label_fns={'mortality', lambda es: es['ADMISSIONS'].df['HOSPITAL_EXPIRE_FLAG']}
+        label_fns={
+            'mortality': {
+                'label_values': lambda es: es['ADMISSIONS'].df['HOSPITAL_EXPIRE_FLAG'],
+                'label_type': 'boolean',
+                'label_extent': ['low-risk', 'high-risk']
+            }
+        },
     )
