@@ -1,6 +1,4 @@
-import pandas as pd
-
-from vbridge.data_loader.pic_schema import META_INFO, RELATIONSHIPS
+from vbridge.data_loader.pic_schema import META_INFO
 
 
 def parse_relationship_path(relationship_path):
@@ -24,6 +22,21 @@ def get_forward_entities(entityset, entity_id):
         for child_id, _ in entityset.get_forward_entities(entity_id):
             entity_id_pipe.append(child_id)
     return ids
+
+
+def get_forward_attributes(entityset, entity_id, direct_id, interesting_ids=None):
+    info = []
+    entity_id_pipe = [(entity_id, direct_id)]
+    while len(entity_id_pipe):
+        entity_id, direct_id = entity_id_pipe.pop()
+        if interesting_ids is not None and entity_id not in interesting_ids:
+            continue
+        df = entityset[entity_id].df
+        info = [{'name': entity_id, **(df.loc[direct_id].to_dict())}] + info
+        for child_id, relationship_path in entityset.get_forward_entities(entity_id):
+            relation = parse_relationship_path(relationship_path)
+            entity_id_pipe.append((child_id, df.loc[direct_id][relation['parent_variable_id']]))
+    return info
 
 
 def is_grand_parent(entityset, parent_entity_id, child_entity_id):
