@@ -1,6 +1,6 @@
 import logging
 
-from flask import Response, current_app, jsonify
+from flask import current_app, jsonify
 from flask_restful import Resource
 
 from vbridge.utils import get_item_dict
@@ -11,7 +11,16 @@ LOGGER = logging.getLogger(__name__)
 
 
 def get_feature_descriptions(fl, es=None, in_hierarchy=True):
+    """Get the descriptions of each feature.
 
+    Args:
+        fl: list, a list of objects defining each features
+        es: featuretools.EntitySet, the entity set that includes all patients' health records.
+        in_hierarchy: boolean, whether to group the features
+
+    Returns:
+        A list of dicts describing features.
+    """
     item_dict = get_item_dict(es) if es is not None else None
     features = [get_feature_description(f, item_dict) for f in fl]
     if in_hierarchy:
@@ -24,12 +33,12 @@ def get_feature_descriptions(fl, es=None, in_hierarchy=True):
 
 def get_feature_values(fm):
     entries = fm.to_dict()
-    return jsonify(entries)
+    return entries
 
 
 def get_feature_value(fm, direct_id):
     entry = fm.loc[direct_id].fillna('N/A').to_dict()
-    return jsonify(entry)
+    return entry
 
 
 class FeatureSchema(Resource):
@@ -72,17 +81,18 @@ class FeatureMatrix(Resource):
           - feature
         responses:
           200:
-            description: A csv file containing feature values of all patients.
+            description: The values of features for all patients.
             content:
-              text/csv:
+              application/json:
                 schema:
-                  type: string
+                  type: object
           500:
             $ref: '#/components/responses/ErrorMessage'
         """
         try:
             settings = current_app.settings
             res = get_feature_values(settings['feature_matrix'])
+            res = jsonify(res)
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500
@@ -102,12 +112,13 @@ class FeatureValues(Resource):
           - name: direct_id
             in: path
             schema:
-              type: integer
+              type: string
             required: true
-            description: ID of the target entity, e.g., patient id or admission id.
+            description: the identifier of the patient's related entry in the target entity
+                (e.g., the admission id).
         responses:
           200:
-            description: The schema of the features.
+            description: The value of features for the required patient.
             content:
               application/json:
                 schema:
@@ -122,6 +133,7 @@ class FeatureValues(Resource):
         try:
             settings = current_app.settings
             res = get_feature_value(settings['feature_matrix'], direct_id)
+            res = jsonify(res)
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500

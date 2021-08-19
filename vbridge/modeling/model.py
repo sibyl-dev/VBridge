@@ -148,14 +148,14 @@ class ModelManager:
             elif id in self.X_test.index:
                 X = self.X_test.loc[id]
             else:
-                raise ValueError("Invalid id.")
+                raise ValueError("Invalid id {}".format(id))
             X = X.to_frame().T
         elif X is not None:
             X = X
         else:
             X = pd.concat([self.X_train, self.X_test])
         for target_name, model in self._models.items():
-                scores[target_name] = model.transform(X)[:, 1]
+            scores[target_name] = model.transform(X)[:, 1]
         return scores
 
     def explain(self, id=None, X=None, target='complication'):
