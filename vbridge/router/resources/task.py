@@ -1,8 +1,7 @@
 import logging
 
-import pandas as pd
 from flask import current_app
-from flask_restful import Resource, reqparse
+from flask_restful import Resource
 
 LOGGER = logging.getLogger(__name__)
 
@@ -25,16 +24,14 @@ class Task(Resource):
         Get the task descriptions.
         ---
         tags:
-          - explanation
+          - task
         responses:
           200:
             description: The task descriptions.
             content:
               application/json:
                 schema:
-                  type: object
-                  additionalProperties:
-                    type: number
+                  $ref: '#/components/schemas/Task'
           400:
             $ref: '#/components/responses/ErrorMessage'
           500:

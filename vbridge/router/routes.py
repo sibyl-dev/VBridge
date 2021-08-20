@@ -19,7 +19,7 @@ def add_routes(app):
     Swagger(app, config=swagger_config, template=swagger_tpl, parse=True)
 
     # task
-    api.add_resource(res.task.Task, API + 'tasks/')
+    api.add_resource(res.task.Task, API + 'task/')
 
     # entity-set
     api.add_resource(res.entityset.EntitySetSchema, API + 'entity_schema/')
@@ -46,7 +46,7 @@ def add_routes(app):
     api.add_resource(res.prediction.Prediction, API + 'predictions/<string:direct_id>')
 
     # explanation
-    api.add_resource(res.feature_explanation.ShapValues, API + 'shap_values/<string:direct_id>')
-    api.add_resource(res.feature_explanation.ShapValuesIfNormal, API +
-                     'counterfactual_shap_values/<string:direct_id>')
+    api.add_resource(res.feature_explanation.ShapValues, API + 'shap/<string:direct_id>')
+    api.add_resource(res.feature_explanation.WhatIfShapValues, API +
+                     'whatif_shap/<string:direct_id>')
     # api.add_resource(res.signal_explanation.SignalExplanation, API + 'signal_explanations/')

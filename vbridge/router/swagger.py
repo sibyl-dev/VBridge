@@ -1,6 +1,60 @@
 import os
 
 schemas = {
+    'Task': {
+        'type': 'object',
+        'properties': {
+            'taskId': {'type': 'string'},
+            'shortDesc': {'type': 'string'},
+            'targetEntity': {'type': 'string'},
+            'backwardEntities': {
+                'type': 'array',
+                'items': {'type': 'string'},
+            },
+            'forwardEntities': {
+                'type': 'array',
+                'items': {'type': 'string'},
+            },
+            'label': {
+                'type': 'object',
+                'additionalProperties': {
+                    'type': 'object',
+                    'properties': {
+                        'label_type': {'type': 'string'},
+                        'label_extent': {
+                            'type': 'array',
+                            'items': {'type': 'string'},
+                        },
+                    }
+                }
+            }
+        },
+        'example': {
+            "taskId": "48h in-admission mortality",
+            "shortDesc": "Prediction whether the patient will die or survive within this "
+                         "admission according the health records from the first 48 hours of the "
+                         "admission",
+            "targetEntity": "ADMISSIONS",
+            "backwardEntities": [
+                "LABEVENTS",
+                "SURGERY_VITAL_SIGNS",
+                "CHARTEVENTS"
+            ],
+            "forwardEntities": [
+                "PATIENTS",
+                "ADMISSIONS"
+            ],
+            "labels": {
+                "mortality": {
+                    "label_type": "boolean",
+                    "label_extent": [
+                        "low-risk",
+                        "high-risk"
+                    ]
+                }
+            }
+        }
+    },
     'PatientStatic': {
         'type': 'array',
         'items': {
@@ -143,6 +197,19 @@ schemas = {
                         "count": 16785,
                         "ci95": [-2.68, 5.96]
                     }
+                }
+            }
+        }
+    },
+    'WhatIfSHAP': {
+        'type': 'object',
+        'additionalProperties': {
+            'type': 'object',
+            'additionalProperties': {
+                'type': 'object',
+                'properties': {
+                    'prediction': {'type': 'number'},
+                    'shap': {'type': 'number'},
                 }
             }
         }

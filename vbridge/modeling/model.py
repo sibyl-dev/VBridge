@@ -158,7 +158,7 @@ class ModelManager:
             scores[target_name] = model.transform(X)[:, 1]
         return scores
 
-    def explain(self, id=None, X=None, target='complication'):
+    def explain(self, id=None, X=None, target=None):
         if id is not None:
             if id in self.X_train.index:
                 X = self.X_train.loc[id]
@@ -171,7 +171,10 @@ class ModelManager:
             X = X
         else:
             X = pd.concat([self.X_train, self.X_test])
-        return self.models[target].SHAP(X)
+        if target is None:
+            return {target: model.SHAP(X) for target, model in self.models.items()}
+        else:
+            return self.models[target].SHAP(X)
 
     def save(self, path=None):
         if path is None:
