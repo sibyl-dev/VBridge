@@ -1,15 +1,28 @@
-export type PatientStatics = {
-    SUBJECT_ID: number,
-    ADMITTIME: Date,
-    GENDER: string,
-    SURGERY_BEGIN_TIME: Date,
-    SURGERY_END_TIME: Date,
-    ageInDays?: number,
-};
+import { Entity } from "type";
+import { EntitySetSchema, PandasDataFrame2DataForge, Patient, PatientStatics, Prediction } from "./resource";
 
-export type PatientTemporal = any;
+export interface PatientInfo {
+    id: string,
+    static: PatientStatics,
+    temporal: Entity<string, any>[],
+    prediction: Prediction,
+}
 
-export type PatientGroup = { 
-    ids: number[],
-    labelCounts: number[], 
-};
+export function buildPatientInfo(id: string, patient: Patient, 
+    entitySetSchema: EntitySetSchema, prediction: Prediction): PatientInfo {
+    const temporal: Record<string, Entity<string, any>> = {}
+    console.log(patient);
+    Object.keys(patient.temporal).forEach(entityId => {
+        const schema = entitySetSchema.find(es => es.id === entityId);
+        const dataFrameConfig = PandasDataFrame2DataForge(patient.temporal[entityId]);
+        if (schema){
+            temporal.entityId = new Entity(schema, dataFrameConfig);
+        }
+    })
+    return {
+        id: id,
+        static: patient.static,
+        temporal: Object.keys(temporal).map(k => temporal[k]),
+        prediction: prediction
+    }
+}
