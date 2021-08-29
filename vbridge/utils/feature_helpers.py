@@ -47,8 +47,9 @@ def get_feature_description(feature, item_dict=None):
             'columnId': filter_name.split(' = ')[0],
             'itemId': filter_name.split(' = ')[1],
         }
+        item_dict = None if item_dict is None else item_dict.get(info['entityId'])
         if item_dict is not None:
-            info['item']['itemAlias'] = item_dict.get(info['item']['itemId'], None)
+            info['item']['itemAlias'] = item_dict.get(str(info['item']['itemId']), None)
         info['alias'] = feature.primitive.name
     return info
 
@@ -57,19 +58,20 @@ def group_features_by_where_item(features):
     grouped_features = deepcopy(features)
     where_item_group = {}
     for i, f in enumerate(features):
-        if 'parent_id' not in f and 'item' in f:
+        if 'parentId' not in f and 'item' in f:
             itemId = f['item']['itemId']
             if itemId in where_item_group:
-                where_item_group[itemId]['children_ids'].append(i)
+                where_item_group[itemId][0]['childrenIds'].append(i)
+                grouped_features[i]['parentId'] = where_item_group[itemId][1]
             else:
                 group_node = deepcopy(f)
                 group_node['id'] = itemId
                 group_node['primitive'] = None
-                group_node['children_ids'] = [i]
+                group_node['childrenIds'] = [i]
                 group_node['alias'] = f['item']['itemAlias']
-                grouped_features[i]['parent_id'] = len(grouped_features)
                 grouped_features.append(group_node)
-                where_item_group[itemId] = group_node
+                where_item_group[itemId] = (group_node, len(grouped_features))
+                grouped_features[i]['parentId'] = where_item_group[itemId][1]
     return grouped_features
 
 
@@ -77,11 +79,12 @@ def group_features_by_entity(features):
     grouped_features = deepcopy(features)
     entity_group = {}
     for i, f in enumerate(features):
-        if 'parent_id' in f:
+        if 'parentId' in f:
             continue
         entityId = f['entityId']
         if entityId in entity_group:
-            entity_group[entityId]['children_ids'].append(i)
+            entity_group[entityId][0]['childrenIds'].append(i)
+            grouped_features[i]['parentId'] = entity_group[entityId][1]
         else:
             group_node = deepcopy(f)
             group_node['id'] = entityId
@@ -89,8 +92,8 @@ def group_features_by_entity(features):
             group_node['columnId'] = None
             group_node['item'] = None
             group_node['alias'] = entityId
-            group_node['children_ids'] = [i]
-            grouped_features[i]['parent_id'] = len(grouped_features)
+            group_node['childrenIds'] = [i]
             grouped_features.append(group_node)
-            entity_group[entityId] = group_node
+            entity_group[entityId] = (group_node, len(grouped_features))
+            grouped_features[i]['parentId'] = entity_group[entityId][1]
     return grouped_features
