@@ -135,8 +135,8 @@ def get_records(entityset, subject_id, entity_id, other_ids=None, cutoff_time=No
 
 
 def get_item_dict(es):
-    item_dict = {'LABEVENTS': es['D_LABITEMS'].df.loc[:, ['LABEL', 'LABEL_CN']].to_dict('index')}
-    for entity_id in ['CHARTEVENTS', 'LABEVENTS', 'SURGERY_VITAL_SIGNS']:
+    item_dict = {'LABEVENTS': es['D_LABITEMS'].df.loc[:, 'LABEL'].to_dict()}
+    for entity_id in ['CHARTEVENTS', 'SURGERY_VITAL_SIGNS']:
         df = es['D_ITEMS'].df
         # TODO: Change 'LABEL' to 'LABEL_CN' for Chinese labels
         items = df[df['LINKSTO'] == entity_id.lower()].loc[:, 'LABEL']
