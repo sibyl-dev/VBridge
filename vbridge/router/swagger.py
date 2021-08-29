@@ -1,6 +1,28 @@
 import os
 
+_dataframe_schema = {
+    'type': 'object',
+    'properties': {
+        'index': {
+            'type': 'array',
+            'items': {'type': 'string'}
+        },
+        'column': {
+            'type': 'array',
+            'items': {'type': 'string'}
+        },
+        'data': {
+            'type': 'array',
+            'items': {
+                'type': 'object',
+                'additionalProperties': {}
+            }
+        }
+    }
+}
+
 schemas = {
+    'DataFrame': _dataframe_schema,
     'Task': {
         'type': 'object',
         'properties': {
@@ -79,25 +101,26 @@ schemas = {
         }],
     },
     'PatientTemporal': {
-        'type': 'object',
-        'additionalProperties': {
-            'type': 'object',
-            'additionalProperties': {
-                'type': 'object',
-                'additionalProperties': {
-                    'oneOf': [
-                        {'type': 'string'},
-                        {'type': 'number'},
-                    ]
-                }
-            }
-        },
+        **_dataframe_schema,
         'example': {
             "CHARTEVENTS": {
-                "CHARTTIME": {
-                    "559792": "2065-10-17 07:21:46",
-                    "561305": "2065-10-15 21:50:02",
-                }
+                "columns": [
+                    "SUBJECT_ID",
+                    "HADM_ID",
+                    "ITEMID",
+                    "CHARTTIME",
+                    "VALUE",
+                    "VALUEUOM"
+                ],
+                "data": [[
+                    "3718",
+                    "103784",
+                    "1003",
+                    "2065-10-15 21:50:02",
+                    160.0,
+                    "bpm"
+                ]],
+                "index": ["9138752"]
             }
         }
     },
@@ -123,7 +146,7 @@ schemas = {
     'FeatureSchema': {
         'type': 'object',
         'properties': {
-            'name': {'type': 'string'},
+            'id': {'type': 'string'},
             'alias': {'type': 'string'},
             'type': {'type': 'string'},
             'item': {

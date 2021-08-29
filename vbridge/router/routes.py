@@ -37,13 +37,13 @@ def add_routes(app):
     # api.add_resource(res.patient_filter.PatientSelection, API + 'patient_selection/')
 
     # feature
-    api.add_resource(res.feature.FeatureSchema, API + 'feature_schemas/')
-    api.add_resource(res.feature.FeatureMatrix, API + 'feature_values/')
-    api.add_resource(res.feature.FeatureValues, API + 'feature_values/<string:direct_id>')
+    api.add_resource(res.feature.FeatureSchema, API + 'feature/schema/')
+    api.add_resource(res.feature.FeatureMatrix, API + 'feature/values/')
+    api.add_resource(res.feature.FeatureValues, API + 'feature/values/<string:direct_id>')
 
     # model
-    api.add_resource(res.prediction.AllPrediction, API + 'predictions/')
-    api.add_resource(res.prediction.Prediction, API + 'predictions/<string:direct_id>')
+    api.add_resource(res.prediction.AllPrediction, API + 'prediction/')
+    api.add_resource(res.prediction.Prediction, API + 'prediction/<string:direct_id>')
 
     # explanation
     api.add_resource(res.feature_explanation.ShapValues, API + 'shap/<string:direct_id>')
