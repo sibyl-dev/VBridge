@@ -1,7 +1,7 @@
 import logging
 
 import numpy as np
-from flask import current_app
+from flask import current_app, jsonify
 from flask_restful import Resource
 
 from vbridge.data_loader.pic_schema import META_INFO
@@ -91,6 +91,7 @@ class ReferenceValue(Resource):
             settings = current_app.settings
             res = get_reference_values_by_entity(settings['entityset'],
                                                  entity_id, settings['selected_ids'])
+            res = jsonify(res)
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500
@@ -125,6 +126,7 @@ class ReferenceValues(Resource):
             res = get_reference_values(settings['entityset'],
                                        settings['task'],
                                        settings['selected_ids'])
+            res = jsonify(res)
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500
