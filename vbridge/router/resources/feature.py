@@ -3,8 +3,7 @@ import logging
 from flask import current_app, jsonify
 from flask_restful import Resource
 
-from vbridge.utils import get_item_dict
-from vbridge.utils import get_feature_description, group_features_by_entity, \
+from vbridge.utils import get_item_dict, get_feature_description, group_features_by_entity, \
     group_features_by_where_item
 
 LOGGER = logging.getLogger(__name__)
@@ -32,7 +31,7 @@ def get_feature_descriptions(fl, es=None, in_hierarchy=True):
 
 
 def get_feature_values(fm):
-    entries = fm.to_dict()
+    entries = fm.to_csv()
     return entries
 
 
@@ -85,7 +84,7 @@ class FeatureMatrix(Resource):
             content:
               application/json:
                 schema:
-                  type: object
+                  type: string
           500:
             $ref: '#/components/responses/ErrorMessage'
         """

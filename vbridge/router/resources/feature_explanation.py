@@ -23,7 +23,7 @@ def get_shap_values(model_manager, direct_id, target=None):
     if target is None:
         return {target: sv.loc[0].to_dict() for target, sv in shap_values.items()}
     else:
-        return {target: shap_values.loc[0].to_dict()}
+        return shap_values.loc[0].to_dict()
 
 
 def get_what_if_shap_values(fm, model_manager, direct_id, target=None):
@@ -88,6 +88,8 @@ def get_what_if_shap_values(fm, model_manager, direct_id, target=None):
                 shap_task[feature] = {'shap': explanations.loc[i, feature],
                                       'prediction': predictions[i]}
         shap_values[target] = shap_task
+    if target is not None:
+      shap_values = shap_values[target]
     return shap_values
 
 

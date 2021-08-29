@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 
 from flask import current_app, jsonify
 from flask_restful import Resource, reqparse
@@ -38,24 +39,16 @@ def get_temporal(es, task, direct_id, entity_id, cutoff_times=None):
             cutoff_times: pd.DataFrame, the cutoff times for the task.
 
         Returns:
-            A dict mapping entity ids to the records in the entity. For example:
-
-            {"CHARTEVENTS": {
-                "CHARTTIME": {
-                    "559792": "2065-10-17 07:21:46",
-                    "561305": "2065-10-15 21:50:02",
-                    ...
-                }
-            }}
-        """
+            A dict mapping entity ids to the records in the entity.
+    """
     subject_id = es[task.target_entity].df.loc[direct_id]['SUBJECT_ID']
     cutoff_time = cutoff_times.loc[direct_id, 'time']
     if entity_id is None:
         records = {entity_id: get_records(es, subject_id, entity_id,
-                                          cutoff_time=cutoff_time).to_dict()
+                                          cutoff_time=cutoff_time).fillna('N/A').to_csv()
                    for entity_id in task.backward_entities}
     else:
-        records = get_records(es, subject_id, entity_id, cutoff_time=cutoff_time).to_dict()
+        records = get_records(es, subject_id, entity_id, cutoff_time=cutoff_time).fillna('N/A').to_csv()
     return records
 
 
@@ -129,14 +122,16 @@ class TemporalInfo(Resource):
             in: query
             schema:
               type: string
-            description:
+            description: the identifier of the required entity.
         responses:
           200:
             description: The temporal information of the patient (e.g., lab tests).
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/PatientTemporal'
+                  type: object,
+                  additionalProperties:
+                    type: string
           400:
             $ref: '#/components/responses/ErrorMessage'
           500:
@@ -144,7 +139,7 @@ class TemporalInfo(Resource):
         """
         try:
             args = self.parser_get.parse_args()
-            entity_id = args.get('entity_id', None)
+            entity_id = args.get('entity_id')
         except Exception as e:
             LOGGER.exception(str(e))
             return {'message', str(e)}, 400
@@ -188,7 +183,9 @@ class Info(Resource):
                     static:
                       $ref: '#/components/schemas/PatientStatic'
                     temporal:
-                      $ref: '#/components/schemas/PatientTemporal'
+                      type: object,
+                      additionalProperties:
+                        type: string
 
           400:
             $ref: '#/components/responses/ErrorMessage'
