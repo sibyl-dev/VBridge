@@ -60,8 +60,8 @@ def create_app():
         model_manager.save()
     settings['models'] = model_manager
 
-    # # load similar patient group
-    settings['selected_ids'] = fm.index
+    # load similar patient group
+    # settings['selected_ids'] = fm.index
 
     # load explainer
     # app.ex = Explainer(es, fm, model_manager)
