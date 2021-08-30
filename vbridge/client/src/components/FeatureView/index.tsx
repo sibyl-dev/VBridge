@@ -1,20 +1,21 @@
 import * as React from "react";
 import * as d3 from "d3";
+import * as _ from "lodash"
 import { Button, Tooltip, Popover, Slider } from "antd"
 import { DataFrame, IDataFrame } from "data-forge";
-import * as _ from "lodash"
 import { getScaleLinear, beautifulPrinter, defaultCategoricalColor } from "visualization/common";
 import {
     ArrowDownOutlined, ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, CaretRightOutlined,
     FilterOutlined, LineChartOutlined, QuestionOutlined, SortAscendingOutlined, TableOutlined
 } from "@ant-design/icons"
-import { Feature, StatValues } from "type";
+import { buildShowStateList, Feature, VFeature } from "type";
 import AreaChart from "visualization/AreaChart";
 import BarChart from "visualization/BarChart";
-import { arrayShallowCompare, getReferenceValue, isDefined } from "utils/common";
+import { getReferenceValue, isDefined } from "utils/common";
 
 import "./index.scss"
 import { SHAPContributions } from "./SHAPBand";
+import { StatValues } from "type/resource";
 
 export interface FeatureViewProps {
     className?: string,
@@ -31,9 +32,8 @@ export interface FeatureViewProps {
 }
 
 export interface FeatureViewStates {
-    groupedFeatures?: IDataFrame<number, Feature>,
-    desiredFeatureMat?: IDataFrame<number, any>,
-    undesiredFeatureMat?: IDataFrame<number, any>,
+    desiredFM?: IDataFrame<number, any>,
+    undesiredFM?: IDataFrame<number, any>,
     referenceValues?: IDataFrame<string, StatValues>,
 }
 
@@ -48,7 +48,6 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
     }
 
     componentDidMount() {
-        this.updateFeatures();
         this.updateReferenceValues();
     }
 
@@ -67,7 +66,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                         getReferenceValue(desiredFeatureMat.getSeries(name).toArray())
                     )
                 })
-                this.setState({ desiredFeatureMat, undesiredFeatureMat, referenceValues });
+                this.setState({ desiredFM: desiredFeatureMat, undesiredFM: undesiredFeatureMat, referenceValues });
             }
         }
     }
@@ -77,75 +76,30 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
         return width[id];
     }
 
-    private async updateFeatures() {
-        const { features } = this.props
-        // level-2: group-by item & period
-        const individualFeatures = features.where(row => row.item === undefined);
-        const whereFeatures = features.where(row => row.item !== undefined);
-        const groups = whereFeatures.groupBy(row => row.period + row.item?.itemId).toArray();
-        const groupedFeature: IDataFrame<number, Feature> = new DataFrame(groups.map(group => {
-            const sample = group.first();
-            const itemName = sample.item!.itemAlias?.LABEL || sample.item!.itemId;
-            // const itemLabel = itemDicts && sample.entityId && itemDicts(sample.entityId, itemName)?.LABEL;
-            const entityId = _.uniq(group.getSeries('entityId').toArray().filter(isDefined)).length > 1 ? undefined : sample.entityId;
-            return {
-                ...sample,
-                name: 'g-' + _.reduce(group.getSeries('name').toArray(), (a, b) => `${a}-${b}`),
-                entityId: entityId,
-                // alias: itemLabel || itemName,
-                alias: itemName,
-                value: undefined,
-                primitive: undefined,
-                contribution: _.sum(group.getSeries('contribution').toArray()),
-                contributionIfNormal: undefined,
-                children: group
-            };
-        }));
-        const L2Features = individualFeatures.concat(groupedFeature);
-        // level-3: group-by period
-        const groupedFeatures = new DataFrame(L2Features.groupBy(row => row.type).toArray().map(group => {
-            const sample = group.first();
-            const entityId = _.uniq(group.getSeries('entityId').toArray().filter(isDefined)).length > 1 ? undefined : sample.entityId;
-            return {
-                ...sample,
-                entityId: entityId,
-                name: 'g-' + _.reduce(group.getSeries('name').toArray(), (a, b) => `${a}-${b}`),
-                alias: sample.type,
-                value: undefined,
-                primitive: undefined,
-                contribution: _.sum(group.getSeries('contribution').toArray()),
-                contributionIfNormal: undefined,
-                children: group
-            }
-        }))
-        this.setState({ groupedFeatures })
-    }
-
     componentDidUpdate(prevProps: FeatureViewProps) {
         const { features, featureMat } = this.props;
         if (prevProps.featureMat != featureMat || prevProps.features != features) {
-            this.updateFeatures();
             this.updateReferenceValues();
         }
     }
 
     public render() {
-        const { entityCategoricalColor, ...rest } = this.props;
-        const { groupedFeatures, desiredFeatureMat, undesiredFeatureMat, referenceValues } = this.state;
+        const { features, entityCategoricalColor, ...rest } = this.props;
+        const { desiredFM: desiredFeatureMat, undesiredFM: undesiredFeatureMat, referenceValues } = this.state;
         const contextFeatureValues = [];
         if (desiredFeatureMat) contextFeatureValues.push(desiredFeatureMat);
         if (undesiredFeatureMat) contextFeatureValues.push(undesiredFeatureMat);
 
         return (
             <div className="feature-view">
-                {groupedFeatures && <FeatureList
+                <FeatureList
                     {...rest}
-                    features={groupedFeatures}
+                    features={features}
                     cellWidth={this.defaultCellWidth}
-                    contextFeatureValues={contextFeatureValues}
+                    referenceMat={contextFeatureValues}
                     referenceValues={referenceValues}
                     entityCategoricalColor={entityCategoricalColor}
-                />}
+                />
             </div>
         )
     }
@@ -157,7 +111,7 @@ export interface FeatureListProps {
     shapValues?: number[],
     prediction?: number,
     cellWidth: (id: number) => number,
-    contextFeatureValues: IDataFrame<number, any>[],
+    referenceMat: IDataFrame<number, any>[],
     referenceValues?: IDataFrame<string, StatValues>,
 
     focusedFeatures: string[],
@@ -166,36 +120,6 @@ export interface FeatureListProps {
 
     inspectFeatureInSignal?: (feature: Feature) => void,
     inspectFeatureInTable?: (feature: Feature) => void,
-}
-
-type VFeature = {
-    feature: Feature,
-    show: boolean,
-    children: VFeature[],
-    parent?: VFeature,
-}
-
-function buildShowState(feature: Feature, parent?: VFeature): VFeature {
-    const nodeState: VFeature = {
-        feature: feature,
-        show: false,
-        parent: parent,
-        children: feature.children?.select(f => buildShowState(f)).toArray() || []
-    };
-    return nodeState;
-}
-
-function extractSelfAndChildren(showState: VFeature): VFeature[] {
-    return [showState, ..._.flatten(showState.children.map(f => extractSelfAndChildren(f)))];
-}
-
-function buildShowStateList(features: Feature[]): VFeature[] {
-    const VFeatureTree: VFeature[] = features.map(f => buildShowState(f));
-    for (const vfeature of VFeatureTree) {
-        vfeature.show = true;
-    }
-    const VFeatureList: VFeature[] = _.flatten(VFeatureTree.map(s => extractSelfAndChildren(s)));
-    return VFeatureList;
 }
 
 export interface FeatureListStates {
@@ -212,7 +136,6 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
         this.state = { order: 'dscending', VFeatureList: buildShowStateList(props.features.toArray()) };
 
         this.onClick = this.onClick.bind(this);
-        this.getContributions = this.getContributions.bind(this);
         this.sortFeatures = this.sortFeatures.bind(this);
         this.getContributionXScale = this.getContributionXScale.bind(this);
         this.flipShowState = this.flipShowState.bind(this);
@@ -228,17 +151,12 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
         }
     }
 
-    private getContributions(features: VFeature[], colName: string = 'contribution'): number[] {
-        let contributions = features.map(f => f.feature.contribution);
-        return contributions
-    }
-
     private flipShowState(feature: Feature) {
         const { VFeatureList } = this.state;
         for (const vFeature of VFeatureList) {
-            if (vFeature.feature.id === feature.id) {
+            if (vFeature.id === feature.id) {
                 vFeature.show = !vFeature.show;
-                vFeature.children.forEach(f => f.show = !f.show);
+                vFeature.children?.forEach(f => f.show = !f.show);
             }
         }
         this.setState({ VFeatureList });
@@ -247,9 +165,9 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
     private sortFeatures(features: IDataFrame<number, any>): IDataFrame<number, any> {
         const { order } = this.state;
         if (order === 'ascending')
-            features = features.orderBy(row => row.contribution);
+            features = features.orderBy(row => row.shap);
         else if (order == 'dscending')
-            features = features.orderBy(row => -row.contribution);
+            features = features.orderBy(row => -row.shap);
         return features.select(feature => {
             if (feature.children) {
                 return {
@@ -265,11 +183,10 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
         const { cellWidth } = this.props;
         const { VFeatureList } = this.state;
         const features = VFeatureList.filter(f => f.show);
-        const contributions = this.getContributions(features, 'contribution').map(v => Math.abs(v));
-        const whatIfContributions = this.getContributions(features, 'contributionIfNormal').map(v => Math.abs(v));
-        const maxAbsCont = _.max([...contributions, ...whatIfContributions]) as number;
+        const contr = features.map(f => f.shap).map(v => Math.abs(v));
+        const whatifContr = features.map(f => f.whatIfShap).filter(isDefined).map(v => Math.abs(v));
+        const maxAbsCont = _.max([...contr, ...whatifContr]) as number;
         return getScaleLinear(0, cellWidth(2), undefined, [-maxAbsCont, maxAbsCont]);
-        // return getScaleLinear(0, cellWidth(2), contributions);
     }
 
     public render() {
@@ -278,6 +195,7 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
         const sortedFeatures = this.sortFeatures(features);
         const shapMin = _.min(shapValues);
         const shapMax = _.max(shapValues);
+        const x = this.getContributionXScale();
 
         return <div style={{ width: "100%" }}>
             <div style={{ width: "100%" }}>
@@ -286,8 +204,8 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
                         <span>Name</span>
                         <Button type="text" className={'header-buttion'} icon={<SortAscendingOutlined />} />
                     </div>
-                    <div className="feature-header-cell" style={{ width: cellWidth(1) }}><
-                        span>Contribution</span>
+                    <div className="feature-header-cell" style={{ width: cellWidth(1) }}>
+                        <span>Contribution</span>
                     </div>
                     <div className="feature-header-cell" style={{ width: cellWidth(2) }}>
                         <span>Contribution</span>
@@ -316,7 +234,7 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
                             {...rest}
                             feature={row}
                             depth={0}
-                            x={this.getContributionXScale()}
+                            x={x}
                             cellWidth={cellWidth}
                             key={row.name || row.alias}
                             threshold={threshold}
@@ -334,7 +252,7 @@ export interface FeatureBlockProps {
     depth: number,
     feature: Feature,
     prediction?: number,
-    contextFeatureValues: IDataFrame<number, any>[],
+    referenceMat: IDataFrame<number, any>[],
     referenceValues?: IDataFrame<string, StatValues>,
     x: d3.ScaleLinear<number, number>,
     cellWidth: (id: number) => number,
@@ -367,15 +285,6 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
         this.hasFeature = this.hasFeature.bind(this);
     }
 
-    componentDidUpdate(prevProps: FeatureBlockProps) {
-        const { feature, focusedFeatures } = this.props;
-        if (!arrayShallowCompare(prevProps.focusedFeatures, focusedFeatures)) {
-            if (this.hasFeature(feature, focusedFeatures)) {
-                // this.setState({ collapsed: false });
-            }
-        }
-    }
-
     private hasFeature(feature: Feature, featureNames: string[]): boolean {
         if (feature.id && featureNames.includes(feature.id))
             return true;
@@ -397,10 +306,10 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
 
     render() {
         const { feature, x, cellWidth, entityCategoricalColor, inspectFeatureInSignal, inspectFeatureInTable,
-            className, depth, contextFeatureValues, focusedFeatures, referenceValues, display,
+            className, depth, referenceMat: contextFeatureValues, focusedFeatures, referenceValues, display,
             prediction, threshold } = this.props;
         const { collapsed, showDistibution, showWhatIf } = this.state
-        const { id: name, alias, value, contribution, children, entityId, predictionIfNormal } = feature;
+        const { id: name, alias, value, shap, children, entityId, whatIfPred: predictionIfNormal } = feature;
         const referenceValue = referenceValues ? referenceValues.at(feature.id) : undefined;
 
         let outofRange: 'none' | 'low' | 'high' = 'none';
@@ -426,7 +335,7 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
         }
         if (threshold) {
             // higher is allowed
-            if (contribution < threshold[0])
+            if (shap < threshold[0])
                 if (showState !== 'focused') showState = 'none';
         }
 
@@ -497,14 +406,14 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                         </div>
                         <div className={"feature-block-cell feature-contribution"} style={{ width: cellWidth(2) }}>
                             {SHAPContributions({
-                                contribution: feature.contribution, 
-                                contributionIfNormal: showWhatIf ? feature.contributionIfNormal : undefined, 
+                                contribution: feature.shap, 
+                                contributionIfNormal: showWhatIf ? feature.whatIfShap : undefined, 
                                 x, height: 14,
                                 posRectStyle: { fill: !collapsed ? '#f8a3bf' : undefined },
                                 negRectStyle: { fill: !collapsed ? '#9abce4' : undefined }
                             })}
-                            {(contribution > x.domain()[1]) && <ArrowRightOutlined className="overflow-notation-right" />}
-                            {(contribution < x.domain()[0]) && <ArrowLeftOutlined className="overflow-notation-left" />}
+                            {(shap > x.domain()[1]) && <ArrowRightOutlined className="overflow-notation-right" />}
+                            {(shap < x.domain()[0]) && <ArrowLeftOutlined className="overflow-notation-left" />}
                             {showWhatIf && whatIfValue && <div className={"what-if-label"}>
                                 {prediction && <div className={"label-circle"} style={{ backgroundColor: defaultCategoricalColor(Math.round(prediction)) }}>
                                     {prediction > 0.5 ? 'High' : 'Low'}
@@ -539,7 +448,7 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
             {(!collapsed) && children?.toArray().map(feature =>
                 <FeatureBlock
                     {...this.props}
-                    key={feature.id || `${feature.period}-${feature.entityId}-${feature.alias}`}
+                    key={feature.id || `${feature.entityId}-${feature.alias}`}
                     depth={depth + 1}
                     feature={feature}
                 />)}
