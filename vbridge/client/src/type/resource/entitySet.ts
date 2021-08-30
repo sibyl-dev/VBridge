@@ -1,7 +1,7 @@
 export type ItemDict = Record<string, string>;
 
 export interface EntitySchema {
-    id: string,
+    entityId: string,
     alias?: string,
     time_index?: string,
     item_index?: string,

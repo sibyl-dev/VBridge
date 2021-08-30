@@ -1,16 +1,27 @@
-import { IDataFrameConfig } from "data-forge/build/lib/dataframe";
+import { DataFrame, IDataFrame } from "data-forge/build/lib/dataframe";
 
-export type PandasDataFrame<IndexT, ValueT> = {
+export type PandasDataFrame<IndexT> = {
     index: Iterable<IndexT>,
-    columns: Iterable<string>,
-    data: Iterable<ValueT>,
+    columns: Array<string>,
+    data: Array<Array<any>>,
 }
 
 export function PandasDataFrame2DataForge<IndexT, ValueT>(
-    dataframe: PandasDataFrame<IndexT, ValueT>): IDataFrameConfig<IndexT, ValueT> {
-    return {
+    dataframe: PandasDataFrame<IndexT>): IDataFrame<IndexT, ValueT> {
+    const df = new DataFrame({
+        values: dataframe.data,
         index: dataframe.index,
-        columnNames: dataframe.columns,
-        values: dataframe.data
-    }
+    });
+    // return {
+    //     index: dataframe.index,
+    //     columnNames: dataframe.columns,
+    //     values: dataframe.data
+    // }
+    const columnNames = dataframe.columns;
+    return df.select(row => {
+        const dict: any = {};
+        row.forEach((ele, i) => dict[columnNames[i]] = ele)
+        return dict as ValueT
+    })
+    // return df;
 }
