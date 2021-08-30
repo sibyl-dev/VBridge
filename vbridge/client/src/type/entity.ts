@@ -10,7 +10,8 @@ export class Entity<IndexT, ValueT> extends DataFrame<IndexT, ValueT> {
     constructor(schema: EntitySchema, config?: Iterable<ValueT> | IDataFrameConfig<IndexT, ValueT>
         | DataFrameConfigFn<IndexT, ValueT> | DataFrame<IndexT, ValueT>) {
         super(config);
-        this.id = schema.id;
+        this.id = schema.entityId;
         this.schema = schema;
     }
+    
 }
