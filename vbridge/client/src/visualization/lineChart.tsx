@@ -5,7 +5,7 @@ import "./lineChart.css"
 
 import { getChildOrAppend, getScaleLinear, getScaleTime, IMargin, getMargin } from "./common";
 import { ISeries } from "data-forge";
-import { Segment, StatValues } from "type";
+import { Segment, StatValues } from "type/resource";
 
 export type PointLayout = {
     x: number,

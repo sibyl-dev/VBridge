@@ -1,40 +1,20 @@
-import { Button, Card, Divider, Select, Spin } from "antd";
-import { PatientStatics } from "type/patient";
-import { Entity, ItemDict, ReferenceValueResponse, ReferenceValues, StatValues } from "type/entity";
 import * as React from "react";
 import * as _ from "lodash"
+import { Button, Card, Divider, Select, Spin } from "antd";
 import { DataFrame, IDataFrame, ISeries } from "data-forge";
 import { defaultMargin, getMargin, getScaleLinear, getScaleTime, IMargin } from "visualization/common";
 import { CloseOutlined, ExpandAltOutlined, PushpinOutlined, ShrinkOutlined } from "@ant-design/icons";
 import { arrayShallowCompare } from "utils/common";
-import API from "router/api";
 import LineChart from "visualization/lineChart";
 
 import "./index.scss";
-import { FeatureSchema } from "type/feature";
-import { SignalExplanation } from "type/explanation";
-
-export interface SignalMeta {
-    entityId: string,
-    columnId: string,
-    itemId: string,
-    startTime: Date,
-    endTime: Date,
-    relatedFeatureNames: string[],
-    statValues?: StatValues,
-    featurePeriods?: (name: string) => [Date, Date]
-}
-
-export interface Signal extends SignalMeta {
-    data?: { dates: ISeries<number, Date>, values: ISeries<number, number> }
-}
+import { SignalExplanation } from "type/resource";
+import { Entity, SignalMeta, Signal } from "type";
 
 export interface DynamicViewProps {
     className: string,
-    patientStatics: PatientStatics,
-    patientTemporals: Entity<number, any>[],
+    patientTemporals: Entity<string, any>[],
     signalMetas: SignalMeta[],
-    featureSchemas: IDataFrame<number, FeatureSchema>,
     align?: boolean,
     width: number,
     color?: (entityName: string) => string,
@@ -116,7 +96,7 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
     }
 
     public render() {
-        const { patientStatics: patientMeta, color, updateFocusedFeatures, removeSignal, className, align, width } = this.props;
+        const { color, updateFocusedFeatures, removeSignal, className, align, width } = this.props;
         const { signalGroups, globalStartTime, globalEndTime } = this.state;
         const margin = { bottom: 20, left: 30, top: 15, right: 10 };
         let xScale: d3.ScaleTime<number, number> | undefined = undefined;
@@ -134,7 +114,6 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
                         {group.toArray().map((signal, i) =>
                             <DynamicCard
                                 className={className}
-                                patientStatics={patientMeta}
                                 signal={signal}
                                 key={signal.itemId}
                                 align={true}
@@ -171,12 +150,10 @@ const defaultTimeSeriesStyle: TimeSeriesStyle = {
 
 export interface DynamicCardProps extends Partial<TimeSeriesStyle> {
     signal: Signal,
-    patientStatics: PatientStatics,
     className: string,
     align?: boolean,
     // timeSeriesStyle: Partial<TimeSeriesStyle>,
     xScale?: d3.ScaleTime<number, number>,
-    itemDicts?: ItemDict,
     updateFocusedFeatures?: (featureNames: string[]) => void,
     updatePinnedFocusedFeatures?: (featureName: string) => void,
     onHover?: () => void;
@@ -246,12 +223,10 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
     }
 
     public render() {
-        const { className, signal, itemDicts, width, height, color, margin, xScale, onHover, onLeave, onRemove } =
+        const { className, signal, width, height, color, margin, xScale, onHover, onLeave, onRemove } =
             { ...defaultTimeSeriesStyle, ...this.props };
         const { expand, pinned, segmentExplanation, explain } = this.state;
-        const { entityId, itemId, data, startTime, endTime, statValues } = signal;
-
-        // const itemLabel = itemDicts && itemDicts(tableName, itemName)?.LABEL;
+        const { entityId, itemId, itemAlias, data, startTime, endTime, statValues } = signal;
 
         console.log('DynamicView', margin, height);
 
@@ -278,7 +253,7 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
             </Spin>
             <div className={"ts-title-float"} style={{ width: width }}>
                 {/* <span className={"ts-title-float-text"}>{`${itemLabel || itemName} (${timeDeltaPrinter(startTime, endTime)})`}</span> */}
-                <span className={"ts-title-float-text"}>{`${itemId}`}</span>
+                <span className={"ts-title-float-text"}>{`${itemAlias || itemId}`}</span>
 
                 <Button size="small" type="primary" shape="circle" icon={<PushpinOutlined />} className={"ts-title-button"}
                     style={{ display: pinned ? 'block' : undefined }} onClick={this.onPin}

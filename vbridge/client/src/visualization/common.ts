@@ -224,6 +224,9 @@ export function isStringArray(x: number[] | string[]): x is string[] {
 }
 
 export function beautifulPrinter(value: any, maxChar: number = 15): any {
+  if (value === undefined || value === null) {
+    return ""
+  }
   if (typeof (value) === typeof ("")) {
     return value.length > maxChar ? value.substring(0, 12) + "..." : value
   }

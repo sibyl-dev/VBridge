@@ -1,14 +1,13 @@
 import * as React from "react";
 import * as d3 from "d3";
 import * as _ from "lodash"
-import { PatientStatics } from "type/patient";
-import { Entity, ReferenceValueResponse } from "type/entity";
 import {
     QUATER_IN_MILI, defaultCategoricalColor, getScaleTime, IMargin, calIntervalsByQuarter,
     getRefinedStartEndTime, getQuarter
 } from "visualization/common";
+import { Entity } from "type/entity";
 import { IEvent, IEventBin } from "type/event";
-import { FeatureSchema } from "type/feature";
+import { FeatureSchema, PatientStatics, ReferenceValueResponse } from "type/resource";
 import { IDataFrame, ISeries } from "data-forge";
 import { isDefined } from "utils/common";
 
@@ -17,9 +16,8 @@ import Timeline from "visualization/Timeline";
 
 export interface TimelineViewProps {
     tableNames: string[],
-    patientStatics: PatientStatics,
-    featureSchema: IDataFrame<number, FeatureSchema>,
-    patientTemporals: Entity<number, any>[],
+    featureSchema: FeatureSchema[],
+    entities: Entity<string, any>[],
     onSelectEvents?: (entityName: string, startDate: Date, endDate: Date) => void,
     entityCategoricalColor?: (entityName?: string) => string,
     referenceValues?: ReferenceValueResponse,
@@ -51,12 +49,19 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
     }
 
     public init() {
-        const { patientStatics } = this.props
-        let startDate = new Date(patientStatics.ADMITTIME);
-        let endDate = new Date(patientStatics.SURGERY_END_TIME);
-        if (startDate && endDate) {
-            const intervalByQuarter = calIntervalsByQuarter(startDate, endDate, 9, 16);
-            const extent = getRefinedStartEndTime(startDate, endDate, intervalByQuarter);
+        const { entities } = this.props
+        const recordTimes: Date[] = _.flatten(entities.map(entity => {
+            const { time_index } = entity.schema;
+            // const _recordTimes = entity.getSeries(time_index!).toArray();
+            console.log(entity, entity.getColumnNames(), entity.getSeries(time_index!));
+            const _recordTimes = entity.getSeries(time_index!).parseDates().toArray();
+            return [_.min(_recordTimes), _.max(_recordTimes)]
+        })).filter(isDefined);
+        if (recordTimes.length > 0) {
+            const earlest = _.min(recordTimes)!;
+            const latest = _.max(recordTimes)!;
+            const intervalByQuarter = calIntervalsByQuarter(earlest, latest, 9, 16);
+            const extent = getRefinedStartEndTime(earlest, latest, intervalByQuarter);
             const timeScale = getScaleTime(0, this.ref.current!.offsetWidth - this.margin.left
                 - this.margin.right - this.titleWidth, undefined, extent);
             this.setState({ startTime: extent[0], endTime: extent[1], timeScale: timeScale, intervalByQuarter },
@@ -64,24 +69,15 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
         }
     }
 
-    public componentDidUpdate(prevProps: TimelineViewProps, prevStates: TimelineViewStates) {
-        if (prevProps.patientStatics !== this.props.patientStatics) {
-            this.init()
-        }
-        if (prevStates.timeScale !== this.state.timeScale) {
-            // this.calIntervals()
-        }
-    }
-
     private _extractEvents() {
-        const { patientTemporals: tableRecords, referenceValues } = this.props
+        const { entities: tableRecords, referenceValues } = this.props
         const { intervalByQuarter, startTime, endTime } = this.state
 
         if (tableRecords && intervalByQuarter && startTime) {
             const eventBins: IEventBin[][] = [];
             for (const entity of tableRecords) {
-                const { time_index, id, value_indexes } = entity.schema;
-                const referenceValueDict = referenceValues && referenceValues[id]
+                const { time_index, entityId, value_indexes } = entity.schema;
+                const referenceValueDict = referenceValues && referenceValues[entityId]
 
                 const eventSeries: ISeries<number, IEvent> = entity.groupBy(row => row[time_index!]).select(group => {
                     const { item_index, value_indexes } = entity.schema;
@@ -108,7 +104,7 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
                         }).count()
                     }
                     return {
-                        entityName: id,
+                        entityName: entityId,
                         timestamp: new Date(sample[time_index!]),
                         count: group.count(),
                         abnormalyCount: abnormalyCount,
@@ -143,7 +139,7 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
     }
 
     private color(id: number) {
-        const { entityCategoricalColor, patientTemporals: tableRecords } = this.props;
+        const { entityCategoricalColor, entities: tableRecords } = this.props;
         if (entityCategoricalColor && tableRecords) {
             return entityCategoricalColor(tableRecords[id].id);
         }
@@ -153,7 +149,7 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
     }
 
     public render() {
-        const { patientTemporals: tableRecords, onSelectEvents } = this.props;
+        const { entities: tableRecords, onSelectEvents } = this.props;
         const { timeScale, eventBins, startTime, endTime, intervalByQuarter } = this.state;
 
         return (
