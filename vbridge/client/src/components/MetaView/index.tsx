@@ -3,15 +3,16 @@ import { Row, Col, Divider, Button } from "antd"
 import { beautifulPrinter, defaultCategoricalColor } from "visualization/common";
 import "./index.scss"
 import { IDataFrame } from "data-forge";
-import { FeatureSchema } from "type/feature";
+import { FeatureSchema, FeatureSchemaResponse } from "type/resource";
 import { PushpinOutlined } from "@ant-design/icons";
+import { Entity } from "type";
 
 export interface MetaViewProps {
     className?: string,
     patientIds?: number[],
     patientInfoMeta?: { [key: string]: any },
     days?: number,
-    featureMeta: IDataFrame<number, FeatureSchema>,
+    featureMeta: Entity<string, FeatureSchema>,
     updateFocusedFeatures?: (featureNames: string[]) => void,
     updatePinnedFocusedFeatures?: (featureNames: string[]) => void,
     entityCategoricalColor?: (entityName: string | undefined) => string,

@@ -3,14 +3,12 @@ import Panel from "../Panel"
 import { Row, Col, Select, Card, Divider, Slider, Checkbox, Switch, InputNumber, Button, Radio } from "antd"
 
 import "./index.css"
-import { filterType } from 'type/filterType';
 import { beautifulPrinter, getScaleLinear } from 'visualization/common'
 // import {getPatientGroup} from "../../router/api"
 import RangeChose from 'visualization/RangeChose'
 import MultiSelect from 'visualization/MultiSelect'
 
 import { IDataFrame } from "data-forge";
-import { PatientStatics } from "type/patient";
 
 
 const { Option } = Select

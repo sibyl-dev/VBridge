@@ -1,11 +1,11 @@
 import * as React from "react";
 import * as dataForge from "data-forge"
 import PureTable from "../Table"
-import { Entity, ItemDict } from "type/entity";
-import { PatientStatics } from "type/patient";
-import { FeatureSchema } from "type/feature";
+import { ItemDict } from "type/resource";
+import { PatientStatics, FeatureSchema } from "type/resource";
 
 import './index.css'
+import { Entity } from "type";
 
 export interface TableMeta {
     tableName: string,
