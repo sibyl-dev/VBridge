@@ -3,16 +3,15 @@ import * as React from "react";
 import { Rnd } from "react-rnd";
 
 import "./index.css";
-import PanelHeader from "./Header";
+import PanelHeader, { IHeaderProps } from "./Header";
 
-export interface IPanelProps {
+export interface IPanelProps extends IHeaderProps {
   initialWidth: number;
   initialHeight: number;
   width?: number;
   height?: number;
   x?: number;
   y?: number;
-  title?: string|React.ReactNode;
   resizable?: boolean;
   draggable?: boolean;
   id?: string;
@@ -27,31 +26,6 @@ export interface IPanelState {
 }
 
 export default class Panel extends React.Component<IPanelProps, IPanelState> {
-  // static getDerivedStateFromProps(
-  //   nextProps: IPanelProps,
-  //   prevState: IPanelState
-  // ) {
-  //   const newState: Partial<IPanelState> = {};
-  //   let flag = false;
-  //   if (nextProps.x && nextProps.x !== prevState.x) {
-  //     newState.x = nextProps.x;
-  //     flag = true;
-  //   }
-  //   if (nextProps.width && nextProps.width !== prevState.width) {
-  //     newState.width = nextProps.width;
-  //     flag = true;
-  //   }
-  //   if (nextProps.y && nextProps.y !== prevState.y) {
-  //     newState.y = nextProps.y;
-  //     flag = true;
-  //   }
-  //   if (nextProps.height && nextProps.height !== prevState.height) {
-  //     newState.height = nextProps.height;
-  //     flag = true;
-  //   }
-  //   if (flag) return newState;
-  //   return null;
-  // }
 
   static defaultProps = {
     initialWidth: 800,
@@ -72,7 +46,7 @@ export default class Panel extends React.Component<IPanelProps, IPanelState> {
   }
 
   public render() {
-    const { title,id} = this.props;
+    const { title, widgets, id } = this.props;
     const { x, y, width, height } = this.state;
     return (
       <Rnd
@@ -100,12 +74,9 @@ export default class Panel extends React.Component<IPanelProps, IPanelState> {
         cancel=".panel-body"
         style={{ cursor: "inherit" }}
       >
-        <PanelHeader title={title} />
+        <PanelHeader title={title} widgets={widgets} />
         <PanelBody>{this.props.children}</PanelBody>
       </Rnd>
-      // <div className="panel-wrapper" ref={this.ref} style={{width, height, transform}}>
-      //   {this.props.children}
-      // </div>
     );
   }
 }

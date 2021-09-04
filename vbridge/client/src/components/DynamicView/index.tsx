@@ -78,16 +78,16 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
         }
     }
 
-    private tableNamesChange(name: string){
-        if(name == 'LABEVENTS')
-          return 'Lab Tests'
-        if(name == 'SURGERY_VITAL_SIGNS')
-          return 'Vital Signs'
-        if(name == 'CHARTEVENTS')
-          return 'Chart Events'
+    private tableNamesChange(name: string) {
+        if (name == 'LABEVENTS')
+            return 'Lab Tests'
+        if (name == 'SURGERY_VITAL_SIGNS')
+            return 'Vital Signs'
+        if (name == 'CHARTEVENTS')
+            return 'Chart Events'
         return 'Prescriptions'
-    
-      }
+
+    }
 
     private onPin(signal: SignalMeta) {
         const { updatePinnedFocusedFeatures, pinSignal } = this.props;
@@ -110,7 +110,7 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
             <div>
                 <div>
                     {signalGroups.map(group => <div key={group.first().entityId}>
-                        <Divider style={{margin: 8}}>{this.tableNamesChange(group.first().entityId)}</Divider>
+                        <Divider style={{ margin: 8 }}>{this.tableNamesChange(group.first().entityId)}</Divider>
                         {group.toArray().map((signal, i) =>
                             <DynamicCard
                                 className={className}
@@ -121,8 +121,6 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
                                 width={width}
                                 margin={margin}
                                 color={color && color(signal.entityId)}
-                                // onHover={updateFocusedFeatures && (() => updateFocusedFeatures(signal.relatedFeatureNames))}
-                                // onLeave={updateFocusedFeatures && (() => updateFocusedFeatures([]))}
                                 onRemove={removeSignal && (() => removeSignal(signal))}
                                 onPin={() => this.onPin(signal)}
                             />)}
@@ -240,7 +238,7 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
                     height={expand ? height : 32}
                     width={width}
                     xScale={xScale}
-                    margin={expand ? margin : { ...margin, top: 4, bottom: 0}}
+                    margin={expand ? margin : { ...margin, top: 4, bottom: 0 }}
                     color={color}
                     expand={expand}
                     yScale={expand ? undefined : getScaleLinear(15, 15, undefined, [-1, 1])}
@@ -252,7 +250,6 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
                 />}
             </Spin>
             <div className={"ts-title-float"} style={{ width: width }}>
-                {/* <span className={"ts-title-float-text"}>{`${itemLabel || itemName} (${timeDeltaPrinter(startTime, endTime)})`}</span> */}
                 <span className={"ts-title-float-text"}>{`${itemAlias || itemId}`}</span>
 
                 <Button size="small" type="primary" shape="circle" icon={<PushpinOutlined />} className={"ts-title-button"}
@@ -260,8 +257,10 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
                 />
                 <Button size="small" type="primary" shape="circle" icon={<CloseOutlined />} className={"ts-title-button"}
                     onClick={onRemove} />
-                {expand ? <Button size="small" type="primary" shape="circle" icon={<ShrinkOutlined />} className={"ts-title-button"} onClick={this.onCollapse} />
-                    : <Button size="small" type="primary" shape="circle" icon={<ExpandAltOutlined />} className={"ts-title-button"} onClick={this.onExpand} />}
+                {expand ? <Button size="small" type="primary" shape="circle" icon={<ShrinkOutlined />}
+                    className={"ts-title-button"} onClick={this.onCollapse} />
+                    : <Button size="small" type="primary" shape="circle" icon={<ExpandAltOutlined />}
+                        className={"ts-title-button"} onClick={this.onExpand} />}
                 <Button size="small" type="primary" shape="circle" className={"ts-title-button"} onClick={this.onExplain}>E</Button>
             </div>
         </div>

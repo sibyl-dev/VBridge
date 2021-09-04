@@ -24,6 +24,7 @@ import { distinct, isDefined } from 'utils/common';
 import { defaultCategoricalColor, getChildOrAppend, getOffsetById } from 'visualization/common';
 
 import './App.css';
+import Links from 'visualization/Links';
 
 const { Header, Content } = Layout;
 const { Option } = Select;
@@ -75,8 +76,6 @@ interface AppStates {
 
 class App extends React.Component<AppProps, AppStates>{
   private layout = { featureViewWidth: 520, ProfileWidth: 280, timelineViewHeight: 220, headerHeight: 64, xPadding: 15, yPadding: 5 };
-  private ref: React.RefObject<SVGSVGElement> = React.createRef();
-  private paintId: any = undefined;
 
   constructor(props: AppProps) {
     super(props);
@@ -109,30 +108,10 @@ class App extends React.Component<AppProps, AppStates>{
     this.updatePinnedFocusedFeatures = this.updatePinnedFocusedFeatures.bind(this);
 
     this.entityCategoricalColor = this.entityCategoricalColor.bind(this);
-
-    this.paintLink = this.paintLink.bind(this);
-    this.removeLink = this.removeLink.bind(this);
   }
 
   componentDidMount() {
     this.init();
-  }
-
-  componentWillUnmount() {
-    window.clearInterval(this.paintId);
-  }
-
-  componentDidUpdate(prevProps: AppProps, prevState: AppStates) {
-    const { dynamicViewLink } = this.state;
-    if (prevState.dynamicViewLink !== dynamicViewLink) {
-      if (dynamicViewLink) {
-        this.paintId = setInterval(this.paintLink);
-      }
-      else {
-        window.clearInterval(this.paintId);
-        this.removeLink();
-      }
-    }
   }
 
   public async init() {
@@ -303,90 +282,10 @@ class App extends React.Component<AppProps, AppStates>{
     }
   }
 
-  private paintLink() {
-    const { signalMetas } = this.state;
-    const { timelineViewHeight } = this.layout;
-
-    const headerHeight = document.getElementById('header')?.offsetHeight || 0;
-    const positions = signalMetas.map(signal => {
-      const end = getOffsetById(`temporal-view-element-${signal.itemId}`);
-      if (end && end.top > (headerHeight + timelineViewHeight + 30)
-        && end.bottom < window.innerHeight) {
-        const starts = signal.relatedFeatureNames.map(featureName =>
-          getOffsetById(`feature-view-element-${featureName}`))
-          .filter(isDefined)
-          .filter(start => (start.top > 30 + headerHeight) &&
-            (start.bottom < window.innerHeight + 20))
-          ;
-        return starts.map((start, i) => ({
-          start: start,
-          end: end,
-          x1: start.right,
-          y1: (start.top + start.bottom) / 2,
-          x2: end.left,
-          y2: (end.top + end.bottom) / 2,
-          color: this.entityCategoricalColor(signal.entityId)
-        }))
-      }
-    }).filter(isDefined).filter(d => d.length > 0);
-
-    const node = this.ref.current;
-    if (node) {
-      const root = d3.select(node);
-      const base = getChildOrAppend(root, 'g', 'link-base')
-        .attr("transform", `translate(0, ${-headerHeight})`);
-      const linkGroups = base.selectAll(".between-view-link-g")
-        .data(positions)
-        .join(
-          enter => enter.append("g")
-            .attr("class", "between-view-link-g"),
-          update => update,
-          exit => exit.remove()
-        );
-      linkGroups.selectAll(".between-view-link")
-        .data(d => d)
-        .join(
-          enter => enter.append("path")
-            .attr("class", "between-view-link"),
-          update => update,
-          exit => exit.remove()
-        )
-        .attr('d', d => {
-          const delta = (d.x2 - d.x1) / 2;
-          const path = d3.path();
-          path.moveTo(d.x1, d.y1);
-          path.bezierCurveTo(d.x1 + delta, d.y1, d.x2 - delta, d.y2, d.x2, d.y2);
-          return path.toString()
-        })
-        // .style('fill', d => d.color)
-        .style('stroke', d => d.color);
-      base.selectAll(".between-view-dot")
-        .data(positions)
-        .join(
-          enter => enter.append("circle")
-            .attr("class", "between-view-dot"),
-          update => update,
-          exit => exit.remove()
-        )
-        .attr("cx", d => d[0].x2)
-        .attr("cy", d => d[0].y2)
-        .attr("r", 3)
-        .style('fill', d => d[0].color);
-    }
-  }
-
-  private removeLink() {
-    const node = this.ref.current;
-    if (node) {
-      const root = d3.select(node);
-      getChildOrAppend(root, 'g', 'link-base').remove();
-    }
-  }
-
   public render() {
 
     const { directIds: subjectIds, entitySetSchema, patientInfo, featureSchema, features, showTableView, featureMat,
-      focusedFeatures, pinnedfocusedFeatures, target, tableViewMeta, signalMetas, visible, referenceValues } = this.state;
+      focusedFeatures, pinnedfocusedFeatures, target, tableViewMeta, signalMetas, visible, referenceValues, dynamicViewLink } = this.state;
     const { headerHeight, featureViewWidth, timelineViewHeight, ProfileWidth, xPadding, yPadding } = this.layout;
 
     return (
@@ -455,14 +354,13 @@ class App extends React.Component<AppProps, AppStates>{
           <Content>
             <Panel initialWidth={featureViewWidth}
               initialHeight={window.innerHeight - headerHeight - yPadding * 2} x={xPadding} y={yPadding}
-              title={<div className="view-title">
-                <span className="view-title-text">Feature View</span>
-                <div className="widget">
-                  <span className="widget-text">focus</span>
-                  <Switch onChange={e => this.setState({ featureViewDense: e })} style={{ float: 'right' }}
-                    checkedChildren="on" unCheckedChildren="off" />
-                </div>
-              </div>}>
+              title="Feature View"
+              widgets={[{
+                name: "focus", content: <Switch onChange={e =>
+                  this.setState({ featureViewDense: e })} style={{ float: 'right' }}
+                  checkedChildren="on" unCheckedChildren="off" />
+              }]}
+            >
               {patientInfo && features && target &&
                 <FeatureView
                   className={"feature-view-element"}
@@ -482,9 +380,8 @@ class App extends React.Component<AppProps, AppStates>{
             <Panel initialWidth={window.innerWidth - featureViewWidth - ProfileWidth - xPadding * 4}
               initialHeight={timelineViewHeight}
               x={featureViewWidth + xPadding * 2} y={yPadding}
-              title={<div className="view-title">
-                <span className="view-title-text">Timeline View</span>
-              </div>}>
+              title="Timeline View"
+            >
               {patientInfo && featureSchema && entitySetSchema &&
                 <TimelineView
                   tableNames={entitySetSchema.map(d => d.entityId)}
@@ -499,15 +396,12 @@ class App extends React.Component<AppProps, AppStates>{
             <Panel initialWidth={window.innerWidth - featureViewWidth - ProfileWidth - xPadding * 4}
               initialHeight={window.innerHeight - headerHeight - timelineViewHeight - yPadding * 3}
               x={featureViewWidth + xPadding * 2} y={timelineViewHeight + yPadding * 2}
-              title={
-                <div className="view-title">
-                  <span className="view-title-text">Temporal View</span>
-                  <div className="widget">
-                    <span className="widget-text">link</span>
-                    <Switch onChange={e => this.setState({ dynamicViewLink: e })} checkedChildren="on" unCheckedChildren="off" />
-                  </div>
-                </div>
-              }>
+              title="Temporal View"
+              widgets={[{
+                name: 'link', content: <Switch onChange={e =>
+                  this.setState({ dynamicViewLink: e })} checkedChildren="on" unCheckedChildren="off" />
+              }]}
+            >
               {patientInfo && featureSchema &&
                 <DynamicView
                   className={"temporal-view-element"}
@@ -524,13 +418,12 @@ class App extends React.Component<AppProps, AppStates>{
             </Panel>
             <Panel initialWidth={ProfileWidth} initialHeight={window.innerHeight - headerHeight - 2 * yPadding}
               x={window.innerWidth - xPadding - ProfileWidth} y={yPadding}
-              title={<div className="view-title">
-                <span className="view-title-text">Patient's Profile</span>
-                <div className="widget">
-                  <span className="widget-text">link</span>
-                  <Switch onChange={e => this.setState({ dynamicViewLink: e })} checkedChildren="on" unCheckedChildren="off" />
-                </div>
-              </div>}>
+              title="Patient"
+              widgets={[{
+                name: 'link', content: <Switch onChange={e =>
+                  this.setState({ dynamicViewLink: e })} checkedChildren="on" unCheckedChildren="off" />
+              }]}
+            >
               {featureSchema && <MetaView
                 className={"meta-view-element"}
                 patientStatics={patientInfo?.static}
@@ -542,12 +435,12 @@ class App extends React.Component<AppProps, AppStates>{
               }
             </Panel>
             {showTableView && <Panel initialWidth={400} initialHeight={435} x={1010} y={405}
-              title={<div className="view-title">
-                <span className="view-title-text">{tableViewMeta?.entityId}</span>
-                <div className="widget">
-                  <Button icon={<CloseOutlined />} type="link" onClick={() => this.setState({ showTableView: false })} />
-                </div>
-              </div>}>
+              title={tableViewMeta?.entityId}
+              widgets={[{
+                content: <Button icon={<CloseOutlined />} type="link"
+                  onClick={() => this.setState({ showTableView: false })} />
+              }]}
+            >
               {patientInfo && tableViewMeta &&
                 <TableView
                   tableMeta={tableViewMeta}
@@ -555,7 +448,8 @@ class App extends React.Component<AppProps, AppStates>{
                 />}
             </Panel>
             }
-            <svg className="app-link-svg" ref={this.ref} style={{ height: window.innerHeight - headerHeight }} />
+            {dynamicViewLink && <Links signalMetas={signalMetas} height={window.innerHeight - headerHeight} 
+            entityCategoricalColor={this.entityCategoricalColor} />}
             {/* {tableNames &&
               <Drawer maskClosable={false} title="Filter View" placement="right" closable={false}
                 onClose={this.onClose} visible={visible} width={450} >

@@ -30,3 +30,39 @@ span.panel-title {
     font-weight: bold;
     width: 100%;
 }
+
+.view-title {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+    align-items: center;
+}
+
+.view-title-text {
+    position: absolute;
+    color: #fff;
+    left: 10px;
+    top: 0px;
+}
+
+.widget {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    right: 10px;
+    top: 0px;
+}
+
+.widget-item {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.widget-text {
+    margin-left: 10px;
+    margin-right: 5px;
+    /* color: #7fa5ec; */
+    color: #fff;
+}

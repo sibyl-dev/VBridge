@@ -24,20 +24,6 @@
     margin-top: 7px;
 }
 
-.view-title {
-    display: flex;
-    width: 100%;
-    justify-content: center;
-    align-items: center;
-}
-
-.view-title-text {
-    position: absolute;
-    color: #fff;
-    left: 10px;
-    top: 0px;
-}
-
 .system-info {
     height: 100%;
 }
@@ -55,22 +41,6 @@
 
 .group-count {
     margin-right: 10px
-}
-
-.widget {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: absolute;
-    right: 10px;
-    top: 0px;
-}
-
-.widget-text {
-    margin-left: 10px;
-    margin-right: 5px;
-    /* color: #7fa5ec; */
-    color: #fff;
 }
 
 .ant-switch-inner {
