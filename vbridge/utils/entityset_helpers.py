@@ -32,7 +32,7 @@ def get_forward_attributes(entityset, target_entity, direct_id, interesting_ids=
         if interesting_ids is not None and entity_id not in interesting_ids:
             continue
         df = entityset[entity_id].df
-        info = [{'entityId': entity_id, **(df.loc[direct_id].to_dict())}] + info
+        info = [{'entityId': entity_id, 'items': df.loc[direct_id].to_dict()}] + info
         for child_id, relationship_path in entityset.get_forward_entities(entity_id):
             relation = parse_relationship_path(relationship_path)
             entity_id_pipe.append((child_id, df.loc[direct_id][relation['parent_variable_id']]))
