@@ -1,30 +1,24 @@
 import * as React from "react";
 import * as dataForge from "data-forge"
 import PureTable from "../Table"
-import { ItemDict } from "type/resource";
-import { PatientStatics, FeatureSchema } from "type/resource";
 
 import './index.css'
 import { Entity } from "type";
 
 export interface TableMeta {
-    tableName: string,
-    startTime: Date,
-    endTime: Date,
-    itemList: string[],
+    entityId: string,
+    startTime?: Date,
+    endTime?: Date,
+    itemList?: string[],
 }
 
 export interface TableViewProps {
-    patientMeta?: PatientStatics,
-    featureMeta: dataForge.IDataFrame<number, FeatureSchema>,
-    tableNames: string[],
     tableRecords: Entity<number, any>[]
     tableMeta: TableMeta,
-    itemDicts?: ItemDict,
 }
 
 export interface TableViewStates {
-    tableRecord?: dataForge.IDataFrame<number, any>;
+    records?: dataForge.IDataFrame<number, any>;
 }
 
 export default class TableView extends React.Component<TableViewProps, TableViewStates> {
@@ -48,34 +42,40 @@ export default class TableView extends React.Component<TableViewProps, TableView
     }
 
     private updateData() {
-        const { tableMeta, tableRecords, itemDicts } = this.props;
-        const { tableName, startTime, endTime, itemList } = tableMeta;
-        const table = tableRecords?.find(e => e.id === tableName);
+        const { tableMeta, tableRecords } = this.props;
+        const { entityId: tableName, startTime, endTime, itemList } = tableMeta;
+        let table = tableRecords.find(e => e.id === tableName);
 
         if (table) {
-            const { time_index, item_index } = table.schema!;
-            let tableRecord = table.where(d => new Date(d[time_index!]) <= endTime
-                && new Date(d[time_index!]) >= startTime
-                && itemList.includes(d[item_index!])).resetIndex();
-            console.log(tableMeta, tableRecord.toArray());
-            // if (itemDicts) {
-            //     tableRecord = tableRecord.select(row => {
-            //         const newRow = { ...row };
-            //         newRow[item_index!] = itemDicts(tableName, row[item_index!])?.LABEL
-            //         return newRow
-            //     })
-            //     console.log(tableRecord.toArray());
-            // }
-            this.setState({ tableRecord })
+            const { time_index, item_index, item_dict } = table.schema;
+            let records: dataForge.IDataFrame = table;
+            if (itemList) {
+                records = records.where(d => itemList.includes(d[item_index!]))!
+            }
+            if (startTime) {
+                records = records.where(d => new Date(d[time_index!]) >= startTime);
+            }
+            if (endTime) {
+                records = records.where(d => new Date(d[time_index!]) <= endTime);
+            }
+            records = records.resetIndex();
+            if (item_dict) {
+                records = records.select(row => {
+                    const newRow = { ...row };
+                    newRow[item_index!] = item_dict[row[item_index!]]
+                    return newRow
+                })
+            }
+            this.setState({ records })
         }
     }
 
     public render() {
-        const { tableRecord } = this.state;
+        const { records } = this.state;
 
         return <div style={{ height: "100%", width: "100%" }}>
-            {tableRecord && <PureTable
-                dataFrame={tableRecord}
+            {records && <PureTable
+                dataFrame={records}
                 drawIndex={false}
             />}
         </div>

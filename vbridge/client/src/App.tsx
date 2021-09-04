@@ -98,11 +98,11 @@ class App extends React.Component<AppProps, AppStates>{
     this.updateSignals = this.updateSignals.bind(this);
     this.updateSignalsByFeature = this.updateSignalsByFeature.bind(this);
     this.updateSignalFromTimeline = this.updateSignalFromTimeline.bind(this);
-    // this.pinSignal = this.pinSignal.bind(this);
-    // this.removeSignal = this.removeSignal.bind(this);
+    this.pinSignal = this.pinSignal.bind(this);
+    this.removeSignal = this.removeSignal.bind(this);
 
-    // this.updateTableView = this.updateTableView.bind(this);
-    // this.updateTableViewFromFeatures = this.updateTableViewFromFeatures.bind(this);
+    this.updateTableView = this.updateTableView.bind(this);
+    this.updateTableViewFromFeatures = this.updateTableViewFromFeatures.bind(this);
 
     // // Call-backs to update the Feature View
     this.updateFocusedFeatures = this.updateFocusedFeatures.bind(this);
@@ -254,34 +254,30 @@ class App extends React.Component<AppProps, AppStates>{
     this.setState({ pinnedfocusedFeatures: newfeatures });
   }
 
-  private updateTableView(tableName: string, startTime: Date, endTime: Date, itemList: string[]) {
-    const tableViewMeta: TableMeta = { tableName, startTime, endTime, itemList };
+  private updateTableView(tableName: string, itemList?: string[], startTime?: Date, endTime?: Date) {
+    const tableViewMeta: TableMeta = { entityId: tableName, startTime, endTime, itemList };
     this.setState({ tableViewMeta, showTableView: true });
   }
 
-  // private updateTableViewFromFeatures(feature: Feature) {
-  //   const { period, entityId } = feature;
-  //   const { patientStatics: patientMeta } = this.state;
-  //   // feature groups with multiple entities are not supported
-  //   const getItemList = (feature: Feature) => {
-  //     const item = feature.item?.itemId;
-  //     let items = item ? [item] : [];
-  //     if (feature.children)
-  //       for (const child of feature.children) {
-  //         items = items.concat(getItemList(child));
-  //       }
-  //     return items
-  //   }
-  //   if (patientMeta && entityId) {
-  //     const { SURGERY_BEGIN_TIME: SurgeryBeginTime, SURGERY_END_TIME: SurgeryEndTime } = patientMeta;
-  //     const startTime = (period === 'in-surgery') ? SurgeryBeginTime :
-  //       new Date(SurgeryBeginTime.getTime() - 1000 * 60 * 60 * 24 * 2);
-  //     const endTime = (period === 'in-surgery') ? SurgeryEndTime : SurgeryBeginTime;
-  //     const tableName = entityId;
-  //     const items = getItemList(feature);
-  //     this.updateTableView(tableName, startTime, endTime, items);
-  //   }
-  // }
+  private updateTableViewFromFeatures(feature: Feature) {
+    const { entityId } = feature;
+    const { patientInfo } = this.state;
+    // feature groups with multiple entities are not supported
+    const getItemList = (feature: Feature) => {
+      const item = feature.item?.itemId;
+      let items = item ? [item] : [];
+      if (feature.children)
+        for (const child of feature.children) {
+          items = items.concat(getItemList(child));
+        }
+      return items
+    }
+    if (patientInfo) {
+      const tableName = entityId;
+      const items = getItemList(feature);
+      this.updateTableView(tableName, items);
+    }
+  }
 
   private showDrawer = () => {
     const visible = true
@@ -477,7 +473,7 @@ class App extends React.Component<AppProps, AppStates>{
                   entityCategoricalColor={this.entityCategoricalColor}
                   focusedFeatures={[...pinnedfocusedFeatures, ...focusedFeatures]}
                   inspectFeatureInSignal={this.updateSignalsByFeature}
-                  // inspectFeatureInTable={this.updateTableViewFromFeatures}
+                  inspectFeatureInTable={this.updateTableViewFromFeatures}
                   display={this.state.featureViewDense ? 'dense' : 'normal'}
                 />}
             </Panel>
@@ -545,23 +541,20 @@ class App extends React.Component<AppProps, AppStates>{
               />
               }
             </Panel>
-            {/* {showTableView && <Panel initialWidth={400} initialHeight={435} x={1010} y={405}
+            {showTableView && <Panel initialWidth={400} initialHeight={435} x={1010} y={405}
               title={<div className="view-title">
-                <span className="view-title-text">{tableViewMeta?.tableName}</span>
+                <span className="view-title-text">{tableViewMeta?.entityId}</span>
                 <div className="widget">
                   <Button icon={<CloseOutlined />} type="link" onClick={() => this.setState({ showTableView: false })} />
                 </div>
               </div>}>
-              {tableViewMeta && patientTemporal && featureSchema && entitySetSchema &&
+              {patientInfo && tableViewMeta &&
                 <TableView
-                  featureMeta={featureSchema}
-                  patientMeta={patientStatics}
-                  tableNames={entitySetSchema.map(d => d.id)}
                   tableMeta={tableViewMeta}
-                  tableRecords={patientTemporal}
+                  tableRecords={patientInfo.temporal}
                 />}
             </Panel>
-            } */}
+            }
             <svg className="app-link-svg" ref={this.ref} style={{ height: window.innerHeight - headerHeight }} />
             {/* {tableNames &&
               <Drawer maskClosable={false} title="Filter View" placement="right" closable={false}
