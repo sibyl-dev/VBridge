@@ -1,6 +1,9 @@
 import { PandasDataFrame } from "./_dataframe";
 
-export type PatientStatics = Record<string, any>[];
+export type PatientStatics = {
+    entityId: string,
+    items: Record<string, any>
+}[];
 
 export type PatientTemporal = Record<string, any>;
 

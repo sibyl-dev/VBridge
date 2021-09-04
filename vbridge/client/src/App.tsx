@@ -75,7 +75,6 @@ interface AppStates {
 
 class App extends React.Component<AppProps, AppStates>{
   private layout = { featureViewWidth: 520, ProfileWidth: 280, timelineViewHeight: 220, headerHeight: 64, xPadding: 15, yPadding: 5 };
-  private abnormalityColorScale = d3.scaleSequential(d3.interpolateRdYlGn).domain([2.5 + 0.5, 1 - 0.5]);
   private ref: React.RefObject<SVGSVGElement> = React.createRef();
   private paintId: any = undefined;
 
@@ -106,11 +105,10 @@ class App extends React.Component<AppProps, AppStates>{
     // this.updateTableViewFromFeatures = this.updateTableViewFromFeatures.bind(this);
 
     // // Call-backs to update the Feature View
-    // this.updateFocusedFeatures = this.updateFocusedFeatures.bind(this);
-    // this.updatePinnedFocusedFeatures = this.updatePinnedFocusedFeatures.bind(this);
+    this.updateFocusedFeatures = this.updateFocusedFeatures.bind(this);
+    this.updatePinnedFocusedFeatures = this.updatePinnedFocusedFeatures.bind(this);
 
     this.entityCategoricalColor = this.entityCategoricalColor.bind(this);
-    this.abnormalityColor = this.abnormalityColor.bind(this);
 
     this.paintLink = this.paintLink.bind(this);
     this.removeLink = this.removeLink.bind(this);
@@ -155,7 +153,6 @@ class App extends React.Component<AppProps, AppStates>{
     const prediction = await API.predictions.find(directId);
     if (entitySetSchema && patient && prediction) {
       const patientInfo = buildPatientInfo(directId, patient, entitySetSchema, prediction);
-      console.log(patientInfo);
       this.setState({ patientInfo });
     }
   }
@@ -168,7 +165,6 @@ class App extends React.Component<AppProps, AppStates>{
       const whatIfShap = await API.cfShapValues.find(directId, {}, { target: target });
       if (featureValues) {
         const features = buildFeatures(featureSchema, featureValues, shap, whatIfShap);
-        console.log(features);
         this.setState({ features });
       }
     }
@@ -309,10 +305,6 @@ class App extends React.Component<AppProps, AppStates>{
     else {
       return "#aaa"
     }
-  }
-
-  private abnormalityColor(abnormality: number) {
-    return this.abnormalityColorScale(Math.max(Math.min(abnormality, 2.5), 1));
   }
 
   private paintLink() {
@@ -534,7 +526,7 @@ class App extends React.Component<AppProps, AppStates>{
                   removeSignal={this.removeSignal}
                 />}
             </Panel>
-            {/* <Panel initialWidth={ProfileWidth} initialHeight={window.innerHeight - headerHeight - 2 * yPadding}
+            <Panel initialWidth={ProfileWidth} initialHeight={window.innerHeight - headerHeight - 2 * yPadding}
               x={window.innerWidth - xPadding - ProfileWidth} y={yPadding}
               title={<div className="view-title">
                 <span className="view-title-text">Patient's Profile</span>
@@ -545,16 +537,14 @@ class App extends React.Component<AppProps, AppStates>{
               </div>}>
               {featureSchema && <MetaView
                 className={"meta-view-element"}
-                patientIds={subjectIds}
-                featureMeta={featureSchema}
-                patientInfoMeta={patientStatics}
+                patientStatics={patientInfo?.static}
                 updateFocusedFeatures={this.updateFocusedFeatures}
                 updatePinnedFocusedFeatures={this.updatePinnedFocusedFeatures}
                 entityCategoricalColor={this.entityCategoricalColor}
-                days={patientStatics && patientStatics.ageInDays}
+                featureSchema={featureSchema}
               />
               }
-            </Panel> */}
+            </Panel>
             {/* {showTableView && <Panel initialWidth={400} initialHeight={435} x={1010} y={405}
               title={<div className="view-title">
                 <span className="view-title-text">{tableViewMeta?.tableName}</span>

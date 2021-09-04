@@ -42,6 +42,10 @@
                 display: none;
             }
         }
+        .value {
+            background: rgba(217, 217, 217, 0.5);
+            min-height: 20px;
+        }
     }
     .meta-item:hover {
         border-top: 1px solid #eee;
@@ -50,34 +54,4 @@
             display: block;
         }
     }
-}
-
-.Demographic {
-    background: rgba(217, 217, 217, 0.5);
-    // border: rgb(202, 202, 202) solid 1px;
-    /*background: rgba(179,205,227, 0.3);*/
-    /*background: #888f98;*/
-    // border-radius: 5px;
-}
-
-.Admission {
-    // background: rgba(202, 202, 202, 0.5);
-    background: rgba(217, 217, 217, 0.5);
-    // border: rgb(150, 150, 150) solid 1px;
-    /*background: #bdc3c7;*/
-    /*background: rgba(251,180,174, 0.3);*/
-    // border-radius: 5px;
-}
-
-.Surgery {
-    // background: rgba(150, 150, 150, 0.5);
-    background: rgba(217, 217, 217, 0.5);
-    // border: rgb(130, 130, 130) solid 1px;
-    /*background: rgba(204,235,197, 0.3); */
-    /*background: #5e6875;*/
-    // border-radius: 5px;
-}
-
-.Info {
-    background: rgba(217, 217, 217, 0.5);
 }
