@@ -1,9 +1,7 @@
 import React from 'react';
-import * as d3 from "d3";
 import * as _ from 'lodash';
 
-import { Layout, Drawer, Tooltip, Button, Select, Switch } from 'antd';
-import { FilterOutlined } from '@ant-design/icons';
+import { Layout, Drawer, Button, Select, Switch } from 'antd';
 import { CloseOutlined } from '@material-ui/icons';
 
 import Panel from 'components/Panel';
@@ -16,15 +14,16 @@ import TimelineView from "./components/TimelineView";
 
 import API from "./router/api"
 import { EntitySetSchema, ReferenceValueResponse, Task, FeatureSchemaResponse } from 'type/resource';
-import { Entity, Feature, buildFeatures, PatientInfo, buildPatientInfo, SignalMeta, buildSignalsByFeature, getRelatedFeatures, buildRecordByPeriod } from './type';
+import { Feature, buildFeatures, PatientInfo, buildPatientInfo, SignalMeta, buildSignalsByFeature, buildRecordByPeriod } from './type';
 
-import { DataFrame, IDataFrame } from 'data-forge';
-import { distinct, isDefined } from 'utils/common';
+import { DataFrame, IDataFrame, fromCSV } from 'data-forge';
+import { distinct } from 'utils/common';
 
-import { defaultCategoricalColor, getChildOrAppend, getOffsetById } from 'visualization/common';
+import { defaultCategoricalColor } from 'visualization/common';
 
 import './App.css';
 import Links from 'visualization/Links';
+import { AppHeader } from 'components/Header';
 
 const { Header, Content } = Layout;
 const { Option } = Select;
@@ -91,7 +90,6 @@ class App extends React.Component<AppProps, AppStates>{
     this.onSelectDirectId = this.onSelectDirectId.bind(this);
     this.onSelectTarget = this.onSelectTarget.bind(this);
     // this.filterPatients = this.filterPatients.bind(this)
-    // this.showDrawer = this.showDrawer.bind(this);
 
     // // Call-backs to update the Temporal View
     this.updateSignals = this.updateSignals.bind(this);
@@ -121,9 +119,10 @@ class App extends React.Component<AppProps, AppStates>{
     const featureSchema = await API.featureSchemas.all();
     const entitySetSchema = await API.entitySchemas.all();
     const referenceValues = await API.referenceValues.all();
-    // const featureMat = await API.featureValues.all();
+    const featureMatResponse = await API.featureValues.all();
+    const featureMat = featureMatResponse ? fromCSV(featureMatResponse) : undefined;
 
-    this.setState({ directIds, task, target, featureSchema, entitySetSchema, referenceValues });
+    this.setState({ directIds, task, target, featureSchema, entitySetSchema, referenceValues, featureMat });
   }
 
   private async loadPatientInfo(directId: string) {
@@ -258,16 +257,6 @@ class App extends React.Component<AppProps, AppStates>{
     }
   }
 
-  private showDrawer = () => {
-    const visible = true
-    this.setState({ visible })
-  };
-
-  private onClose = () => {
-    const visible = false
-    this.setState({ visible })
-  };
-
   private entityCategoricalColor(entityName?: string) {
     const { entitySetSchema } = this.state;
     if (entityName && ['Demographic', 'Admission', 'Surgery', 'Patient Info', 'Surgery Info',
@@ -284,72 +273,20 @@ class App extends React.Component<AppProps, AppStates>{
 
   public render() {
 
-    const { directIds: subjectIds, entitySetSchema, patientInfo, featureSchema, features, showTableView, featureMat,
+    const { directIds, entitySetSchema, patientInfo, featureSchema, features, showTableView, featureMat,
       focusedFeatures, pinnedfocusedFeatures, target, tableViewMeta, signalMetas, visible, referenceValues, dynamicViewLink } = this.state;
     const { headerHeight, featureViewWidth, timelineViewHeight, ProfileWidth, xPadding, yPadding } = this.layout;
 
     return (
       <div className='App'>
-
         <Layout>
           <Header className="app-header" id="header" style={{ background: '#001529' }}>
-
-            <span className='system-name'>VBridge</span>
-            <div className='system-info'>
-              <div className='system-widget'>
-
-                <div className='legend-area'>
-                  <div className="category-legend-container">
-                    {entitySetSchema?.map(entity =>
-                      <div className="legend-block" key={entity.entityId}>
-                        <div className='legend-rect' style={{ backgroundColor: this.entityCategoricalColor(entity.entityId) }} />
-                        <span className='legend-name'>{entity.alias || entity.entityId}</span>
-                      </div>
-                    )}
-                    <div className="legend-block">
-                      <div className='legend-rect' style={{ backgroundColor: this.entityCategoricalColor('Admission') }} />
-                      <span className='legend-name'>{"Patient & Surgery info"}</span>
-                    </div>
-                  </div>
-                  <div className='healthy-legend'>
-                    <div className="legend-block">
-                      <div className='legend-rect' style={{ backgroundColor: 'rgb(242, 142, 44)' }} />
-                      <span className='legend-name'>{"High Risk"}</span>
-                    </div>
-                    <div className="legend-block">
-                      <div className='legend-rect' style={{ backgroundColor: 'rgb(78, 121, 167)' }} />
-                      <span className='legend-name'>{"Low Risk"}</span>
-                    </div>
-                  </div>
-                </div>
-                <span className='header-name'>Patient: </span>
-                <div className='header-content'>
-                  <Select style={{ width: 120 }} onChange={this.onSelectDirectId} className="patient-selector">
-                    {subjectIds && subjectIds.map((id, i) =>
-                      <Option value={id} key={i}>{id}</Option>
-                    )}
-                  </Select>
-                </div>
-                {/* <div className='header-content predictions'>
-                  {targetSchema?.where(d => d.id !== 'complication').select(d =>
-                    <Tooltip title={d.id} placement="top" key={d.id}>
-                      <div className={'prediction-icon' + (target && d.id === target ? " selected" : "") +
-                        ((predictions && predictions[d.id] > 0.5000) ? " active" : " inactive")}
-                        onClick={() => this.selectPredictionTarget(d.id)}>
-                        <span>{d.id.toUpperCase()[0]} </span>
-                      </div>
-                    </Tooltip>
-                  )}
-                </div> */}
-
-                <span className='header-name'>#Group:</span>
-                {/* <span className="header-name"> {`${patientGroup && patientGroup.ids ? patientGroup.ids.length : 0}
-                    (${patientGroup ? patientGroup.labelCounts[5] : 0})`} </span> */}
-                <Tooltip title="Filter">
-                  <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={this.showDrawer} style={{ zIndex: 1 }} />
-                </Tooltip>
-              </div>
-            </div>
+            <AppHeader
+              entitySetSchema={entitySetSchema}
+              directIds={directIds}
+              onSelectDirectId={this.onSelectDirectId}
+              entityCategoricalColor={this.entityCategoricalColor}
+            />
           </Header>
           <Content>
             <Panel initialWidth={featureViewWidth}
@@ -448,8 +385,8 @@ class App extends React.Component<AppProps, AppStates>{
                 />}
             </Panel>
             }
-            {dynamicViewLink && <Links signalMetas={signalMetas} height={window.innerHeight - headerHeight} 
-            entityCategoricalColor={this.entityCategoricalColor} />}
+            {dynamicViewLink && <Links signalMetas={signalMetas} height={window.innerHeight - headerHeight}
+              entityCategoricalColor={this.entityCategoricalColor} />}
             {/* {tableNames &&
               <Drawer maskClosable={false} title="Filter View" placement="right" closable={false}
                 onClose={this.onClose} visible={visible} width={450} >
