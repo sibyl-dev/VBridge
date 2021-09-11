@@ -55,18 +55,18 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
     private updateReferenceValues() {
         const { featureMat } = this.props;
         if (featureMat) {
-            const desiredFeatureMat = featureMat.where(row => row['complication'] === 0);
-            const undesiredFeatureMat = featureMat.where(row => row['complication'] !== 0);
-            if (desiredFeatureMat.count() == 0) alert("No patient in the selection.");
+            const desiredFM = featureMat.where(row => row['complication'] === 0);
+            const undesiredFM = featureMat.where(row => row['complication'] !== 0);
+            if (desiredFM.count() == 0) alert("No patient in the selection.");
             else {
                 const featureIds = featureMat.getColumnNames();
                 const referenceValues = new DataFrame({
                     index: featureIds,
                     values: featureIds.map(name =>
-                        getReferenceValue(desiredFeatureMat.getSeries(name).toArray())
+                        getReferenceValue(desiredFM.getSeries(name).toArray())
                     )
                 })
-                this.setState({ desiredFM: desiredFeatureMat, undesiredFM: undesiredFeatureMat, referenceValues });
+                this.setState({ desiredFM: desiredFM, undesiredFM: undesiredFM, referenceValues });
             }
         }
     }

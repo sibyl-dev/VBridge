@@ -19,4 +19,4 @@ export type FeatureSchemaResponse = FeatureSchema[];
 
 export type FeatureValue = Record<string, number | string>;
 
-export type FeatureValueResponse = PandasDataFrame<string>;
+export type FeatureValueResponse = string;
