@@ -92,7 +92,7 @@ META_INFO = {
         'identifiers': ['SUBJECT_ID', 'HADM_ID', 'ITEMID'],
         'time_index': 'CHARTTIME',
         'item_index': 'ITEMID',
-        'value_indexes': ['VALUE'],
+        'value_indexes': ['VALUENUM'],
         'alias': 'Chart Events',
     },
     'INPUTEVENTS': {
