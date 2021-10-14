@@ -49,4 +49,5 @@ def add_routes(app):
     api.add_resource(res.feature_explanation.ShapValues, API + 'shap/<string:direct_id>')
     api.add_resource(res.feature_explanation.WhatIfShapValues, API +
                      'whatif_shap/<string:direct_id>')
-    # api.add_resource(res.signal_explanation.SignalExplanation, API + 'signal_explanations/')
+    api.add_resource(res.signal_explanation.SignalExplanation, API + 'signal_explanations'
+                                                                     '/<string:direct_id>')

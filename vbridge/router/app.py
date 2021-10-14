@@ -4,7 +4,7 @@ from flask import Flask
 from flask_cors import CORS
 
 from vbridge.data_loader.data import create_entityset
-# from vbridge.explainer.explanation import Explainer
+from vbridge.explainer.explanation import Explainer
 from vbridge.featurization import Featurization
 from vbridge.modeling import ModelManager
 from vbridge.task import pic_48h_in_admission_mortality_task
@@ -64,7 +64,7 @@ def create_app():
     # settings['selected_ids'] = fm.index
 
     # load explainer
-    # app.ex = Explainer(es, fm, model_manager)
+    settings["explainer"] = Explainer(es, task, settings['cutoff_time'] )
 
     app.settings = settings
     app.json_encoder = NpEncoder

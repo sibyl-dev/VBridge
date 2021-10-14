@@ -1,21 +1,12 @@
 import featuretools as ft
 import numpy as np
 
-from vbridge.data_loader.settings import META_INFO
+from vbridge.data_loader.pic_schema import META_INFO
 
 from .anomaly import find_anomalies
 
 
-def distribute_shap(shap_value, v):
-    # Fairly distribute a shap value across a time series according to contribution
-    if sum(v) == 0:
-        print("ERROR: Sum of contributions is 0, cannot distribute value")
-    v_norm = v / sum(v)
-    return shap_value * v_norm
-
-
 # Helper functions to run occlusion algorithm
-
 def occlude(signal, algorithm, start, size):
     # Occlude a window of a signal
     # algorithm - one of:
@@ -68,130 +59,121 @@ def occlude(signal, algorithm, start, size):
     return occluded
 
 
-def run_occlusion(signal, primitive, algorithm, window_size=5, primitive_args=None):
-    # Run the occlusion algorithm on the signal
+def feat2signal(es, feature, **kwargs):
+    assert isinstance(feature, ft.IdentityFeature)
+    args = feature.get_arguments()
+    entity_id = args['entity_id']
+    variable_id = args['variable_id']
+    return extract_signal(es, entity_id, variable_id, **kwargs)
 
-    if primitive_args is None:
-        primitive_args = []
-    base_value = primitive(signal, *primitive_args)
-    v = np.zeros(len(signal))
-    hits = np.zeros(len(signal))
-    for start in range(len(signal)):
+
+def extract_signal(es, entity_id, variable_id, filters=None,
+                   time_var=None, start_time=None, end_time=None):
+    df = es[entity_id].df
+    if filters is not None:
+        for f in filters:
+            df = df[f(df)]
+    if time_var is not None:
+        if start_time is not None:
+            df = df[df[time_var] >= start_time]
+        if end_time is not None:
+            df = df[df[time_var] <= end_time]
+    return df[variable_id].values
+
+
+def run_occlusion(es, feature, filters=None, start_time=None,
+                  end_time=None, algorithm="full_linear_fit", window_size=5):
+    # Run the occlusion algorithm on the signal
+    base_features = feature.base_features
+
+    # Extract where arguments in the features
+    if filters is None:
+        filters = []
+    if 'where' in feature.__dict__:
+        where = feature.where
+        filters.append(lambda df: where.primitive(df[where.base_features[0].variable.id]))
+
+    # Find the time and value columns of the entity
+    entity_id = base_features[0].entity_id
+    time_var = META_INFO[entity_id].get('time_index', None)
+    target_var = META_INFO[entity_id].get('value_indexes', [])[0]
+
+    signal_params = {'filters': filters, 'time_var': time_var,
+                     'start_time': start_time, 'end_time': end_time}
+
+    signal_coll = [feat2signal(es, f, **signal_params) for f in base_features]
+    signal_id = next(i for i, f in enumerate(base_features)
+                     if f.variable.id == target_var)
+    signal = feat2signal(es, base_features[signal_id], **signal_params)
+    signal_lens = len(signal)
+
+    timestamps = extract_signal(es, entity_id, time_var, **signal_params)
+
+    base_value = feature.primitive(*signal_coll)
+    v = np.zeros(signal_lens)
+    hits = np.zeros(signal_lens)
+    for start in range(signal_lens):
         occluded = occlude(signal, algorithm, start, window_size)
-        new_value = primitive(occluded, *primitive_args)
+        occluded_coll = [sig if i != signal_id else occluded
+                         for i, sig in enumerate(signal_coll)]
+        new_value = feature.primitive(*occluded_coll)
         v[start:start + window_size] += (base_value - new_value) / np.abs(base_value)
         hits[start:start + window_size] += 1
 
     v = v / hits
-    return v
-
-
-def mean_contributions(signal):
-    # Calculate the importance of each point to the mean
-
-    mean = np.mean(signal)
-    n = len(signal)
-    new_means = np.array([(np.sum(signal) - x + mean) / n for x in signal])
-    v = (-new_means) / (np.abs(mean))
-    return v
+    return signal, timestamps, v
 
 
 class Explainer:
-    def __init__(self, es, fm, mm):
+    def __init__(self, es, task, cutoff_times=None,
+                 algorithm="global_mean", window_size=5):
         self._es = es
-        self._fm = fm
-        self._mm = mm
+        self._task = task
+        self._cutoff_times = task.get_cutoff_times(es) if cutoff_times is None else cutoff_times
+
+        self._algorithm = algorithm
+        self._window_size = window_size
 
     @property
     def es(self):
         return self._es
 
     @property
-    def fm(self):
-        return self._fm
+    def task(self):
+        return self._task
 
     @property
-    def mm(self):
-        return self._mm
+    def cutoff_times(self):
+        return self._cutoff_times
 
-    # HELPER FUNCTIONS FOR EXPLANATION
+    @property
+    def algorithm(self):
+        return self._algorithm
 
-    def get_record_id_from_name(self, record_name, feature_table_name):
-        # Get the corresponding record code from an English feature name
-        feature_rows = self.es["D_ITEMS"].df.loc[self.es["D_ITEMS"].df["LABEL"] == record_name]
-        record_id = \
-            feature_rows.loc[feature_rows["LINKSTO"].str.lower() == feature_table_name.lower()][
-                "ITEMID"][0]
-        return record_id
+    @property
+    def window_size(self):
+        return self._window_size
 
-    def extract_signal(self, subject_id, feature_table_name, record_id, start_time=None,
-                       end_time=None):
-        # Extract all records for a given record type and uni oper id
-        full_table = self.es[feature_table_name].df
-        time_index = META_INFO[feature_table_name].get('time_index')
-        item_index = META_INFO[feature_table_name].get('item_index')
-        value_index = META_INFO[feature_table_name].get('value_indexes')[0]
-
-        oper_table = full_table.loc[full_table["SUBJECT_ID"] == subject_id]
-        if start_time:
-            oper_table = oper_table[oper_table[time_index] >= start_time]
-        if end_time:
-            oper_table = oper_table[oper_table[time_index] <= end_time]
-
-        feature_table = oper_table.loc[oper_table[item_index] == record_id]
-        feature_table.sort_values(by=time_index, axis="index", inplace=True)
-
-        feature_signal = feature_table[value_index]
-        return feature_signal, feature_table
-
-    def occlusion_explain(self, record_id, table_name, primitive, subject_id,
-                          algorithm="full_linear_fit", window_size=5, weight_with_shap=False,
-                          feature_name=None, return_signal=False, record_format=True, flip=False):
-
+    def occlusion_explain(self, feature, direct_id, flip=False):
         # Calculate signal contributions using the occlusion algorithm
-        time_index = META_INFO[table_name]['time_index']
-        surgery_table = self.es['SURGERY_INFO'].df
-        start_time = \
-            surgery_table[surgery_table['SUBJECT_ID']
-                          == subject_id]['SURGERY_BEGIN_TIME'].values[0]
-        end_time = \
-            surgery_table[surgery_table['SUBJECT_ID'] == subject_id]['SURGERY_END_TIME'].values[0]
-        signal, signal_table = self.extract_signal(subject_id, table_name, record_id, start_time,
-                                                   end_time)
-        signal = signal.to_numpy()
-
-        if isinstance(primitive, ft.primitives.Mean):
-            v = mean_contributions(signal)
-        if isinstance(primitive, ft.primitives.Trend):
-            v = run_occlusion(signal, primitive, algorithm, window_size,
-                              primitive_args=[signal_table["MONITOR_TIME"].to_numpy()])
-        else:
-            v = run_occlusion(signal, primitive, algorithm, window_size, primitive_args=[])
-
-        if weight_with_shap:
-            feature_shap_value = self.mm.explain(id=subject_id, target='complication').loc[
-                0, feature_name]
-            v = distribute_shap(feature_shap_value, v).reshape(-1)
-        if not record_format:
-            if return_signal:
-                return v, signal
-            return v
+        subject_id = self.es[self.task.target_entity].df.loc[direct_id]['SUBJECT_ID']
+        filters = [lambda df: df["SUBJECT_ID"] == subject_id]
+        signal, timestamps, v = run_occlusion(self.es, feature, filters=filters,
+                                              start_time=None,
+                                              end_time=self.cutoff_times.loc[direct_id, 'time'],
+                                              algorithm=self.algorithm,
+                                              window_size=self.window_size)
+        v -= flip * 2 * v
+        #     v = np.array([max(0, i) for i in v])
+        anomaly_list = find_anomalies(v, range(len(v)), anomaly_padding=0).tolist()
         segments = []
-        index = [i for i in range(len(v))]
-        time = signal_table[time_index].values
-        if flip:
-            v = -v
-        print(v)
-        v = np.array([max(0, i) for i in v])
-        anomaly_list = find_anomalies(v, index, anomaly_padding=0, lower_threshold=False).tolist()
         for anomaly in anomaly_list:
             # value means sum of the contributions
             start_id = int(anomaly[0])
             end_id = int(anomaly[1])
             segments.append({
-                'startTime': str(time[start_id]),
-                'endTime': str(time[end_id]),
-                # 'padding_start_time':
+                'startTime': str(timestamps[start_id]),
+                'endTime': str(timestamps[end_id]),
                 'contriSum': v[start_id: end_id + 1].sum(),
                 'maxValue': signal[start_id: end_id + 1].max(),
                 'minValue': signal[start_id: end_id + 1].min(),
