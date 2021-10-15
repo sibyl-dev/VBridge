@@ -342,7 +342,7 @@ class App extends React.Component<AppProps, AppStates>{
               {patientInfo && featureSchema &&
                 <DynamicView
                   className={"temporal-view-element"}
-                  align={true}
+                  directId={patientInfo.id}
                   patientTemporals={patientInfo.temporal}
                   signalMetas={signalMetas}
                   width={window.innerWidth - featureViewWidth - ProfileWidth - 60 - xPadding * 4}

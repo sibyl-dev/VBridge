@@ -49,7 +49,8 @@ export function getRelatedFeatures(params: {
     columnId?: string, itemId?: string, startTime?: Date, endTime?: Date
 }): string[] {
     const { featureSchema, entityId, columnId, itemId, startTime, endTime } = params;
-    let candidates = featureSchema.filter(row => row.entityId === entityId);
+    let candidates = featureSchema.filter(row => (!row.childrenIds || row.childrenIds.length === 0));
+    candidates = candidates.filter(row => row.entityId === entityId);
     if (columnId) candidates = candidates.filter(row => row.columnId === columnId);
     if (itemId) candidates = candidates.filter(row => row.item?.itemId === itemId);
 

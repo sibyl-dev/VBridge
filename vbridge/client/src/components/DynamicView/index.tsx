@@ -1,23 +1,27 @@
 import * as React from "react";
 import * as _ from "lodash"
-import { Button, Card, Divider, Select, Spin } from "antd";
-import { DataFrame, IDataFrame, ISeries } from "data-forge";
-import { defaultMargin, getMargin, getScaleLinear, getScaleTime, IMargin } from "visualization/common";
+import { Button, Divider, Spin } from "antd";
+import { DataFrame, IDataFrame } from "data-forge";
+import { defaultMargin, getScaleLinear, getScaleTime, IMargin } from "visualization/common";
 import { CloseOutlined, ExpandAltOutlined, PushpinOutlined, ShrinkOutlined } from "@ant-design/icons";
 import { arrayShallowCompare } from "utils/common";
 import LineChart from "visualization/lineChart";
 
-import "./index.scss";
 import { SignalExplanation } from "type/resource";
 import { Entity, SignalMeta, Signal } from "type";
+import API from "../../router/api"
+
+import "./index.scss";
 
 export interface DynamicViewProps {
     className: string,
+    directId: string,
     patientTemporals: Entity<string, any>[],
     signalMetas: SignalMeta[],
-    align?: boolean,
+
     width: number,
     color?: (entityName: string) => string,
+
     updateFocusedFeatures?: (featureNames: string[]) => void,
     updatePinnedFocusedFeatures?: (featureNames: string[]) => void,
     pinSignal: (signalMeta: SignalMeta) => void;
@@ -39,7 +43,6 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
         };
 
         this.onPin = this.onPin.bind(this);
-        this.tableNamesChange = this.tableNamesChange.bind(this);
     }
     componentDidMount() {
         this.initSignals();
@@ -78,17 +81,6 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
         }
     }
 
-    private tableNamesChange(name: string) {
-        if (name == 'LABEVENTS')
-            return 'Lab Tests'
-        if (name == 'SURGERY_VITAL_SIGNS')
-            return 'Vital Signs'
-        if (name == 'CHARTEVENTS')
-            return 'Chart Events'
-        return 'Prescriptions'
-
-    }
-
     private onPin(signal: SignalMeta) {
         const { updatePinnedFocusedFeatures, pinSignal } = this.props;
         updatePinnedFocusedFeatures && updatePinnedFocusedFeatures(signal.relatedFeatureNames);
@@ -96,11 +88,11 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
     }
 
     public render() {
-        const { color, updateFocusedFeatures, removeSignal, className, align, width } = this.props;
+        const { color, removeSignal, className, width, directId } = this.props;
         const { signalGroups, globalStartTime, globalEndTime } = this.state;
         const margin = { bottom: 20, left: 30, top: 15, right: 10 };
         let xScale: d3.ScaleTime<number, number> | undefined = undefined;
-        if (align && globalStartTime && globalEndTime) {
+        if (globalStartTime && globalEndTime) {
             const paddingTime = (globalEndTime.getTime() - globalStartTime.getTime()) * 0.05;
             const paddedStartTime = new Date(globalStartTime.getTime() - paddingTime);
             const paddedEndTime = new Date(globalEndTime.getTime() + paddingTime);
@@ -108,25 +100,23 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
         }
         return (
             <div>
-                <div>
-                    {signalGroups.map(group => <div key={group.first().entityId}>
-                        <Divider style={{ margin: 8 }}>{this.tableNamesChange(group.first().entityId)}</Divider>
-                        {group.toArray().map((signal, i) =>
-                            <DynamicCard
-                                className={className}
-                                signal={signal}
-                                key={signal.itemId}
-                                align={true}
-                                xScale={xScale}
-                                width={width}
-                                margin={margin}
-                                color={color && color(signal.entityId)}
-                                onRemove={removeSignal && (() => removeSignal(signal))}
-                                onPin={() => this.onPin(signal)}
-                            />)}
-                    </div>
-                    )}
+                {signalGroups.map(group => <div key={group.first().entityId}>
+                    <Divider style={{ margin: 8 }}>{group.first().entityId}</Divider>
+                    {group.toArray().map((signal) =>
+                        <DynamicCard
+                            className={className}
+                            directId={directId}
+                            signal={signal}
+                            key={signal.itemId}
+                            xScale={xScale}
+                            width={width}
+                            margin={margin}
+                            color={color && color(signal.entityId)}
+                            onRemove={removeSignal && (() => removeSignal(signal))}
+                            onPin={() => this.onPin(signal)}
+                        />)}
                 </div>
+                )}
             </div>
         )
     }
@@ -147,10 +137,9 @@ const defaultTimeSeriesStyle: TimeSeriesStyle = {
 }
 
 export interface DynamicCardProps extends Partial<TimeSeriesStyle> {
-    signal: Signal,
     className: string,
-    align?: boolean,
-    // timeSeriesStyle: Partial<TimeSeriesStyle>,
+    signal: Signal,
+    directId: string,
     xScale?: d3.ScaleTime<number, number>,
     updateFocusedFeatures?: (featureNames: string[]) => void,
     updatePinnedFocusedFeatures?: (featureName: string) => void,
@@ -165,7 +154,7 @@ export interface DynamicCardStates {
     pinned: boolean,
     explain: boolean,
     loading: boolean,
-    segmentExplanation?: SignalExplanation[]
+    segmentExplanation?: SignalExplanation
 }
 
 export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardStates> {
@@ -178,7 +167,7 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
             explain: false,
             loading: false,
         };
-        // this.loadSegmentExplanation = this.loadSegmentExplanation.bind(this);
+        this.loadExplanation = this.loadExplanation.bind(this);
 
         this.onExpand = this.onExpand.bind(this);
         this.onCollapse = this.onCollapse.bind(this);
@@ -186,16 +175,14 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
         this.onExplain = this.onExplain.bind(this);
     }
 
-    // private async loadSegmentExplanation() {
-    //     this.setState({ loading: true });
-    //     const { signal, patientMeta } = this.props;
-    //     const { itemName, tableName } = signal;
-    //     if (tableName === 'SURGERY_VITAL_SIGNS') {
-    //         const segmentExplanation = await API.signalExplanation.find({ subject_id: patientMeta.id, item_id: itemName });
-    //         this.setState({ segmentExplanation, loading: false });
-    //     }
-    //     this.setState({ loading: false });
-    // }
+    private async loadExplanation() {
+        this.setState({ loading: true });
+        const { signal, directId } = this.props;
+        const { relatedFeatureNames } = signal;
+        console.log(relatedFeatureNames);
+        const segmentExplanation = await API.signalExplanation.find(directId, {}, {features: relatedFeatureNames.join(',')});
+        this.setState({ segmentExplanation, loading: false });
+    }
 
     private onExpand() {
         this.setState({ expand: true });
@@ -214,8 +201,8 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
         const { explain, segmentExplanation } = this.state;
         if (explain) this.setState({ explain: false })
         else {
-            // if (!segmentExplanation)
-            //     this.loadSegmentExplanation();
+            if (!segmentExplanation)
+                this.loadExplanation();
             this.setState({ explain: true });
         }
     }
@@ -223,10 +210,8 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
     public render() {
         const { className, signal, width, height, color, margin, xScale, onHover, onLeave, onRemove } =
             { ...defaultTimeSeriesStyle, ...this.props };
-        const { expand, pinned, segmentExplanation, explain } = this.state;
-        const { entityId, itemId, itemAlias, data, startTime, endTime, statValues } = signal;
-
-        console.log('DynamicView', margin, height);
+        const { expand, pinned, explain, segmentExplanation } = this.state;
+        const { itemId, itemAlias, data, statValues } = signal;
 
         return <div className={"ts-card"} id={`${className}-${signal.itemId}`}
             style={{ borderLeftColor: color || '#aaa', borderLeftWidth: 4 }}
@@ -234,7 +219,7 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
             <Spin spinning={this.state.loading} delay={500}>
                 {data && <LineChart
                     data={data}
-                    // segments={explain ? segmentExplanation && _.flatten(segmentExplanation.map(d => d.segments)) : []}
+                    segments={explain ? segmentExplanation && _.flatten(segmentExplanation.map(d => d.segments)) : []}
                     height={expand ? height : 32}
                     width={width}
                     xScale={xScale}
