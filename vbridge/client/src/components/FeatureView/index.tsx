@@ -43,7 +43,6 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
         super(props);
 
         this.state = {};
-        this.defaultCellWidth = this.defaultCellWidth.bind(this);
         this.updateReferenceValues = this.updateReferenceValues.bind(this);
     }
 
@@ -71,11 +70,6 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
         }
     }
 
-    private defaultCellWidth(id: number) {
-        const width = [150, 100, 150];
-        return width[id];
-    }
-
     componentDidUpdate(prevProps: FeatureViewProps) {
         const { features, featureMat } = this.props;
         if (prevProps.featureMat != featureMat || prevProps.features != features) {
@@ -85,17 +79,16 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
 
     public render() {
         const { features, entityCategoricalColor, ...rest } = this.props;
-        const { desiredFM: desiredFeatureMat, undesiredFM: undesiredFeatureMat, referenceValues } = this.state;
+        const { desiredFM, undesiredFM, referenceValues } = this.state;
         const contextFeatureValues = [];
-        if (desiredFeatureMat) contextFeatureValues.push(desiredFeatureMat);
-        if (undesiredFeatureMat) contextFeatureValues.push(undesiredFeatureMat);
+        if (desiredFM) contextFeatureValues.push(desiredFM);
+        if (undesiredFM) contextFeatureValues.push(undesiredFM);
 
         return (
             <div className="feature-view">
                 <FeatureList
                     {...rest}
                     features={features}
-                    cellWidth={this.defaultCellWidth}
                     referenceMat={contextFeatureValues}
                     referenceValues={referenceValues}
                     entityCategoricalColor={entityCategoricalColor}
@@ -105,12 +98,15 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
     }
 }
 
+const cellWidth = (id: number) => {
+    return [150, 100, 150][id];
+}
+
 export interface FeatureListProps {
     className?: string,
     features: IDataFrame<number, Feature>,
     shapValues?: number[],
     prediction?: number,
-    cellWidth: (id: number) => number,
     referenceMat: IDataFrame<number, any>[],
     referenceValues?: IDataFrame<string, StatValues>,
 
@@ -180,7 +176,6 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
     }
 
     private getContributionXScale() {
-        const { cellWidth } = this.props;
         const { VFeatureList } = this.state;
         const features = VFeatureList.filter(f => f.show);
         const contr = features.map(f => f.shap).map(v => Math.abs(v));
@@ -190,7 +185,7 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
     }
 
     public render() {
-        const { features, cellWidth, shapValues, ...rest } = this.props;
+        const { features, shapValues, ...rest } = this.props;
         const { order, threshold } = this.state;
         const sortedFeatures = this.sortFeatures(features);
         const shapMin = _.min(shapValues);
@@ -205,14 +200,16 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
                         <Button type="text" className={'header-buttion'} icon={<SortAscendingOutlined />} />
                     </div>
                     <div className="feature-header-cell" style={{ width: cellWidth(1) }}>
-                        <span>Contribution</span>
+                        <span>Value</span>
                     </div>
                     <div className="feature-header-cell" style={{ width: cellWidth(2) }}>
                         <span>Contribution</span>
                         {order === 'dscending' ?
-                            <Button type="text" className={'header-buttion'} icon={<ArrowDownOutlined />}
+                            <Button type="text" className={'header-buttion'} size="small" style={{'width': '20px'}}
+                            icon={<ArrowDownOutlined />}
                                 onClick={this.onClick.bind(this, 'ascending')} />
-                            : <Button type="text" className={'header-buttion'} icon={<ArrowUpOutlined />}
+                            : <Button type="text" className={'header-buttion'} size="small" style={{'width': '20px'}}
+                            icon={<ArrowUpOutlined />}
                                 onClick={this.onClick.bind(this, 'dscending')} />}
                         <Popover placement="right" content={
                             <div style={{ width: 160, height: 20 }} onMouseDown={(event) => event.stopPropagation()}>
