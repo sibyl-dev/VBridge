@@ -74,7 +74,7 @@ interface AppStates {
 }
 
 class App extends React.Component<AppProps, AppStates>{
-  private layout = { featureViewWidth: 520, ProfileWidth: 280, timelineViewHeight: 220, headerHeight: 64, xPadding: 15, yPadding: 5 };
+  private layout = { featureViewWidth: 520, ProfileWidth: 280, timelineViewHeight: 220, headerHeight: 64};
 
   constructor(props: AppProps) {
     super(props);
@@ -275,12 +275,12 @@ class App extends React.Component<AppProps, AppStates>{
 
     const { directIds, entitySetSchema, patientInfo, featureSchema, features, showTableView, featureMat,
       focusedFeatures, pinnedfocusedFeatures, target, tableViewMeta, signalMetas, visible, referenceValues, dynamicViewLink } = this.state;
-    const { headerHeight, featureViewWidth, timelineViewHeight, ProfileWidth, xPadding, yPadding } = this.layout;
+    const { headerHeight, featureViewWidth, timelineViewHeight, ProfileWidth} = this.layout;
 
     return (
       <div className='App'>
         <Layout>
-          <Header className="app-header" id="header" style={{ background: '#001529' }}>
+          <Header className="app-header" id="header">
             <AppHeader
               entitySetSchema={entitySetSchema}
               directIds={directIds}
@@ -288,9 +288,9 @@ class App extends React.Component<AppProps, AppStates>{
               entityCategoricalColor={this.entityCategoricalColor}
             />
           </Header>
-          <Content>
+          <Content className="app-content">
             <Panel initialWidth={featureViewWidth}
-              initialHeight={window.innerHeight - headerHeight - yPadding * 2} x={xPadding} y={yPadding}
+              initialHeight={window.innerHeight - headerHeight}
               title="Feature View"
               widgets={[{
                 name: "focus", content: <Switch onChange={e =>
@@ -312,11 +312,9 @@ class App extends React.Component<AppProps, AppStates>{
                   display={this.state.featureViewDense ? 'dense' : 'normal'}
                 />}
             </Panel>
-            {/* <Panel initialWidth={layout.timelineViewWidth} initialHeight={layout.timelineViewHeight}
-             */}
-            <Panel initialWidth={window.innerWidth - featureViewWidth - ProfileWidth - xPadding * 4}
+            <Panel initialWidth={window.innerWidth - featureViewWidth - ProfileWidth}
               initialHeight={timelineViewHeight}
-              x={featureViewWidth + xPadding * 2} y={yPadding}
+              x={featureViewWidth}
               title="Timeline View"
             >
               {patientInfo && featureSchema && entitySetSchema &&
@@ -330,9 +328,9 @@ class App extends React.Component<AppProps, AppStates>{
                 />}
             </Panel>
 
-            <Panel initialWidth={window.innerWidth - featureViewWidth - ProfileWidth - xPadding * 4}
-              initialHeight={window.innerHeight - headerHeight - timelineViewHeight - yPadding * 3}
-              x={featureViewWidth + xPadding * 2} y={timelineViewHeight + yPadding * 2}
+            <Panel initialWidth={window.innerWidth - featureViewWidth - ProfileWidth}
+              initialHeight={window.innerHeight - headerHeight - timelineViewHeight}
+              x={featureViewWidth} y={timelineViewHeight}
               title="Temporal View"
               widgets={[{
                 name: 'link', content: <Switch onChange={e =>
@@ -345,7 +343,7 @@ class App extends React.Component<AppProps, AppStates>{
                   directId={patientInfo.id}
                   patientTemporals={patientInfo.temporal}
                   signalMetas={signalMetas}
-                  width={window.innerWidth - featureViewWidth - ProfileWidth - 60 - xPadding * 4}
+                  width={window.innerWidth - featureViewWidth - ProfileWidth - 60}
                   color={this.entityCategoricalColor}
                   updateFocusedFeatures={this.updateFocusedFeatures}
                   updatePinnedFocusedFeatures={this.updatePinnedFocusedFeatures}
@@ -353,8 +351,8 @@ class App extends React.Component<AppProps, AppStates>{
                   removeSignal={this.removeSignal}
                 />}
             </Panel>
-            <Panel initialWidth={ProfileWidth} initialHeight={window.innerHeight - headerHeight - 2 * yPadding}
-              x={window.innerWidth - xPadding - ProfileWidth} y={yPadding}
+            <Panel initialWidth={ProfileWidth} initialHeight={window.innerHeight - headerHeight}
+              x={window.innerWidth - ProfileWidth}
               title="Patient"
               widgets={[{
                 name: 'link', content: <Switch onChange={e =>

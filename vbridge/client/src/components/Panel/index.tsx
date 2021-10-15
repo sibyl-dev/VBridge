@@ -4,6 +4,7 @@ import { Rnd } from "react-rnd";
 
 import "./index.css";
 import PanelHeader, { IHeaderProps } from "./Header";
+import { IMargin } from "visualization/common";
 
 export interface IPanelProps extends IHeaderProps {
   initialWidth: number;
@@ -12,6 +13,7 @@ export interface IPanelProps extends IHeaderProps {
   height?: number;
   x?: number;
   y?: number;
+  margin?: IMargin;
   resizable?: boolean;
   draggable?: boolean;
   id?: string;
@@ -25,14 +27,19 @@ export interface IPanelState {
   // translate: [number, number];
 }
 
+const defaultMargin = {
+  top: 5,
+  bottom: 5,
+  left: 5,
+  right: 5
+}
+
 export default class Panel extends React.Component<IPanelProps, IPanelState> {
 
   static defaultProps = {
     initialWidth: 800,
     initialHeight: 600
   };
-
-  private ref: React.RefObject<HTMLDivElement> = React.createRef();
 
   constructor(props: IPanelProps) {
     super(props);
@@ -47,7 +54,11 @@ export default class Panel extends React.Component<IPanelProps, IPanelState> {
 
   public render() {
     const { title, widgets, id } = this.props;
-    const { x, y, width, height } = this.state;
+    const margin = {...defaultMargin, ...this.props.margin};
+    const x = this.state.x + margin.left;
+    const y = this.state.y + margin.top;
+    const width = this.state.width - margin.left - margin.right;
+    const height = this.state.height - margin.top - margin.bottom;
     return (
       <Rnd
         className="panel-wrapper"
