@@ -1,10 +1,11 @@
 import * as React from "react";
 import { Row, Col, Divider, Button } from "antd"
-import { defaultCategoricalColor } from "visualization/common";
 import { FeatureSchema, PatientStatics } from "type/resource";
 import { PushpinOutlined } from "@ant-design/icons";
 
 import "./index.scss"
+import _ from "lodash";
+import { ColorManager } from "visualization/color";
 
 export interface MetaViewProps {
     className?: string,
@@ -12,12 +13,10 @@ export interface MetaViewProps {
     featureSchema: FeatureSchema[],
     updateFocusedFeatures?: (featureNames: string[]) => void,
     updatePinnedFocusedFeatures?: (featureNames: string[]) => void,
-    entityCategoricalColor?: (entityName: string | undefined) => string,
+    colorManager?: ColorManager,
 }
 
-export interface MetaViewStates { }
-
-export default class MetaView extends React.PureComponent<MetaViewProps, MetaViewStates> {
+export default class MetaView extends React.PureComponent<MetaViewProps> {
 
     constructor(props: MetaViewProps) {
         super(props);
@@ -45,49 +44,98 @@ export default class MetaView extends React.PureComponent<MetaViewProps, MetaVie
             updatePinnedFocusedFeatures && updatePinnedFocusedFeatures([targetFeature.id]);
     }
 
+    private balanceItems(patientStatics?: PatientStatics): [PatientStatics, PatientStatics] {
+        const left: PatientStatics = [];
+        const right: PatientStatics = [];
+        patientStatics?.forEach(entity => {
+            if (_.sum(left.map(e => Object.keys(e.items)))
+                <= _.sum(right.map(e => Object.keys(e.items)))) {
+                left.push(entity);
+            }
+            else {
+                right.push(entity);
+            }
+        })
+        return [left, right];
+    }
+
     public render() {
-        const { patientStatics, featureSchema, className, entityCategoricalColor } = this.props;
+        const { patientStatics, featureSchema, className, colorManager } = this.props;
         const featureAlias = featureSchema.map(f => f.alias);
+        const [left, right] = this.balanceItems(patientStatics);
         return (
             <div className={"meta-view"}>
-                {patientStatics && patientStatics.map(items => <div key={items.entityId}>
-                    <Divider orientation="center" style={{ margin: 6 }}> {items.entityId} </Divider>
-                    {Object.keys(items.items).map(name => {
-                        let value = items.items[name];
-                        if (name.indexOf("TIME") != -1) {
-                            value = value.substr(11, 8);
-                        }
-
-                        return <MetaItem
-                            className={className}
-                            category={items.entityId}
-                            name={name}
-                            key={name}
-                            value={value}
-                            featureAlias={featureAlias}
-                            onHover={() => this.onHover(name)}
-                            onLeave={this.onLeave}
-                            onPin={() => this.onPin(name)}
-                            entityCategoricalColor={entityCategoricalColor}
-                        />
-                    })}
-                </div>
-                )}
+                <MetaColumn
+                    entities={left}
+                    className={className}
+                    featureAlias={featureAlias}
+                    onHover={this.onHover}
+                    onLeave={this.onLeave}
+                    onPin={this.onPin}
+                    colorManager={colorManager}
+                />
+                <MetaColumn
+                    entities={right}
+                    className={className}
+                    featureAlias={featureAlias}
+                    onHover={this.onHover}
+                    onLeave={this.onLeave}
+                    onPin={this.onPin}
+                    colorManager={colorManager}
+                />
             </div>
         )
     }
 }
 
-export interface MetaItemProps {
+interface MetaColumnProps extends MetaItemParams {
     className?: string,
-    category: string,
+    entities: PatientStatics,
+
+    onHover: (name: string) => void,
+    onLeave: () => void,
+    onPin?: (name: string) => void,
+}
+
+const MetaColumn = (params: MetaColumnProps) => {
+    const { entities, onHover, onPin, ...rest } = params;
+    return (<div className={"meta-view-column"}>
+        {entities.map(items => <div key={items.entityId}>
+            <Divider orientation="center" style={{ margin: 6 }}> {items.entityId} </Divider>
+            {Object.keys(items.items).map(name => {
+                let value = items.items[name];
+                if (name.indexOf("TIME") != -1) {
+                    value = value.substr(11, 8);
+                }
+
+                return <MetaItem
+                    key={name}
+                    name={name}
+                    value={value}
+                    entityId={items.entityId}
+                    onHover={() => onHover(name)}
+                    onPin={onPin && (() => onPin(name))}
+                    {...rest}
+                />
+            })}
+        </div>
+        )}
+    </div>)
+}
+
+export interface MetaItemParams {
+    featureAlias: string[],
+    colorManager?: ColorManager,
+}
+
+export interface MetaItemProps extends MetaItemParams {
+    className?: string,
     name: string,
     value: any,
-    featureAlias: string[],
+    entityId: string,
     onHover: () => void,
     onLeave: () => void,
     onPin?: () => void,
-    entityCategoricalColor?: (entityName: string | undefined) => string,
 }
 
 export interface MetaItemStates {
@@ -109,14 +157,14 @@ export class MetaItem extends React.PureComponent<MetaItemProps, MetaItemStates>
     }
 
     public render() {
-        const { category, name, value, featureAlias, onHover, onLeave, className, entityCategoricalColor } = this.props;
+        const { entityId, name, value, featureAlias, onHover, onLeave, className, colorManager } = this.props;
         const { pinned } = this.state;
         let displayName = name.replace(/_/g, " ");
 
         return <Row className={'meta-item'} id={`${className}-${name}`}
             style={{
                 borderLeftWidth: featureAlias.includes(name) ? 4 : 0,
-                borderLeftColor: entityCategoricalColor ? entityCategoricalColor(category) : defaultCategoricalColor(0)
+                borderLeftColor: colorManager?.entityColor(entityId)
             }}
             onMouseOver={onHover} onMouseOut={onLeave}>
             <Col span={1} />

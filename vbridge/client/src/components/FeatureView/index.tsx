@@ -3,7 +3,7 @@ import * as d3 from "d3";
 import * as _ from "lodash"
 import { Button, Tooltip, Popover, Slider } from "antd"
 import { DataFrame, IDataFrame } from "data-forge";
-import { getScaleLinear, beautifulPrinter, defaultCategoricalColor } from "visualization/common";
+import { getScaleLinear, beautifulPrinter } from "visualization/common";
 import {
     ArrowDownOutlined, ArrowLeftOutlined, ArrowRightOutlined, ArrowUpOutlined, CaretRightOutlined,
     FilterOutlined, LineChartOutlined, QuestionOutlined, SortAscendingOutlined, TableOutlined
@@ -15,17 +15,23 @@ import { getReferenceValue, isDefined } from "utils/common";
 
 import "./index.scss"
 import { SHAPContributions } from "./SHAPBand";
-import { StatValues } from "type/resource";
+import { Label, StatValues } from "type/resource";
+import { ColorManager } from "visualization/color";
 
 export interface FeatureViewProps {
     className?: string,
     features: IDataFrame<number, Feature>,
-    featureMat?: IDataFrame<number, any>,
+
     prediction?: number,
+    target?: string,
+
+    featureMat?: IDataFrame<number, any>,
+    predictions?: number[],
+    label?: Label,
 
     display?: 'normal' | 'dense',
     focusedFeatures: string[],
-    entityCategoricalColor?: (entityName: string | undefined) => string,
+    colorManager?: ColorManager
 
     inspectFeatureInSignal?: (feature: Feature) => void,
     inspectFeatureInTable?: (feature: Feature) => void,
@@ -78,7 +84,7 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
     }
 
     public render() {
-        const { features, entityCategoricalColor, ...rest } = this.props;
+        const { features, ...rest } = this.props;
         const { desiredFM, undesiredFM, referenceValues } = this.state;
         const contextFeatureValues = [];
         if (desiredFM) contextFeatureValues.push(desiredFM);
@@ -91,7 +97,6 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
                     features={features}
                     referenceMat={contextFeatureValues}
                     referenceValues={referenceValues}
-                    entityCategoricalColor={entityCategoricalColor}
                 />
             </div>
         )
@@ -107,12 +112,13 @@ export interface FeatureListProps {
     features: IDataFrame<number, Feature>,
     shapValues?: number[],
     prediction?: number,
+    target?: string,
     referenceMat: IDataFrame<number, any>[],
     referenceValues?: IDataFrame<string, StatValues>,
 
     focusedFeatures: string[],
     display?: 'normal' | 'dense',
-    entityCategoricalColor?: (entityName: string | undefined) => string,
+    colorManager?: ColorManager,
 
     inspectFeatureInSignal?: (feature: Feature) => void,
     inspectFeatureInTable?: (feature: Feature) => void,
@@ -248,12 +254,13 @@ export interface FeatureBlockProps {
     className?: string,
     depth: number,
     feature: Feature,
+    target?: string,
     prediction?: number,
     referenceMat: IDataFrame<number, any>[],
     referenceValues?: IDataFrame<string, StatValues>,
     x: d3.ScaleLinear<number, number>,
     cellWidth: (id: number) => number,
-    entityCategoricalColor?: (entityName: string | undefined) => string,
+    colorManager?: ColorManager
     focusedFeatures: string[],
     display?: 'normal' | 'dense',
     threshold?: [number, number],
@@ -302,9 +309,9 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
     }
 
     render() {
-        const { feature, x, cellWidth, entityCategoricalColor, inspectFeatureInSignal, inspectFeatureInTable,
+        const { feature, x, cellWidth, colorManager, inspectFeatureInSignal, inspectFeatureInTable,
             className, depth, referenceMat: contextFeatureValues, focusedFeatures, referenceValues, display,
-            prediction, threshold } = this.props;
+            target, prediction, threshold } = this.props;
         const { collapsed, showDistibution, showWhatIf } = this.state
         const { id: name, alias, value, shap, children, entityId, whatIfPred: predictionIfNormal } = feature;
         const referenceValue = referenceValues ? referenceValues.at(feature.id) : undefined;
@@ -362,7 +369,7 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                     id={id}
                     style={{
                         height: heigth, borderRightWidth: 4,
-                        borderRightColor: entityCategoricalColor && entityCategoricalColor(entityId)
+                        borderRightColor: colorManager && colorManager.entityColor(entityId)
                     }}
                     onClick={children ? this.onClickButton : this.onClickDiv}>
                     <div className={`feature-block-inner`}>
@@ -412,11 +419,13 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                             {(shap > x.domain()[1]) && <ArrowRightOutlined className="overflow-notation-right" />}
                             {(shap < x.domain()[0]) && <ArrowLeftOutlined className="overflow-notation-left" />}
                             {showWhatIf && whatIfValue && <div className={"what-if-label"}>
-                                {prediction && <div className={"label-circle"} style={{ backgroundColor: defaultCategoricalColor(Math.round(prediction)) }}>
+                                {prediction && <div className={"label-circle"} style={{ backgroundColor: 
+                                    target && colorManager?.labelColor(target, prediction) }}>
                                     {prediction > 0.5 ? 'High' : 'Low'}
                                 </div>}
                                 <ArrowRightOutlined />
-                                {predictionIfNormal && <div className={"label-circle"} style={{ backgroundColor: defaultCategoricalColor(Math.round(predictionIfNormal)) }}>
+                                {predictionIfNormal && <div className={"label-circle"} style={{ backgroundColor: 
+                                    target && colorManager?.labelColor(target, predictionIfNormal) }}>
                                     {predictionIfNormal > 0.5 ? 'High' : 'Low'}
                                 </div>}
                             </div>}
@@ -424,7 +433,7 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                     </div>
                 </div>
                 {(isLeaf || collapsed) && <span className={`feature-block-annote ${showState}`} style={{
-                    backgroundColor: entityCategoricalColor && entityCategoricalColor(entityId),
+                    backgroundColor: colorManager?.entityColor(entityId),
                     height: heigth
                 }} />}
                 <Button size="small" type="primary" shape="circle"

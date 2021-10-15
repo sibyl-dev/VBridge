@@ -3,11 +3,12 @@ import {
     getMargin,
     ChartOptions,
     getChildOrAppend,
-    defaultCategoricalColor,
 } from "./common";
+import { defaultCategoricalColor } from "./color";
 import HistogramLayout, { BinLayout, HistogramLayoutStyle } from './HistogramLayout';
 import { defaultOptions, drawSublines } from "./Histogram";
 import Chart, { ChartProps } from "./Chart";
+
 import "./AreaChart.scss";
 
 export type IAreaChartOptions = Partial<HistogramLayoutStyle> & ChartOptions & {

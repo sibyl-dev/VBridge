@@ -19,20 +19,19 @@ import { Feature, buildFeatures, PatientInfo, buildPatientInfo, SignalMeta, buil
 import { DataFrame, IDataFrame, fromCSV } from 'data-forge';
 import { distinct } from 'utils/common';
 
-import { defaultCategoricalColor } from 'visualization/common';
-
 import './App.css';
 import Links from 'visualization/Links';
 import { AppHeader } from 'components/Header';
+import { ColorManager } from 'visualization/color';
 
 const { Header, Content } = Layout;
-const { Option } = Select;
 
 interface AppProps { }
 
 interface AppStates {
   //task
   task?: Task,
+  colorManager?: ColorManager,
 
   // static information
   directIds?: string[],
@@ -68,13 +67,12 @@ interface AppStates {
   // filterRange?: filterType,
   // patientGroup?: PatientGroup,
   // conditions?: { [key: string]: any },
-
   // others
   visible?: boolean,
 }
 
 class App extends React.Component<AppProps, AppStates>{
-  private layout = { featureViewWidth: 520, ProfileWidth: 280, timelineViewHeight: 220, headerHeight: 64};
+  private layout = { featureViewWidth: 520, profileHeight: 280, timelineViewHeight: 220, headerHeight: 64 };
 
   constructor(props: AppProps) {
     super(props);
@@ -104,8 +102,6 @@ class App extends React.Component<AppProps, AppStates>{
     // // Call-backs to update the Feature View
     this.updateFocusedFeatures = this.updateFocusedFeatures.bind(this);
     this.updatePinnedFocusedFeatures = this.updatePinnedFocusedFeatures.bind(this);
-
-    this.entityCategoricalColor = this.entityCategoricalColor.bind(this);
   }
 
   componentDidMount() {
@@ -116,13 +112,14 @@ class App extends React.Component<AppProps, AppStates>{
     const directIds = ["103784"]; //TODO - fetch it from backend
     const task = await API.task.all();
     const target = task && Object.keys(task.labels)[0];
+    const colorManager = task && new ColorManager(task);
     const featureSchema = await API.featureSchemas.all();
     const entitySetSchema = await API.entitySchemas.all();
     const referenceValues = await API.referenceValues.all();
     const featureMatResponse = await API.featureValues.all();
     const featureMat = featureMatResponse ? fromCSV(featureMatResponse) : undefined;
 
-    this.setState({ directIds, task, target, featureSchema, entitySetSchema, referenceValues, featureMat });
+    this.setState({ directIds, task, target, featureSchema, entitySetSchema, referenceValues, featureMat, colorManager });
   }
 
   private async loadPatientInfo(directId: string) {
@@ -257,40 +254,46 @@ class App extends React.Component<AppProps, AppStates>{
     }
   }
 
-  private entityCategoricalColor(entityName?: string) {
-    const { entitySetSchema } = this.state;
-    if (entityName && ['Demographic', 'Admission', 'Surgery', 'Patient Info', 'Surgery Info',
-      'SURGERY_INFO', 'ADMISSIONS', 'PATIENTS'].includes(entityName))
-      return defaultCategoricalColor(8);
-    else if (entitySetSchema && entityName) {
-      let i = (entitySetSchema.map(d => d.entityId).indexOf(entityName) + 4);
-      return defaultCategoricalColor(i);
-    }
-    else {
-      return "#aaa"
-    }
-  }
-
   public render() {
 
-    const { directIds, entitySetSchema, patientInfo, featureSchema, features, showTableView, featureMat,
+    const { directIds, entitySetSchema, patientInfo, featureSchema, features, showTableView, featureMat, task, colorManager,
       focusedFeatures, pinnedfocusedFeatures, target, tableViewMeta, signalMetas, visible, referenceValues, dynamicViewLink } = this.state;
-    const { headerHeight, featureViewWidth, timelineViewHeight, ProfileWidth} = this.layout;
+    const { headerHeight, featureViewWidth, timelineViewHeight, profileHeight } = this.layout;
 
     return (
       <div className='App'>
         <Layout>
           <Header className="app-header" id="header">
             <AppHeader
+              target={target}
+              task={task}
+              colorManager={colorManager}
               entitySetSchema={entitySetSchema}
               directIds={directIds}
               onSelectDirectId={this.onSelectDirectId}
-              entityCategoricalColor={this.entityCategoricalColor}
             />
           </Header>
           <Content className="app-content">
+            <Panel initialWidth={featureViewWidth} initialHeight={profileHeight}
+              title="Patient"
+              widgets={[{
+                name: 'link', content: <Switch onChange={e =>
+                  this.setState({ dynamicViewLink: e })} checkedChildren="on" unCheckedChildren="off" />
+              }]}
+            >
+              {featureSchema && <MetaView
+                className={"meta-view-element"}
+                patientStatics={patientInfo?.static}
+                updateFocusedFeatures={this.updateFocusedFeatures}
+                updatePinnedFocusedFeatures={this.updatePinnedFocusedFeatures}
+                featureSchema={featureSchema}
+                colorManager={colorManager}
+              />
+              }
+            </Panel>
             <Panel initialWidth={featureViewWidth}
-              initialHeight={window.innerHeight - headerHeight}
+              initialHeight={window.innerHeight - headerHeight - profileHeight}
+              y={profileHeight}
               title="Feature View"
               widgets={[{
                 name: "focus", content: <Switch onChange={e =>
@@ -305,14 +308,16 @@ class App extends React.Component<AppProps, AppStates>{
                   featureMat={featureMat}
                   prediction={patientInfo.prediction[target]}
                   // selectedIds={patientGroup && patientGroup.ids}
-                  entityCategoricalColor={this.entityCategoricalColor}
                   focusedFeatures={[...pinnedfocusedFeatures, ...focusedFeatures]}
                   inspectFeatureInSignal={this.updateSignalsByFeature}
                   inspectFeatureInTable={this.updateTableViewFromFeatures}
                   display={this.state.featureViewDense ? 'dense' : 'normal'}
+
+                  target={target}
+                  colorManager={colorManager}
                 />}
             </Panel>
-            <Panel initialWidth={window.innerWidth - featureViewWidth - ProfileWidth}
+            <Panel initialWidth={window.innerWidth - featureViewWidth}
               initialHeight={timelineViewHeight}
               x={featureViewWidth}
               title="Timeline View"
@@ -323,12 +328,12 @@ class App extends React.Component<AppProps, AppStates>{
                   featureSchema={featureSchema}
                   entities={patientInfo.temporal}
                   onSelectEvents={this.updateSignalFromTimeline}
-                  entityCategoricalColor={this.entityCategoricalColor}
                   referenceValues={referenceValues}
+                  colorManager={colorManager}
                 />}
             </Panel>
 
-            <Panel initialWidth={window.innerWidth - featureViewWidth - ProfileWidth}
+            <Panel initialWidth={window.innerWidth - featureViewWidth}
               initialHeight={window.innerHeight - headerHeight - timelineViewHeight}
               x={featureViewWidth} y={timelineViewHeight}
               title="Temporal View"
@@ -343,31 +348,13 @@ class App extends React.Component<AppProps, AppStates>{
                   directId={patientInfo.id}
                   patientTemporals={patientInfo.temporal}
                   signalMetas={signalMetas}
-                  width={window.innerWidth - featureViewWidth - ProfileWidth - 60}
-                  color={this.entityCategoricalColor}
+                  width={window.innerWidth - featureViewWidth - 60}
                   updateFocusedFeatures={this.updateFocusedFeatures}
                   updatePinnedFocusedFeatures={this.updatePinnedFocusedFeatures}
                   pinSignal={this.pinSignal}
                   removeSignal={this.removeSignal}
+                  colorManager={colorManager}
                 />}
-            </Panel>
-            <Panel initialWidth={ProfileWidth} initialHeight={window.innerHeight - headerHeight}
-              x={window.innerWidth - ProfileWidth}
-              title="Patient"
-              widgets={[{
-                name: 'link', content: <Switch onChange={e =>
-                  this.setState({ dynamicViewLink: e })} checkedChildren="on" unCheckedChildren="off" />
-              }]}
-            >
-              {featureSchema && <MetaView
-                className={"meta-view-element"}
-                patientStatics={patientInfo?.static}
-                updateFocusedFeatures={this.updateFocusedFeatures}
-                updatePinnedFocusedFeatures={this.updatePinnedFocusedFeatures}
-                entityCategoricalColor={this.entityCategoricalColor}
-                featureSchema={featureSchema}
-              />
-              }
             </Panel>
             {showTableView && <Panel initialWidth={400} initialHeight={435} x={1010} y={405}
               title={tableViewMeta?.entityId}
@@ -384,7 +371,8 @@ class App extends React.Component<AppProps, AppStates>{
             </Panel>
             }
             {dynamicViewLink && <Links signalMetas={signalMetas} height={window.innerHeight - headerHeight}
-              entityCategoricalColor={this.entityCategoricalColor} />}
+                colorManager={colorManager}
+            />}
             {/* {tableNames &&
               <Drawer maskClosable={false} title="Filter View" placement="right" closable={false}
                 onClose={this.onClose} visible={visible} width={450} >

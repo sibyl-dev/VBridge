@@ -2,6 +2,7 @@ import * as d3 from "d3";
 import React from "react";
 import { SignalMeta } from "type";
 import { isDefined } from "utils/common";
+import { ColorManager } from "./color";
 import { getOffsetById, getChildOrAppend } from "./common";
 
 import "./Links.scss"
@@ -68,7 +69,7 @@ export interface LinkProps extends ILinkOptions {
     signalMetas: SignalMeta[]
     height?: number,
     width?: number,
-    entityCategoricalColor?: (entityId: string) => string
+    colorManager?: ColorManager,
 }
 
 export default class Links extends React.PureComponent<LinkProps> {
@@ -95,7 +96,7 @@ export default class Links extends React.PureComponent<LinkProps> {
     }
 
     _fetchPostions() {
-        const { signalMetas, entityCategoricalColor } = this.props;
+        const { signalMetas, colorManager } = this.props;
         const headerHeight = document.getElementById('header')?.offsetHeight || 0;
         const positions = signalMetas.map(signal => {
             const end = getOffsetById(`temporal-view-element-${signal.itemId}`);
@@ -112,7 +113,7 @@ export default class Links extends React.PureComponent<LinkProps> {
                     y1: (start.top + start.bottom) / 2 - headerHeight,
                     x2: end.left,
                     y2: (end.top + end.bottom) / 2 - headerHeight,
-                    color: entityCategoricalColor && entityCategoricalColor(signal.entityId)
+                    color: colorManager?.entityColor(signal.entityId)
                 }))
             }
         }).filter(isDefined).filter(d => d.length > 0);

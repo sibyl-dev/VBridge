@@ -1,16 +1,20 @@
 import { FilterOutlined } from "@ant-design/icons"
 import { Select, Tooltip, Button } from "antd"
-import { EntitySetSchema } from "type/resource"
+import { EntitySetSchema, Task } from "type/resource"
+import { ColorManager } from "visualization/color";
 
 const { Option } = Select;
 
 export const AppHeader = (params: {
+    task?: Task,
+    target?: string,
     entitySetSchema?: EntitySetSchema,
     directIds?: string[],
-    onSelectDirectId: (directId: string) => void
-    entityCategoricalColor: (entityId: string) => string
+    onSelectDirectId: (directId: string) => void,
+    // entityCategoricalColor: (entityId: string) => string
+    colorManager?: ColorManager
 }) => {
-    const { entitySetSchema, onSelectDirectId, directIds, entityCategoricalColor } = params;
+    const { entitySetSchema, onSelectDirectId, directIds, colorManager, target, task } = params;
     return (<div style={{ height: "100%" }}>
         <span className='system-name'>VBridge</span>
         <div className='system-info'>
@@ -20,24 +24,31 @@ export const AppHeader = (params: {
                     <div className="category-legend-container">
                         {entitySetSchema?.map(entity =>
                             <div className="legend-block" key={entity.entityId}>
-                                <div className='legend-rect' style={{ backgroundColor: entityCategoricalColor(entity.entityId) }} />
+                                <div className='legend-rect' style={{ backgroundColor: colorManager?.entityColor(entity.entityId) }} />
                                 <span className='legend-name'>{entity.alias || entity.entityId}</span>
                             </div>
                         )}
                         <div className="legend-block">
-                            <div className='legend-rect' style={{ backgroundColor: entityCategoricalColor('Admission') }} />
+                            <div className='legend-rect' style={{ backgroundColor: colorManager?.entityColor('ADMISSIONS') }} />
                             <span className='legend-name'>{"Patient & Surgery info"}</span>
                         </div>
                     </div>
                     <div className='healthy-legend'>
-                        <div className="legend-block">
+                        {target && task?.labels[target].label_extent?.map((d, i) => {
+                            <div className="legend-block">
+                            {/* <div className='legend-rect' style={{ backgroundColor: 'rgb(242, 142, 44)' }} /> */}
+                            <div className='legend-rect' style={{ backgroundColor: colorManager?.labelColor(target, i)}} />
+                            <span className='legend-name'>{d}</span>
+                        </div>
+                        })}
+                        {/* <div className="legend-block">
                             <div className='legend-rect' style={{ backgroundColor: 'rgb(242, 142, 44)' }} />
                             <span className='legend-name'>{"High Risk"}</span>
                         </div>
                         <div className="legend-block">
                             <div className='legend-rect' style={{ backgroundColor: 'rgb(78, 121, 167)' }} />
                             <span className='legend-name'>{"Low Risk"}</span>
-                        </div>
+                        </div> */}
                     </div>
                 </div>
                 <span className='header-name'>Patient: </span>

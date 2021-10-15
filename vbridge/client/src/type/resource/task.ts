@@ -1,5 +1,5 @@
 export interface Label {
-    label_type: 'boolean', // TODO: support numerical and nominal types in the future
+    label_type: 'boolean', // TODO: support numerical (regression) and nominal (multi-class) types in the future
     label_extent?: string[]
 }
 

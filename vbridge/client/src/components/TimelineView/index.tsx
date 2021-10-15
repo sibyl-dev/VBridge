@@ -2,7 +2,7 @@ import * as React from "react";
 import * as d3 from "d3";
 import * as _ from "lodash"
 import {
-    QUATER_IN_MILI, defaultCategoricalColor, getScaleTime, IMargin, calIntervalsByQuarter,
+    QUATER_IN_MILI, getScaleTime, IMargin, calIntervalsByQuarter,
     getRefinedStartEndTime, getQuarter
 } from "visualization/common";
 import { Entity } from "type/entity";
@@ -13,14 +13,15 @@ import { isDefined } from "utils/common";
 
 import "./index.scss"
 import Timeline from "visualization/Timeline";
+import { ColorManager } from "visualization/color";
 
 export interface TimelineViewProps {
     tableNames: string[],
     featureSchema: FeatureSchema[],
     entities: Entity<string, any>[],
     onSelectEvents?: (entityName: string, startDate: Date, endDate: Date) => void,
-    entityCategoricalColor?: (entityName?: string) => string,
     referenceValues?: ReferenceValueResponse,
+    colorManager?: ColorManager,
 }
 
 export interface TimelineViewStates {
@@ -41,7 +42,6 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
         this.state = {};
 
         this._extractEvents = this._extractEvents.bind(this);
-        this.color = this.color.bind(this);
     }
 
     public componentDidMount() {
@@ -70,12 +70,12 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
     }
 
     private _extractEvents() {
-        const { entities: tableRecords, referenceValues } = this.props
+        const { entities, referenceValues } = this.props
         const { intervalByQuarter, startTime, endTime } = this.state
 
-        if (tableRecords && intervalByQuarter && startTime) {
+        if (entities && intervalByQuarter && startTime) {
             const eventBins: IEventBin[][] = [];
-            for (const entity of tableRecords) {
+            for (const entity of entities) {
                 const { time_index, entityId, value_indexes } = entity.schema;
                 const referenceValueDict = referenceValues && referenceValues[entityId]
 
@@ -138,33 +138,24 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
         }
     }
 
-    private color(id: number) {
-        const { entityCategoricalColor, entities: tableRecords } = this.props;
-        if (entityCategoricalColor && tableRecords) {
-            return entityCategoricalColor(tableRecords[id].id);
-        }
-        else {
-            return defaultCategoricalColor(id);
-        }
-    }
-
     public render() {
-        const { entities: tableRecords, onSelectEvents } = this.props;
+        const { entities, onSelectEvents, colorManager } = this.props;
         const { timeScale, eventBins, startTime, endTime, intervalByQuarter } = this.state;
 
         return (
             <div className="timeline-view-container" ref={this.ref}>
                 {timeLineLegend()}
                 {eventBins && eventBins.map((events, i) => {
-                    const title = tableRecords[i].schema?.alias;
+                    const entity = entities[i];
                     const width = this.ref.current!.offsetWidth;
                     return <div className={"timeline-container"} key={i}>
                         <div className={"timeline-title"}
                             style={{
-                                height: this.rowHeight, width: this.titleWidth, borderLeftColor: this.color(i),
+                                height: this.rowHeight, width: this.titleWidth, 
+                                borderLeftColor: colorManager?.entityColor(entity.id),
                                 marginTop: i === 0 ? 20 : 0
-                            }} key={title}>
-                            <span className={"timeline-title-text"}>{title === 'Chart Signs' ? 'Chart Events' : title}</span>
+                            }} key={entity.id}>
+                            <span className={"timeline-title-text"}>{entity.schema.alias}</span>
                         </div>
                         <Timeline
                             events={events}
@@ -174,7 +165,7 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
                             height={this.rowHeight + (i === 0 ? 20 : 0)}
                             style={{ position: 'absolute', 'left': this.titleWidth + 15 }}
                             onSelectEvents={(startDate: Date, endDate: Date) =>
-                                onSelectEvents && onSelectEvents(tableRecords[i].id!, startDate, endDate)}
+                                onSelectEvents && onSelectEvents(entity.id!, startDate, endDate)}
                             binTime={intervalByQuarter! * QUATER_IN_MILI}
                             drawTicks={i === 0}
                         />

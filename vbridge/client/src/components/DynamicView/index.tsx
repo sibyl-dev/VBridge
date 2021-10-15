@@ -12,6 +12,7 @@ import { Entity, SignalMeta, Signal } from "type";
 import API from "../../router/api"
 
 import "./index.scss";
+import { ColorManager } from "visualization/color";
 
 export interface DynamicViewProps {
     className: string,
@@ -20,7 +21,7 @@ export interface DynamicViewProps {
     signalMetas: SignalMeta[],
 
     width: number,
-    color?: (entityName: string) => string,
+    colorManager?: ColorManager,
 
     updateFocusedFeatures?: (featureNames: string[]) => void,
     updatePinnedFocusedFeatures?: (featureNames: string[]) => void,
@@ -88,7 +89,7 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
     }
 
     public render() {
-        const { color, removeSignal, className, width, directId } = this.props;
+        const { colorManager, removeSignal, className, width, directId } = this.props;
         const { signalGroups, globalStartTime, globalEndTime } = this.state;
         const margin = { bottom: 20, left: 30, top: 15, right: 10 };
         let xScale: d3.ScaleTime<number, number> | undefined = undefined;
@@ -111,7 +112,7 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
                             xScale={xScale}
                             width={width}
                             margin={margin}
-                            color={color && color(signal.entityId)}
+                            color={colorManager && colorManager.entityColor(signal.entityId)}
                             onRemove={removeSignal && (() => removeSignal(signal))}
                             onPin={() => this.onPin(signal)}
                         />)}

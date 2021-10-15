@@ -3,13 +3,12 @@ import * as _ from "lodash";
 import {
     getMargin,
     getChildOrAppend,
-    defaultCategoricalColor,
     ChartOptions,
     CSSPropertiesFn,
 } from "./common";
+import { defaultCategoricalColor } from "./color";
 import BarChartLayout, { BinLayout, BarChartLayoutStyle } from './BarChartLayout'
 import Chart, { ChartProps } from "./Chart";
-// import { defaultOptions, IHistogramOptions } from "./BarChart";
 import "./BarChart.scss";
 
 export type IBarChartOptions = Partial<BarChartLayoutStyle> & ChartOptions & {
