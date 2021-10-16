@@ -173,19 +173,15 @@
     opacity: 0.4;
 }
 
-.healthy-legend {
+.label-legend-container {
     width: 120px;
     height: 100%;
-    /*height: calc(100% - 20px);*/
-    /*max-height: 40px;*/
-    /*background-color: #fff;*/
     border-radius: 2px;
     justify-content: center;
     align-items: center;
     float: left;
     padding-left: 15px;
     border-left: #fff 2px solid;
-    /*border-right: #fff 2px solid;*/
 }
 
 .category-legend-container {

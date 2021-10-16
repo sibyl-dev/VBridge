@@ -11,7 +11,6 @@ export const AppHeader = (params: {
     entitySetSchema?: EntitySetSchema,
     directIds?: string[],
     onSelectDirectId: (directId: string) => void,
-    // entityCategoricalColor: (entityId: string) => string
     colorManager?: ColorManager
 }) => {
     const { entitySetSchema, onSelectDirectId, directIds, colorManager, target, task } = params;
@@ -33,22 +32,13 @@ export const AppHeader = (params: {
                             <span className='legend-name'>{"Patient & Surgery info"}</span>
                         </div>
                     </div>
-                    <div className='healthy-legend'>
+                    <div className='label-legend-container'>
                         {target && task?.labels[target].label_extent?.map((d, i) => {
-                            <div className="legend-block">
-                            {/* <div className='legend-rect' style={{ backgroundColor: 'rgb(242, 142, 44)' }} /> */}
-                            <div className='legend-rect' style={{ backgroundColor: colorManager?.labelColor(target, i)}} />
-                            <span className='legend-name'>{d}</span>
-                        </div>
+                            return <div className="legend-block" key={d}>
+                                <div className='legend-rect' style={{ backgroundColor: colorManager?.labelColor(target, i) }} />
+                                <span className='legend-name'>{d}</span>
+                            </div>
                         })}
-                        {/* <div className="legend-block">
-                            <div className='legend-rect' style={{ backgroundColor: 'rgb(242, 142, 44)' }} />
-                            <span className='legend-name'>{"High Risk"}</span>
-                        </div>
-                        <div className="legend-block">
-                            <div className='legend-rect' style={{ backgroundColor: 'rgb(78, 121, 167)' }} />
-                            <span className='legend-name'>{"Low Risk"}</span>
-                        </div> */}
                     </div>
                 </div>
                 <span className='header-name'>Patient: </span>
