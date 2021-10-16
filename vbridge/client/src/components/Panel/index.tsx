@@ -68,7 +68,7 @@ export default class Panel extends React.Component<IPanelProps, IPanelState> {
         minWidth={100}
         minHeight={190}
         bounds="window"
-        disableDragging={false}
+        disableDragging={true} // Set it as false to enable dragging
         onDragStop={(e, d) => {
           this.setState({ x: d.x, y: d.y });
         }}
@@ -77,8 +77,6 @@ export default class Panel extends React.Component<IPanelProps, IPanelState> {
           this.setState({
             width: ref.offsetWidth,
             height: ref.offsetHeight,
-            // width: Number(ref.style.width),
-            // height: Number(ref.style.height),
             ...position
           });
         }}

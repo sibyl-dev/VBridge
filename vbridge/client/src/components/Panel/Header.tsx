@@ -2,7 +2,7 @@ import * as React from 'react';
 
 export interface IHeaderProps {
   title?: string,
-  widgets?: {name?: string, content: React.ReactNode}[]
+  widgets?: { name?: string, content: React.ReactNode }[]
 }
 
 export default class Header extends React.Component<IHeaderProps> {
@@ -14,8 +14,8 @@ export default class Header extends React.Component<IHeaderProps> {
           <div className="view-title">
             <span className="view-title-text">{title}</span>
             <div className="widget">
-              {widgets?.map(w =>
-              (<div className="widget-item">
+              {widgets?.map((w, i) =>
+              (<div className="widget-item" key={i}>
                 <span className="widget-text">{w.name}</span>
                 {w.content}
               </div>))}
