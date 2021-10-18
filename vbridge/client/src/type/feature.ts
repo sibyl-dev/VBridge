@@ -69,7 +69,7 @@ function buildShowState(feature: Feature, parent?: VFeature): VFeature {
         ...feature,
         show: false,
         parent: parent,
-        children: feature.children?.select(f => buildShowState(f))
+        children: feature.children?.select<VFeature>(f => buildShowState(f))
     };
     return nodeState;
 }
@@ -78,11 +78,10 @@ function extractSelfAndChildren(showState: VFeature): VFeature[] {
     return [showState, ..._.flatten(showState.children?.select(f => extractSelfAndChildren(f)).toArray())];
 }
 
-export function buildShowStateList(features: Feature[]): VFeature[] {
-    const VFeatureTree: VFeature[] = features.map(f => buildShowState(f));
-    for (const vfeature of VFeatureTree) {
-        vfeature.show = true;
-    }
-    const VFeatureList: VFeature[] = _.flatten(VFeatureTree.map(s => extractSelfAndChildren(s)));
-    return VFeatureList;
+export function buildShowStateList(features: IDataFrame<number, Feature>): IDataFrame<number, VFeature> {
+    let VFeatureTree = features.select(f => buildShowState(f));
+    VFeatureTree = VFeatureTree.select(f => ({...f, show: true}));
+    // const VFeatureList: VFeature[] = _.flatten(VFeatureTree.map(s => extractSelfAndChildren(s)));
+    // return VFeatureList;
+    return VFeatureTree;
 }

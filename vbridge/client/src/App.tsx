@@ -1,7 +1,7 @@
 import React from 'react';
 import * as _ from 'lodash';
 
-import { Layout, Drawer, Button, Select, Switch } from 'antd';
+import { Layout, Drawer, Button, Switch } from 'antd';
 import { CloseOutlined } from '@material-ui/icons';
 
 import Panel from 'components/Panel';
@@ -305,7 +305,7 @@ class App extends React.Component<AppProps, AppStates>{
                 <FeatureView
                   className={"feature-view-element"}
                   features={features}
-                  featureMat={featureMat}
+                  // featureMat={featureMat}
                   prediction={patientInfo.prediction[target]}
                   // selectedIds={patientGroup && patientGroup.ids}
                   focusedFeatures={[...pinnedfocusedFeatures, ...focusedFeatures]}
