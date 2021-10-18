@@ -7,6 +7,7 @@ from vbridge.data_loader.data import create_entityset
 from vbridge.explainer.explanation import Explainer
 from vbridge.featurization import Featurization
 from vbridge.modeling import ModelManager
+from vbridge.patient_selector import PatientSelector
 from vbridge.task import pic_48h_in_admission_mortality_task
 from vbridge.router.routes import add_routes
 from vbridge.utils import load_fm, NpEncoder
@@ -61,10 +62,12 @@ def create_app():
     settings['models'] = model_manager
 
     # load similar patient group
-    # settings['selected_ids'] = fm.index
+    settings['selector_vars'] = task.get_selector_vars(es)
+    selector = PatientSelector(es, settings['selector_vars'], settings['cutoff_time'])
+    settings['selector'] = selector
 
     # load explainer
-    settings["explainer"] = Explainer(es, task, settings['cutoff_time'] )
+    settings["explainer"] = Explainer(es, task, settings['cutoff_time'])
 
     app.settings = settings
     app.json_encoder = NpEncoder

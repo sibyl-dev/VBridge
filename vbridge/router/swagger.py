@@ -49,6 +49,20 @@ schemas = {
                         },
                     }
                 }
+            },
+            'selectorVars': {
+                'type': 'array',
+                'items': {
+                    'type': 'object',
+                    'properties': {
+                        'name': {'type': 'string'},
+                        'type': {'type': 'string'},
+                        'extent': {
+                            'type': 'array',
+                            'items': {'type': 'string'},
+                        },
+                    }
+                }
             }
         },
         'example': {

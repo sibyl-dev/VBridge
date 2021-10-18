@@ -9,23 +9,6 @@ from vbridge.data_loader.pic_schema import ignore_variables
 from vbridge.utils import exist_fm, load_fm, save_fm, find_path
 
 
-class Exists(ft.primitives.AggregationPrimitive):
-    name = 'exists'
-    input_types = [ft.variable_types.Numeric]
-    output_type = ft.variable_types.Boolean
-
-    def __init__(self):
-        super().__init__()
-
-    def get_function(self):
-        def exists(column):
-            if column is None:
-                return False
-            return len(column) > 0
-
-        return exists
-
-
 class Featurization:
 
     def __init__(self, es, task):
@@ -97,9 +80,6 @@ class Featurization:
         lab_count = self.es['LABEVENTS'].df['ITEMID'].value_counts()
         self.es['LABEVENTS']['ITEMID'].interesting_values = lab_count[:45].index
 
-        med_counts = self.es['PRESCRIPTIONS'].df['DRUG_NAME_EN'].value_counts()
-        self.es["PRESCRIPTIONS"]["DRUG_NAME_EN"].interesting_values = med_counts[:20].index
-
     def generate_features(self, select=True, save=True, load_exist=True, verbose=True):
         if load_exist and exist_fm():
             fm, fl = load_fm()
@@ -126,18 +106,6 @@ class Featurization:
             if save:
                 save_fm(fm, fl)
         return fm, fl
-
-    def _get_cutoff_times(self, entity_id=None, time_index=None, offset=None):
-        if entity_id is None:
-            entity_id = self.target_entity
-        if time_index is None:
-            time_index = self.es[entity_id].time_index
-
-        if entity_id == self.target_entity:
-            target = self.es[self.target_entity]
-            cutoff_times = target.df.loc[:, [target.index, time_index]]
-        else:
-            forward_path = self.es.find_forward_paths(self.target_entity, entity_id)
 
     def _generate_features(self, target_entity=None, cutoff_times=None,
                            add_prefix=True, save=True, load_exist=True, **kwargs):

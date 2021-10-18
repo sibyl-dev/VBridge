@@ -13,7 +13,8 @@ def get_task(task):
         'targetEntity': task.target_entity,
         'backwardEntities': task.backward_entities,
         'forwardEntities': task.forward_entities,
-        'labels': task.get_label_desc()
+        'labels': task.get_label_desc(),
+        'selectorVars': task.get_selector_vars()
     }
 
 
