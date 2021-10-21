@@ -17,6 +17,7 @@ export interface IPanelProps extends IHeaderProps {
   resizable?: boolean;
   draggable?: boolean;
   id?: string;
+  disableDragging?: boolean;
 }
 
 export interface IPanelState {
@@ -53,8 +54,8 @@ export default class Panel extends React.Component<IPanelProps, IPanelState> {
   }
 
   public render() {
-    const { title, widgets, id } = this.props;
-    const margin = {...defaultMargin, ...this.props.margin};
+    const { title, widgets, id, disableDragging } = this.props;
+    const margin = { ...defaultMargin, ...this.props.margin };
     const x = this.state.x + margin.left;
     const y = this.state.y + margin.top;
     const width = this.state.width - margin.left - margin.right;
@@ -68,7 +69,7 @@ export default class Panel extends React.Component<IPanelProps, IPanelState> {
         minWidth={100}
         minHeight={190}
         bounds="window"
-        disableDragging={true} // Set it as false to enable dragging
+        disableDragging={disableDragging === undefined ? true : disableDragging} // Set it as false to enable dragging
         onDragStop={(e, d) => {
           this.setState({ x: d.x, y: d.y });
         }}

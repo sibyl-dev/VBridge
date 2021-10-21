@@ -71,7 +71,6 @@ export function drawLineChart(params: LineChartParams) {
         .call(d3.axisLeft(y).ticks(3))
         .attr("display", drawYAxis ? 'block' : 'none');
 
-    const line = d3.line().curve(d3.curveMonotoneX);
     const points: PointLayout[] = dates.map((date, i) => {
         return {
             x: t(date),

@@ -10,7 +10,7 @@ import DynamicView from "./components/DynamicView"
 import FeatureView from 'components/FeatureView';
 import TableView, { TableMeta } from "./components/TableView";
 import TimelineView from "./components/TimelineView";
-// import FilterView from "./components/FilterView"
+import CohortSelector from "./components/CohortSelector"
 
 import API from "./router/api"
 import { EntitySetSchema, ReferenceValueResponse, Task, FeatureSchemaResponse } from 'type/resource';
@@ -68,7 +68,7 @@ interface AppStates {
   // patientGroup?: PatientGroup,
   // conditions?: { [key: string]: any },
   // others
-  visible?: boolean,
+  showCohortSelector: boolean,
 }
 
 class App extends React.Component<AppProps, AppStates>{
@@ -77,7 +77,7 @@ class App extends React.Component<AppProps, AppStates>{
   constructor(props: AppProps) {
     super(props);
     this.state = {
-      signalMetas: [], pinnedSignalMetas: [],
+      signalMetas: [], pinnedSignalMetas: [], showCohortSelector: false,
       focusedFeatures: [], pinnedfocusedFeatures: [], showTableView: false,
       featureViewDense: false, dynamicViewLink: false, dynamicViewAlign: false
     };
@@ -257,7 +257,7 @@ class App extends React.Component<AppProps, AppStates>{
   public render() {
 
     const { directIds, entitySetSchema, patientInfo, featureSchema, features, showTableView, featureMat, task, colorManager,
-      focusedFeatures, pinnedfocusedFeatures, target, tableViewMeta, signalMetas, visible, referenceValues, dynamicViewLink } = this.state;
+      focusedFeatures, pinnedfocusedFeatures, target, tableViewMeta, signalMetas, showCohortSelector: visible, referenceValues, dynamicViewLink } = this.state;
     const { headerHeight, featureViewWidth, timelineViewHeight, profileHeight } = this.layout;
 
     return (
@@ -271,16 +271,12 @@ class App extends React.Component<AppProps, AppStates>{
               entitySetSchema={entitySetSchema}
               directIds={directIds}
               onSelectDirectId={this.onSelectDirectId}
+              openCohortSelector={() => this.setState({ showCohortSelector: true })}
             />
           </Header>
           <Content className="app-content">
             <Panel initialWidth={featureViewWidth} initialHeight={profileHeight}
-              title="Patient"
-              widgets={[{
-                name: 'link', content: <Switch onChange={e =>
-                  this.setState({ dynamicViewLink: e })} checkedChildren="on" unCheckedChildren="off" />
-              }]}
-            >
+              title="Patient">
               {featureSchema && <MetaView
                 className={"meta-view-element"}
                 patientStatics={patientInfo?.static}
@@ -362,6 +358,7 @@ class App extends React.Component<AppProps, AppStates>{
                 content: <Button icon={<CloseOutlined />} type="link"
                   onClick={() => this.setState({ showTableView: false })} />
               }]}
+              disableDragging={false}
             >
               {patientInfo && tableViewMeta &&
                 <TableView
@@ -371,24 +368,15 @@ class App extends React.Component<AppProps, AppStates>{
             </Panel>
             }
             {dynamicViewLink && <Links signalMetas={signalMetas} height={window.innerHeight - headerHeight}
-                colorManager={colorManager}
+              colorManager={colorManager}
             />}
-            {/* {tableNames &&
-              <Drawer maskClosable={false} title="Filter View" placement="right" closable={false}
-                onClose={this.onClose} visible={visible} width={450} >
-                <p>
-                  <FilterView
-                    filterRange={filterRange}
-                    filterPatients={this.filterPatients}
-                    onClose={this.onClose}
-                    patientMeta={patientMeta}
-                    visible={visible}
-                    subjectIdG={patientGroup && patientGroup.ids}
-                    distributionApp={patientGroup?.labelCounts}
-                  />
-                </p>
-              </Drawer>
-            } */}
+            {task && <Drawer maskClosable={false} title="Cohort Selector" placement="right"
+              onClose={() => this.setState({ showCohortSelector: !visible })} visible={visible} width={300} >
+              <CohortSelector
+                selectorVars={task.selectorVars}
+              />
+            </Drawer>
+            }
 
 
           </Content>

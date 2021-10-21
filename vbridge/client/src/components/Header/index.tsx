@@ -11,9 +11,10 @@ export const AppHeader = (params: {
     entitySetSchema?: EntitySetSchema,
     directIds?: string[],
     onSelectDirectId: (directId: string) => void,
+    openCohortSelector: () => void;
     colorManager?: ColorManager
 }) => {
-    const { entitySetSchema, onSelectDirectId, directIds, colorManager, target, task } = params;
+    const { entitySetSchema, onSelectDirectId, directIds, colorManager, target, task, openCohortSelector } = params;
     return (<div style={{ height: "100%" }}>
         <span className='system-name'>VBridge</span>
         <div className='system-info'>
@@ -61,12 +62,12 @@ export const AppHeader = (params: {
                   )}
                 </div> */}
 
-                <span className='header-name'>#Group:</span>
+                {/* <span className='header-name'>#Group:</span> */}
                 {/* <span className="header-name"> {`${patientGroup && patientGroup.ids ? patientGroup.ids.length : 0}
                     (${patientGroup ? patientGroup.labelCounts[5] : 0})`} </span> */}
-                {/* <Tooltip title="Filter">
-                    <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={this.showDrawer} style={{ zIndex: 1 }} />
-                </Tooltip> */}
+                <Tooltip title="Cohort Selector">
+                    <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={openCohortSelector} style={{ zIndex: 1 }} />
+                </Tooltip>
             </div>
         </div>
     </div>

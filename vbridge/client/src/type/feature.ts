@@ -74,14 +74,9 @@ function buildShowState(feature: Feature, parent?: VFeature): VFeature {
     return nodeState;
 }
 
-function extractSelfAndChildren(showState: VFeature): VFeature[] {
-    return [showState, ..._.flatten(showState.children?.select(f => extractSelfAndChildren(f)).toArray())];
-}
-
-export function buildShowStateList(features: IDataFrame<number, Feature>): IDataFrame<number, VFeature> {
+export function buildShowStateList(features: IDataFrame<number, Feature>):
+    IDataFrame<number, VFeature> {
     let VFeatureTree = features.select(f => buildShowState(f));
-    VFeatureTree = VFeatureTree.select(f => ({...f, show: true}));
-    // const VFeatureList: VFeature[] = _.flatten(VFeatureTree.map(s => extractSelfAndChildren(s)));
-    // return VFeatureList;
+    VFeatureTree = VFeatureTree.select(f => ({ ...f, show: true }));
     return VFeatureTree;
 }
