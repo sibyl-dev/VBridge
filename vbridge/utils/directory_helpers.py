@@ -51,7 +51,23 @@ def exist_fm(token='', name=''):
     if str(token) != '':
         token = '_' + str(token)
     return os.path.exists(os.path.join(output_dir, 'fl{}.pkl'.format(token))) and \
-        os.path.exists(os.path.join(output_dir, 'fm{}.csv'.format(token)))
+           os.path.exists(os.path.join(output_dir, 'fm{}.csv'.format(token)))
+
+
+def save_selector_mat(mat, name=''):
+    output_dir = os.path.join(output_workspace, name)
+    mat.to_csv(os.path.join(output_dir, 'selector_fm.csv'))
+
+
+def exist_selector_mat(name=''):
+    output_dir = os.path.join(output_workspace, name)
+    return os.path.exists(os.path.join(output_dir, 'selector_fm.csv'))
+
+
+def load_selector_mat(name=''):
+    output_dir = os.path.join(output_workspace, name)
+    mat = pd.read_csv(os.path.join(output_dir, 'selector_fm.csv'), index_col=0)
+    return mat
 
 
 def remove_nan_entries(df, key_columns, verbose=True):

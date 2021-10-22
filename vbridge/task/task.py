@@ -1,9 +1,12 @@
 from datetime import timedelta
 
+from .pic_selector import pic_48h_in_admission_mortality_selector
+
 
 class Task:
     def __init__(self, task_id='task', short_desc=None, target_entity=None, cutoff_times_fn=None,
-                 backward_entities=None, forward_entities=None, label_fns=None):
+                 backward_entities=None, forward_entities=None, label_fns=None,
+                 selector_fn=None):
         self._task_id = task_id
         self._short_desc = short_desc
         # For Featurization
@@ -13,6 +16,8 @@ class Task:
         self._forward_entities = forward_entities
         # For Modeling
         self._label_fns = label_fns
+        # For Cohort Selection
+        self._selector_fn = selector_fn
 
     @property
     def task_id(self):
@@ -37,12 +42,15 @@ class Task:
     def forward_entities(self):
         return self._forward_entities
 
+    def get_selector_vars(self, es=None):
+        return self._selector_fn(es)
+
     def get_labels(self, es):
         return {label: info['label_values'](es) for label, info in self._label_fns.items()}
 
     def get_label_desc(self):
-        return {label: {k: v for k, v in info.items() if k != 'label_values'} 
-        for label, info in self._label_fns.items()}
+        return {label: {k: v for k, v in info.items() if k != 'label_values'}
+                for label, info in self._label_fns.items()}
 
 
 def pic_48h_in_admission_mortality_task():
@@ -70,4 +78,5 @@ def pic_48h_in_admission_mortality_task():
                 'label_extent': ['low-risk', 'high-risk']
             }
         },
+        selector_fn=pic_48h_in_admission_mortality_selector
     )

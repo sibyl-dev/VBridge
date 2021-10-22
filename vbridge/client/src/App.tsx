@@ -13,7 +13,7 @@ import TimelineView from "./components/TimelineView";
 import CohortSelector from "./components/CohortSelector"
 
 import API from "./router/api"
-import { EntitySetSchema, ReferenceValueResponse, Task, FeatureSchemaResponse } from 'type/resource';
+import { EntitySetSchema, ReferenceValueResponse, Task, FeatureSchemaResponse, SelectorVariable } from 'type/resource';
 import { Feature, buildFeatures, PatientInfo, buildPatientInfo, SignalMeta, buildSignalsByFeature, buildRecordByPeriod } from './type';
 
 import { DataFrame, IDataFrame, fromCSV } from 'data-forge';
@@ -44,7 +44,7 @@ interface AppStates {
   features?: IDataFrame<number, any>,
 
   //cohort information
-  selectedIds?: number[],
+  cohortIds?: string[],
   featureMat?: IDataFrame<number, any>,
   referenceValues?: ReferenceValueResponse,
 
@@ -63,11 +63,6 @@ interface AppStates {
   dynamicViewLink: boolean,
   dynamicViewAlign: boolean,
 
-  // for patient group & reference values
-  // filterRange?: filterType,
-  // patientGroup?: PatientGroup,
-  // conditions?: { [key: string]: any },
-  // others
   showCohortSelector: boolean,
 }
 
@@ -84,10 +79,11 @@ class App extends React.Component<AppProps, AppStates>{
 
     this.loadPatientInfo = this.loadPatientInfo.bind(this);
     this.loadFeatures = this.loadFeatures.bind(this);
+    this.loadReferenceValues = this.loadReferenceValues.bind(this);
 
     this.onSelectDirectId = this.onSelectDirectId.bind(this);
     this.onSelectTarget = this.onSelectTarget.bind(this);
-    // this.filterPatients = this.filterPatients.bind(this)
+    this.updateCohort = this.updateCohort.bind(this);
 
     // // Call-backs to update the Temporal View
     this.updateSignals = this.updateSignals.bind(this);
@@ -106,6 +102,7 @@ class App extends React.Component<AppProps, AppStates>{
 
   componentDidMount() {
     this.init();
+    this.lasyLoading();
   }
 
   public async init() {
@@ -115,11 +112,8 @@ class App extends React.Component<AppProps, AppStates>{
     const colorManager = task && new ColorManager(task);
     const featureSchema = await API.featureSchemas.all();
     const entitySetSchema = await API.entitySchemas.all();
-    const referenceValues = await API.referenceValues.all();
-    const featureMatResponse = await API.featureValues.all();
-    const featureMat = featureMatResponse ? fromCSV(featureMatResponse) : undefined;
 
-    this.setState({ directIds, task, target, featureSchema, entitySetSchema, referenceValues, featureMat, colorManager });
+    this.setState({ directIds, task, target, featureSchema, entitySetSchema, colorManager });
   }
 
   private async loadPatientInfo(directId: string) {
@@ -144,6 +138,26 @@ class App extends React.Component<AppProps, AppStates>{
       }
     }
   }
+
+  private async loadReferenceValues() {
+    const referenceValues = await API.referenceValues.all();
+    this.setState({ referenceValues });
+  }
+
+  private async updateCohort(extents: SelectorVariable[]) {
+    const cohortIds = await API.cohortSelector.update('', {},
+      { extents: JSON.stringify(extents) });
+    this.setState({ cohortIds }, this.loadReferenceValues);
+  }
+
+  private async lasyLoading() {
+    const referenceValues = await API.referenceValues.all();
+    const featureMatResponse = await API.featureValues.all();
+    const featureMat = featureMatResponse ? fromCSV(featureMatResponse) : undefined;
+    this.setState({ referenceValues, featureMat })
+  }
+
+  /******************************************************************************************/
 
   private onSelectDirectId(directId: string) {
     this.loadPatientInfo(directId);
@@ -256,8 +270,9 @@ class App extends React.Component<AppProps, AppStates>{
 
   public render() {
 
-    const { directIds, entitySetSchema, patientInfo, featureSchema, features, showTableView, featureMat, task, colorManager,
-      focusedFeatures, pinnedfocusedFeatures, target, tableViewMeta, signalMetas, showCohortSelector: visible, referenceValues, dynamicViewLink } = this.state;
+    const { directIds, entitySetSchema, patientInfo, featureSchema, features, showTableView, featureMat, task,
+      colorManager, focusedFeatures, pinnedfocusedFeatures, target, tableViewMeta, signalMetas,
+      showCohortSelector: visible, referenceValues, dynamicViewLink } = this.state;
     const { headerHeight, featureViewWidth, timelineViewHeight, profileHeight } = this.layout;
 
     return (
@@ -374,11 +389,10 @@ class App extends React.Component<AppProps, AppStates>{
               onClose={() => this.setState({ showCohortSelector: !visible })} visible={visible} width={300} >
               <CohortSelector
                 selectorVars={task.selectorVars}
+                updateExtent={this.updateCohort}
               />
             </Drawer>
             }
-
-
           </Content>
         </Layout>
 

@@ -5,7 +5,7 @@ import Resource from './restResource';
 import {
     WhatIfSHAP, SHAP, SignalExplanation, FeatureSchema, FeatureSchemaResponse, FeatureValue, FeatureValueResponse,
     EntitySchema, EntitySetSchema, ReferenceValueResponse, ReferenceValues, Prediction, PatientStatics,
-    PatientTemporal, Task, Patient, PredictionResponse
+    PatientTemporal, Task, Patient, PredictionResponse, SelectorVariable
 } from "type/resource";
 
 
@@ -30,6 +30,9 @@ export class RestClient {
     // entity set
     public entitySchemas: Resource<EntitySchema, EntitySetSchema>;
     public referenceValues: Resource<ReferenceValues, ReferenceValueResponse>;
+
+    // cohort selector
+    public cohortSelector: Resource<string[], string[]>;
 
     // feature
     public featureSchemas: Resource<FeatureSchema, FeatureSchemaResponse>;
@@ -64,6 +67,9 @@ export class RestClient {
         this.patient = new Resource(this.server, 'patient/');
         this.patientStatics = new Resource(this.server, 'patient/statics/');
         this.patientTemporal = new Resource(this.server, 'patient/temporal/');
+
+        // cohort selector
+        this.cohortSelector = new Resource(this.server, 'selector_extents')
 
         // prediction
         this.predictions = new Resource(this.server, 'prediction/');

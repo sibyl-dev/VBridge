@@ -1,5 +1,6 @@
-import pandas as pd
 import featuretools as ft
+
+from vbridge.utils import exist_selector_mat, load_selector_mat, save_selector_mat
 
 
 class PatientSelector:
@@ -35,14 +36,27 @@ class PatientSelector:
     def es(self):
         return self._es
 
-    def get_filter_var_mat(self, cutoff_time):
-        mat = ft.calculate_feature_matrix([f['feature'] for f in self.selector_vars], self.es,
-                                          cutoff_time=cutoff_time)
-        mat.columns = [f['name'] for f in self.selector_vars]
+    def get_filter_var_mat(self, cutoff_time, load_exist=True, save=True, name=''):
+        if load_exist and exist_selector_mat(name):
+            mat = load_selector_mat(name)
+            mat.index = mat.index.astype('str')
+        else:
+            mat = ft.calculate_feature_matrix([f['feature'] for f in self.selector_vars], self.es,
+                                              cutoff_time=cutoff_time)
+            mat.columns = [f['name'] for f in self.selector_vars]
+        if save:
+            save_selector_mat(mat, name)
         return mat
 
     def select(self, extents):
         mat = self.filter_var_mat
-        # for var in extents:
-
+        for var in extents:
+            name = var['name']
+            extent = var['extent']
+            if var['type'] == 'categorical':
+                mat = mat[mat[name].isin(extent)]
+            elif var['type'] == 'numerical':
+                mat = mat[(mat[name] >= extent[0]) & (mat[name] <= extent[1])]
+            else:
+                raise ValueError("Unsupported type: {}".format(var['type']))
         return mat.index

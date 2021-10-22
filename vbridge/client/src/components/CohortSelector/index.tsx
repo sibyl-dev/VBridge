@@ -2,7 +2,7 @@ import * as React from "react";
 import { Button, Checkbox, Divider } from "antd"
 
 import "./index.scss"
-import { isCategoricalVariable, SelectorVariable } from "type/resource/task";
+import { isCategoricalVariable, SelectorVariable } from "type/resource/selector";
 
 export interface CohortSelectorProps {
     className?: string,

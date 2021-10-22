@@ -88,7 +88,27 @@ schemas = {
                         "high-risk"
                     ]
                 }
-            }
+            },
+            "selectorVars": [
+                {
+                    "name": "Gender",
+                    "type": "categorical",
+                    "extent": [
+                        "F",
+                        "M"
+                    ]
+                },
+                {
+                    "name": "Age Range",
+                    "type": "categorical",
+                    "extent": [
+                        "newborn (0–4 weeks)",
+                        "infant (4 weeks - 1 year)",
+                        "toddler (1-2 years)",
+                        "preschooler or above(>2 years)"
+                    ]
+                }
+            ]
         }
     },
     'PatientStatic': {
