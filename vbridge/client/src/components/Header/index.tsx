@@ -10,11 +10,13 @@ export const AppHeader = (params: {
     target?: string,
     entitySetSchema?: EntitySetSchema,
     directIds?: string[],
+    cohortIds?: string[],
     onSelectDirectId: (directId: string) => void,
     openCohortSelector: () => void;
     colorManager?: ColorManager
 }) => {
-    const { entitySetSchema, onSelectDirectId, directIds, colorManager, target, task, openCohortSelector } = params;
+    const { entitySetSchema, onSelectDirectId, directIds, cohortIds,
+        colorManager, target, task, openCohortSelector } = params;
     return (<div style={{ height: "100%" }}>
         <span className='system-name'>VBridge</span>
         <div className='system-info'>
@@ -24,19 +26,25 @@ export const AppHeader = (params: {
                     <div className="category-legend-container">
                         {entitySetSchema?.map(entity =>
                             <div className="legend-block" key={entity.entityId}>
-                                <div className='legend-rect' style={{ backgroundColor: colorManager?.entityColor(entity.entityId) }} />
+                                <div className='legend-rect' style={{
+                                    backgroundColor: colorManager?.entityColor(entity.entityId)
+                                }} />
                                 <span className='legend-name'>{entity.alias || entity.entityId}</span>
                             </div>
                         )}
                         <div className="legend-block">
-                            <div className='legend-rect' style={{ backgroundColor: colorManager?.entityColor('ADMISSIONS') }} />
+                            <div className='legend-rect' style={{
+                                backgroundColor: colorManager?.entityColor('ADMISSIONS')
+                            }} />
                             <span className='legend-name'>{"Patient & Surgery info"}</span>
                         </div>
                     </div>
                     <div className='label-legend-container'>
                         {target && task?.labels[target].label_extent?.map((d, i) => {
                             return <div className="legend-block" key={d}>
-                                <div className='legend-rect' style={{ backgroundColor: colorManager?.labelColor(target, i) }} />
+                                <div className='legend-rect' style={{
+                                    backgroundColor: colorManager?.labelColor(target, i)
+                                }} />
                                 <span className='legend-name'>{d}</span>
                             </div>
                         })}
@@ -44,7 +52,8 @@ export const AppHeader = (params: {
                 </div>
                 <span className='header-name'>Patient: </span>
                 <div className='header-content'>
-                    <Select style={{ width: 120 }} onChange={onSelectDirectId} className="patient-selector">
+                    <Select style={{ width: 120 }} onChange={onSelectDirectId}
+                        className="patient-selector">
                         {directIds && directIds.map((id, i) =>
                             <Option value={id} key={i}>{id}</Option>
                         )}
@@ -62,9 +71,8 @@ export const AppHeader = (params: {
                   )}
                 </div> */}
 
-                {/* <span className='header-name'>#Group:</span> */}
-                {/* <span className="header-name"> {`${patientGroup && patientGroup.ids ? patientGroup.ids.length : 0}
-                    (${patientGroup ? patientGroup.labelCounts[5] : 0})`} </span> */}
+                <span className='header-name'>#Group:</span>
+                <span className="header-name"> {`${cohortIds ? cohortIds.length : 0}`} </span>
                 <Tooltip title="Cohort Selector">
                     <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={openCohortSelector} style={{ zIndex: 1 }} />
                 </Tooltip>

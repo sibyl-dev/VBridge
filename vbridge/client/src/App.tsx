@@ -13,8 +13,14 @@ import TimelineView from "./components/TimelineView";
 import CohortSelector from "./components/CohortSelector"
 
 import API from "./router/api"
-import { EntitySetSchema, ReferenceValueResponse, Task, FeatureSchemaResponse, SelectorVariable } from 'type/resource';
-import { Feature, buildFeatures, PatientInfo, buildPatientInfo, SignalMeta, buildSignalsByFeature, buildRecordByPeriod } from './type';
+import {
+  EntitySetSchema, ReferenceValueResponse, Task, FeatureSchemaResponse,
+  SelectorVariable
+} from 'type/resource';
+import {
+  Feature, buildFeatures, PatientInfo, buildPatientInfo, SignalMeta,
+  buildSignalsByFeature, buildRecordByPeriod
+} from './type';
 
 import { DataFrame, IDataFrame, fromCSV } from 'data-forge';
 import { distinct } from 'utils/common';
@@ -67,7 +73,12 @@ interface AppStates {
 }
 
 class App extends React.Component<AppProps, AppStates>{
-  private layout = { featureViewWidth: 520, profileHeight: 280, timelineViewHeight: 220, headerHeight: 64 };
+  /**
+   * The layout of the four views:
+   * ProfileView: (w1 * h1)    TimelineView: (W-w1 * h2)  
+   * FeatureView: (w1 * H-h1)  TemporalView: (W-w1 * H-h2)
+   */
+  private layout = { w1: 520, h1: 280, h2: 240, headerHeight: 64 };
 
   constructor(props: AppProps) {
     super(props);
@@ -113,6 +124,9 @@ class App extends React.Component<AppProps, AppStates>{
     const featureSchema = await API.featureSchemas.all();
     const entitySetSchema = await API.entitySchemas.all();
 
+    // Select the default cohort
+    task && this.updateCohort(task.selectorVars);
+
     this.setState({ directIds, task, target, featureSchema, entitySetSchema, colorManager });
   }
 
@@ -151,10 +165,9 @@ class App extends React.Component<AppProps, AppStates>{
   }
 
   private async lasyLoading() {
-    const referenceValues = await API.referenceValues.all();
     const featureMatResponse = await API.featureValues.all();
     const featureMat = featureMatResponse ? fromCSV(featureMatResponse) : undefined;
-    this.setState({ referenceValues, featureMat })
+    this.setState({ featureMat })
   }
 
   /******************************************************************************************/
@@ -183,15 +196,13 @@ class App extends React.Component<AppProps, AppStates>{
 
   private updateSignals(newSignalMeta: SignalMeta[]) {
     const rawSignalMeta = new DataFrame([...this.state.pinnedSignalMetas, ...newSignalMeta]);
-    const signalMetas: SignalMeta[] = rawSignalMeta.groupBy(row => row.itemId).toArray().map(group => {
-      const sample = group.first();
-      return {
-        ...sample,
+    const signalMetas: SignalMeta[] = rawSignalMeta.groupBy(row => row.itemId)
+      .select(group => ({
+        ...group.first(),
         relatedFeatureNames: _.flatten(group.getSeries('relatedFeatureNames').toArray()),
         startTime: _.min(group.getSeries('startTime').toArray()),
         endTime: _.max(group.getSeries('endTime').toArray())
-      }
-    })
+      })).toArray()
     this.setState({ signalMetas });
   }
 
@@ -199,7 +210,10 @@ class App extends React.Component<AppProps, AppStates>{
     const { pinnedSignalMetas } = this.state;
     const pinnedSignalNames = pinnedSignalMetas.map(s => `${s.itemId}`);
     if (pinnedSignalNames.includes(signalMeta.itemId)) {
-      this.setState({ pinnedSignalMetas: pinnedSignalMetas.filter(s => s.itemId !== signalMeta.itemId) });
+      this.setState({
+        pinnedSignalMetas: pinnedSignalMetas
+          .filter(s => s.itemId !== signalMeta.itemId)
+      });
     }
     else {
       pinnedSignalMetas.push(signalMeta);
@@ -271,9 +285,9 @@ class App extends React.Component<AppProps, AppStates>{
   public render() {
 
     const { directIds, entitySetSchema, patientInfo, featureSchema, features, showTableView, featureMat, task,
-      colorManager, focusedFeatures, pinnedfocusedFeatures, target, tableViewMeta, signalMetas,
+      colorManager, focusedFeatures, pinnedfocusedFeatures, target, tableViewMeta, signalMetas, cohortIds,
       showCohortSelector: visible, referenceValues, dynamicViewLink } = this.state;
-    const { headerHeight, featureViewWidth, timelineViewHeight, profileHeight } = this.layout;
+    const { headerHeight, w1: featureViewWidth, h2: timelineViewHeight, h1: profileHeight } = this.layout;
 
     return (
       <div className='App'>
@@ -285,6 +299,7 @@ class App extends React.Component<AppProps, AppStates>{
               colorManager={colorManager}
               entitySetSchema={entitySetSchema}
               directIds={directIds}
+              cohortIds={cohortIds}
               onSelectDirectId={this.onSelectDirectId}
               openCohortSelector={() => this.setState({ showCohortSelector: true })}
             />
