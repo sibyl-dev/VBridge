@@ -35,36 +35,36 @@ const { Header, Content } = Layout;
 interface AppProps { }
 
 interface AppStates {
-  //task
+  // Task
   task?: Task,
   colorManager?: ColorManager,
 
-  // static information
+  // Static information (load once)
   directIds?: string[],
   entitySetSchema?: EntitySetSchema
   featureSchema?: FeatureSchemaResponse,
 
-  //patient information
+  // Patient information
   target?: string,
   patientInfo?: PatientInfo,
   features?: IDataFrame<number, any>,
 
-  //cohort information
+  // Cohort information
   cohortIds?: string[],
   featureMat?: IDataFrame<number, any>,
   referenceValues?: ReferenceValueResponse,
 
-  //for table view
+  // For table view
   tableViewMeta?: TableMeta,
   showTableView: boolean,
 
-  //for view communication
+  // For view communication
   signalMetas: SignalMeta[],
   pinnedSignalMetas: SignalMeta[],
   focusedFeatures: string[],
   pinnedfocusedFeatures: string[],
 
-  //for view settings
+  // For view settings
   featureViewDense: boolean,
   dynamicViewLink: boolean,
   dynamicViewAlign: boolean,
@@ -96,7 +96,7 @@ class App extends React.Component<AppProps, AppStates>{
     this.onSelectTarget = this.onSelectTarget.bind(this);
     this.updateCohort = this.updateCohort.bind(this);
 
-    // // Call-backs to update the Temporal View
+    // Call-backs to update the Temporal View
     this.updateSignals = this.updateSignals.bind(this);
     this.updateSignalsByFeature = this.updateSignalsByFeature.bind(this);
     this.updateSignalFromTimeline = this.updateSignalFromTimeline.bind(this);
@@ -106,7 +106,7 @@ class App extends React.Component<AppProps, AppStates>{
     this.updateTableView = this.updateTableView.bind(this);
     this.updateTableViewFromFeatures = this.updateTableViewFromFeatures.bind(this);
 
-    // // Call-backs to update the Feature View
+    // Call-backs to update the Feature View
     this.updateFocusedFeatures = this.updateFocusedFeatures.bind(this);
     this.updatePinnedFocusedFeatures = this.updatePinnedFocusedFeatures.bind(this);
   }
@@ -296,6 +296,7 @@ class App extends React.Component<AppProps, AppStates>{
             <AppHeader
               target={target}
               task={task}
+              prediction={patientInfo?.prediction}
               colorManager={colorManager}
               entitySetSchema={entitySetSchema}
               directIds={directIds}

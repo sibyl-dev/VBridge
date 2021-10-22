@@ -1,6 +1,7 @@
 import { FilterOutlined } from "@ant-design/icons"
 import { Select, Tooltip, Button } from "antd"
-import { EntitySetSchema, Task } from "type/resource"
+import _ from "lodash";
+import { EntitySetSchema, Prediction, Task } from "type/resource"
 import { ColorManager } from "visualization/color";
 
 const { Option } = Select;
@@ -8,6 +9,7 @@ const { Option } = Select;
 export const AppHeader = (params: {
     task?: Task,
     target?: string,
+    prediction?: Prediction,
     entitySetSchema?: EntitySetSchema,
     directIds?: string[],
     cohortIds?: string[],
@@ -16,12 +18,11 @@ export const AppHeader = (params: {
     colorManager?: ColorManager
 }) => {
     const { entitySetSchema, onSelectDirectId, directIds, cohortIds,
-        colorManager, target, task, openCohortSelector } = params;
+        colorManager, target, task, openCohortSelector, prediction } = params;
     return (<div style={{ height: "100%" }}>
         <span className='system-name'>VBridge</span>
         <div className='system-info'>
             <div className='system-widget'>
-
                 <div className='legend-area'>
                     <div className="category-legend-container">
                         {entitySetSchema?.map(entity =>
@@ -59,17 +60,21 @@ export const AppHeader = (params: {
                         )}
                     </Select>
                 </div>
-                {/* <div className='header-content predictions'>
-                  {targetSchema?.where(d => d.id !== 'complication').select(d =>
-                    <Tooltip title={d.id} placement="top" key={d.id}>
-                      <div className={'prediction-icon' + (target && d.id === target ? " selected" : "") +
-                        ((predictions && predictions[d.id] > 0.5000) ? " active" : " inactive")}
-                        onClick={() => this.selectPredictionTarget(d.id)}>
-                        <span>{d.id.toUpperCase()[0]} </span>
-                      </div>
-                    </Tooltip>
-                  )}
-                </div> */}
+                <div className='header-content predictions'>
+                    {task && Object.keys(task.labels).map(d => {
+                        const predProb: number | undefined = prediction && prediction[d];
+                        const pred = prediction && prediction[d] > 0.5000;
+                        const labelExtent = task.labels[d].label_extent;
+                        return <Tooltip title={`The patient's ${d} is predicted as ${pred === undefined ? '-' : 
+                        labelExtent![+ pred]} (${predProb === undefined ? '-' : _.round(predProb, 3)}).`}
+                            placement="top" key={d}>
+                            <div className={'prediction-icon' + (d === target ? " selected" : "") +
+                                (pred ? " active" : " inactive")}>
+                                <span>{d.toUpperCase()[0]} </span>
+                            </div>
+                        </Tooltip>
+                    })}
+                </div>
 
                 <span className='header-name'>#Group:</span>
                 <span className="header-name"> {`${cohortIds ? cohortIds.length : 0}`} </span>
