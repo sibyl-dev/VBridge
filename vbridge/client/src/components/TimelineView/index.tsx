@@ -89,7 +89,6 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
             if (eventBin) {
                 eventBins.push(eventBin.toArray());
             }
-            console.log(eventBin);
         }
         this.setState({ eventBins });
     }
