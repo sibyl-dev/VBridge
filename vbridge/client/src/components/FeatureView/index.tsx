@@ -1,9 +1,9 @@
 import * as React from "react";
 import * as _ from "lodash"
-import { DataFrame, IDataFrame } from "data-forge";
+import { DataFrame, IDataFrame, Series } from "data-forge";
 import { Feature } from "type";
-import { getReferenceValue } from "utils/common";
-import { Label, StatValues } from "type/resource";
+import { getReferenceValue, isDefined } from "utils/common";
+import { Label, PredictionResponse, StatValues } from "type/resource";
 import { ColorManager } from "visualization/color";
 import { FeatureList } from "./FeatureList";
 
@@ -17,7 +17,7 @@ export interface FeatureViewProps {
     target?: string,
 
     featureMat?: IDataFrame<number, any>,
-    predictions?: number[],
+    predictions?: PredictionResponse,
     label?: Label,
 
     display?: 'normal' | 'dense',
@@ -29,8 +29,7 @@ export interface FeatureViewProps {
 }
 
 export interface FeatureViewStates {
-    desiredFM?: IDataFrame<number, any>,
-    undesiredFM?: IDataFrame<number, any>,
+    referenceMat?: Record<string, any[][]>,
     referenceValues?: IDataFrame<string, StatValues>,
 }
 
@@ -49,20 +48,29 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
 
     // run when the group ids updates
     private updateReferenceValues() {
-        const { featureMat } = this.props;
-        if (featureMat) {
-            const desiredFM = featureMat.where(row => row['complication'] === 0);
-            const undesiredFM = featureMat.where(row => row['complication'] !== 0);
+        const { featureMat, predictions, target } = this.props;
+        if (featureMat && predictions && target) {
+            const predArray = predictions[target];
+            const featureMatWithPred = featureMat.ensureSeries(target, new Series(predArray));
+            const desiredFM = featureMatWithPred.where(row => row[target] <= 0.5);
+            const undesiredFM = featureMatWithPred.where(row => row[target] > 0.5);
             if (desiredFM.count() == 0) alert("No patient in the selection.");
             else {
                 const featureIds = featureMat.getColumnNames();
+                const referenceMat: Record<string, any[][]> = {};
+                featureIds.forEach(name => referenceMat[name] = [desiredFM, undesiredFM]
+                    .map(fm => {
+                        let series = fm.getSeries(name).where(d => isDefined(d) && d !== '');
+                        if (series.where(d => isNaN(d)).count() == 0) series = series.parseFloats()
+                        return series.toArray();
+                    }));
                 const referenceValues = new DataFrame({
                     index: featureIds,
                     values: featureIds.map(name =>
-                        getReferenceValue(desiredFM.getSeries(name).toArray())
-                    )
+                        getReferenceValue(referenceMat[name][0]))
                 })
-                this.setState({ desiredFM: desiredFM, undesiredFM: undesiredFM, referenceValues });
+                console.log(referenceMat, this.props.features);
+                this.setState({ referenceValues, referenceMat });
             }
         }
     }
@@ -76,17 +84,14 @@ export default class FeatureView extends React.Component<FeatureViewProps, Featu
 
     public render() {
         const { features, ...rest } = this.props;
-        const { desiredFM, undesiredFM, referenceValues } = this.state;
-        const contextFeatureValues = [];
-        if (desiredFM) contextFeatureValues.push(desiredFM);
-        if (undesiredFM) contextFeatureValues.push(undesiredFM);
+        const { referenceMat, referenceValues } = this.state;
 
         return (
             <div className="feature-view">
                 <FeatureList
                     {...rest}
                     features={features}
-                    referenceMat={contextFeatureValues}
+                    referenceMat={referenceMat}
                     referenceValues={referenceValues}
                 />
             </div>

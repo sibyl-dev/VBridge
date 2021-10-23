@@ -6,7 +6,7 @@ import { Button, Popover, Slider } from "antd";
 import { IDataFrame } from "data-forge";
 import _ from "lodash";
 import React from "react";
-import { Feature, VFeature, buildShowStateList } from "type";
+import { Feature, VFeature, buildShowStateList, isGroupFeature } from "type";
 import { StatValues } from "type/resource";
 import { isDefined } from "utils/common";
 import { ColorManager } from "visualization/color";
@@ -20,10 +20,7 @@ const cellWidth = (id: number) => {
 export interface FeatureListProps {
     className?: string,
     features: IDataFrame<number, Feature>,
-    shapValues?: number[],
-    prediction?: number,
-    target?: string,
-    referenceMat: IDataFrame<number, any>[],
+    referenceMat?: Record<string, any[][]>,
     referenceValues?: IDataFrame<string, StatValues>,
 
     focusedFeatures: string[],
@@ -37,42 +34,51 @@ export interface FeatureListProps {
 export interface FeatureListStates {
     // Contribution sorting order
     order?: 'ascending' | 'dscending',
-    threshold?: [number, number],
     VFeatureList: IDataFrame<number, VFeature>,
+    shapExtent?: [number, number]
+    threshold?: number,
 }
 
 export class FeatureList extends React.Component<FeatureListProps, FeatureListStates> {
     constructor(props: FeatureListProps) {
         super(props);
 
-        this.state = { order: 'dscending', VFeatureList: buildShowStateList(props.features) };
+        this.state = {
+            order: 'dscending',
+            VFeatureList: buildShowStateList(props.features),
+        };
 
         this.onClick = this.onClick.bind(this);
         this.sortFeatures = this.sortFeatures.bind(this);
         this.getDisplayedFeatures = this.getDisplayedFeatures.bind(this);
-        this.getContributionXScale = this.getContributionXScale.bind(this);
+        this.getShapXScale = this.getShapXScale.bind(this);
         this.flipShowState = this.flipShowState.bind(this);
+    }
+
+    componentDidMount() {
+        this.updateShapExtent();
+    }
+
+    componentDidUpdate(prevProps: FeatureListProps) {
+        if (prevProps.features != this.props.features) {
+            this.setState({ VFeatureList: buildShowStateList(this.props.features) });
+            this.updateShapExtent();
+        }
     }
 
     private onClick(newOrder?: 'ascending' | 'dscending') {
         this.setState({ order: newOrder })
     }
 
-    componentDidUpdate(prevProps: FeatureListProps) {
-        if (prevProps.features != this.props.features) {
-            this.setState({ VFeatureList: buildShowStateList(this.props.features) });
-        }
-    }
-
     private flipShowState(feature: Feature) {
         const VFeatureList = this.state.VFeatureList.select<VFeature>(vFeature => {
             if (vFeature.id === feature.id) {
                 vFeature.show = !vFeature.show;
-                vFeature.children = vFeature.children?.select(f => ({...f, show: !f.show}));
+                if (isGroupFeature(vFeature))
+                    vFeature.children = vFeature.children.select(f => ({ ...f, show: !f.show }));
             }
             return vFeature
         })
-        console.log(VFeatureList);
         this.setState({ VFeatureList });
     }
 
@@ -93,19 +99,34 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
         })
     }
 
+    private getFeatureShaps(features: IDataFrame<number, Feature>): number[] {
+        let shaps = features.select(f => f.shap).toArray();
+        for (const feat of features) {
+            if (isGroupFeature(feat)) {
+                shaps = shaps.concat(this.getFeatureShaps(feat.children))
+            }
+        }
+        return shaps
+    }
+
+    private updateShapExtent() {
+        const { features } = this.props;
+        const shaps = this.getFeatureShaps(features);
+        this.setState({ shapExtent: [_.min(shaps), _.max(shaps)] as [number, number] })
+    }
+
     private getDisplayedFeatures(features: IDataFrame<number, VFeature>) {
         let disFeat = features.where(f => f.show).toArray();
         let hidFeat = features.where(f => !f.show);
         for (const feat of hidFeat) {
-            const children = feat.children;
-            if (children) {
-                disFeat = disFeat.concat(this.getDisplayedFeatures(children));
+            if (isGroupFeature(feat)) {
+                disFeat = disFeat.concat(this.getDisplayedFeatures(feat.children));
             }
         }
         return disFeat;
     }
 
-    private getContributionXScale() {
+    private getShapXScale() {
         const features = this.getDisplayedFeatures(this.state.VFeatureList);
         const contr = features.map(f => f.shap).map(v => Math.abs(v));
         const whatifContr = features.map(f => f.whatIfShap).filter(isDefined).map(v => Math.abs(v));
@@ -114,12 +135,11 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
     }
 
     public render() {
-        const { features, shapValues, ...rest } = this.props;
-        const { order, threshold } = this.state;
+        const { features, ...rest } = this.props;
+        const { order, threshold, shapExtent } = this.state;
         const sortedFeatures = this.sortFeatures(features);
-        const shapMin = _.min(shapValues);
-        const shapMax = _.max(shapValues);
-        const x = this.getContributionXScale();
+        const x = this.getShapXScale();
+        const absShapMax = _.max(shapExtent?.map(d => Math.abs(d)));
 
         return <div style={{ width: "100%" }}>
             <div style={{ width: "100%" }}>
@@ -142,11 +162,9 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
                                 onClick={this.onClick.bind(this, 'dscending')} />}
                         <Popover placement="right" content={
                             <div style={{ width: 160, height: 20 }} onMouseDown={(event) => event.stopPropagation()}>
-                                {shapValues && <Slider
-                                    tipFormatter={null}
-                                    range defaultValue={[_.sortBy(shapValues, d => d)[shapValues.length - 5], shapMax!]}
-                                    min={shapMin!} max={shapMax!} step={(shapMax! - shapMin!) / 100}
-                                    onAfterChange={(range) => this.setState({ threshold: range })}
+                                {absShapMax && <Slider defaultValue={0} range={false}
+                                    min={0} max={absShapMax} step={absShapMax / 100}
+                                    onAfterChange={(threshold) => this.setState({ threshold })}
                                 />}
                             </div>
                         } trigger="click">
@@ -161,7 +179,6 @@ export class FeatureList extends React.Component<FeatureListProps, FeatureListSt
                             feature={row}
                             depth={0}
                             x={x}
-                            cellWidth={cellWidth}
                             key={row.name || row.alias}
                             threshold={threshold}
                             onCollapse={this.flipShowState}

@@ -1,3 +1,3 @@
 export type Prediction = Record<string, number>;
 
-export type PredictionResponse = Record<string, Prediction>;
+export type PredictionResponse = Record<string, number[]>;

@@ -1,5 +1,5 @@
 import { ISeries } from "data-forge";
-import { Entity, Feature, getRelatedFeatures } from "type";
+import { Entity, Feature, getRelatedFeatures, isGroupFeature } from "type";
 import { assert, isDefined } from "utils/common";
 import { FeatureSchema, Patient, ReferenceValueResponse, StatValues } from "./resource";
 
@@ -26,7 +26,7 @@ export function buildSignalsByFeature(params: {
 }): SignalMeta[] {
     const { feature, temporal, referenceValues } = params;
     let signalMetaList: SignalMeta[] = [];
-    if (feature.children && feature.children.count() > 0) {
+    if (isGroupFeature(feature) && feature.children.count() > 0) {
         for (const child of feature.children) {
             signalMetaList = signalMetaList.concat(buildSignalsByFeature({ ...params, feature: child }))
         }

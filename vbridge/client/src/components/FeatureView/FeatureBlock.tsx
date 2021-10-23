@@ -1,16 +1,20 @@
 import React from "react";
 
-import { CaretRightOutlined, ArrowDownOutlined, ArrowUpOutlined, LineChartOutlined, TableOutlined, QuestionOutlined } from "@ant-design/icons";
+import {
+    CaretRightOutlined, ArrowDownOutlined, ArrowUpOutlined, LineChartOutlined,
+    TableOutlined, QuestionOutlined
+} from "@ant-design/icons";
 import { ArrowRightOutlined, ArrowLeftOutlined } from "@material-ui/icons";
 import { Tooltip, Button } from "antd";
 import { IDataFrame } from "data-forge";
-import { Feature } from "type";
+import { Feature, isCategoricalFeature, isGroupFeature, isNumericalFeature } from "type";
 import { StatValues } from "type/resource";
 import AreaChart from "visualization/AreaChart";
 import BarChart from "visualization/BarChart";
 import { ColorManager } from "visualization/color";
 import { beautifulPrinter } from "visualization/common";
 import { SHAPContributions } from "./SHAPBand";
+import _ from "lodash";
 
 export interface FeatureBlockProps {
     className?: string,
@@ -18,14 +22,13 @@ export interface FeatureBlockProps {
     feature: Feature,
     target?: string,
     prediction?: number,
-    referenceMat: IDataFrame<number, any>[],
+    referenceMat?: Record<string, any[][]>,
     referenceValues?: IDataFrame<string, StatValues>,
     x: d3.ScaleLinear<number, number>,
-    cellWidth: (id: number) => number,
     colorManager?: ColorManager
     focusedFeatures: string[],
     display?: 'normal' | 'dense',
-    threshold?: [number, number],
+    threshold?: number,
 
     inspectFeatureInSignal?: (feature: Feature) => void,
     inspectFeatureInTable?: (feature: Feature) => void,
@@ -54,7 +57,8 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
     private hasFeature(feature: Feature, featureNames: string[]): boolean {
         if (feature.id && featureNames.includes(feature.id))
             return true;
-        if (feature.children?.where(row => this.hasFeature(row, featureNames)).count())
+        if (isGroupFeature(feature) && feature.children.where(row =>
+            this.hasFeature(row, featureNames)).count())
             return true;
         else
             return false
@@ -70,27 +74,42 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
         this.setState({ showDistibution: !this.state.showDistibution });
     }
 
-    render() {
-        const { feature, x, cellWidth, colorManager, inspectFeatureInSignal, inspectFeatureInTable,
-            className, depth, referenceMat: contextFeatureValues, focusedFeatures, referenceValues, display,
-            target, prediction, threshold } = this.props;
-        const { collapsed, showDistibution, showWhatIf } = this.state
-        const { id: name, alias, value, shap, children, entityId, whatIfPred: predictionIfNormal } = feature;
-        const referenceValue = referenceValues ? referenceValues.at(feature.id) : undefined;
-
-        let outofRange: 'none' | 'low' | 'high' = 'none';
-        let whatIfValue = undefined;
-        if (referenceValue && typeof (value) === typeof (0.0)) {
-            const { ci95 } = referenceValue;
-            if (value as number > ci95[1]) {
-                outofRange = 'high'
-                whatIfValue = ci95[1]
-            }
-            else if (value as number < ci95[0]) {
-                outofRange = 'low'
-                whatIfValue = ci95[0]
+    protected getBlockId() {
+        const { className, feature } = this.props;
+        const { collapsed } = this.state;
+        let id: string | undefined = undefined;
+        if (!isGroupFeature(feature) || feature.children.count() === 0)
+            id = `${className}-${feature.id}`;
+        else if (collapsed) {
+            const childrenNames = feature.children?.getSeries('name').where(d => d);
+            if (childrenNames && childrenNames.count()) {
+                id = `${className}-${childrenNames.first()}`;
             }
         }
+        return id
+    }
+
+    protected outOfRange() {
+        const { referenceValues, feature } = this.props;
+        const ref = referenceValues && referenceValues.at(feature.id);
+        let outofRange: 'none' | 'low' | 'high' = 'none';
+        let whatIfValue = undefined;
+        if (ref && isNumericalFeature(feature)) {
+            if (feature.value > ref.ci95[1]) {
+                outofRange = 'high'
+                whatIfValue = ref.ci95[1]
+            }
+            else if (feature.value < ref.ci95[0]) {
+                outofRange = 'low'
+                whatIfValue = ref.ci95[0]
+            }
+        }
+        return { outofRange, whatIfValue }
+    }
+
+    protected getShowState() {
+        const { focusedFeatures, feature, display, threshold } = this.props;
+        const { shap } = feature;
         let showState: 'normal' | 'focused' | 'unfocused' | 'none' = 'normal';
         if (focusedFeatures.length > 0) {
             if (this.hasFeature(feature, focusedFeatures)) showState = 'focused';
@@ -99,81 +118,75 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
         if (display && display === 'dense') {
             if (showState === 'unfocused') showState = 'none';
         }
-        if (threshold) {
+        if (threshold !== undefined) {
             // higher is allowed
-            if (shap < threshold[0])
+            if (Math.abs(shap) < threshold)
                 if (showState !== 'focused') showState = 'none';
         }
+        return showState
+    }
 
-        const heigth = showDistibution ? 80 : 30;
-        const isLeaf = !feature.children || feature.children.count() === 0;
+    render() {
+        const { feature, x, colorManager, inspectFeatureInSignal, inspectFeatureInTable,
+            depth, target, prediction, referenceMat } = this.props;
+        const { collapsed, showDistibution, showWhatIf } = this.state
+        const { id, alias, shap, entityId, whatIfPred, whatIfShap } = feature;
+        const { outofRange, whatIfValue } = this.outOfRange();
 
-        let id: string | undefined = undefined
-        if (isLeaf)
-            id = `${className}-${feature.id}`;
-        else if (collapsed) {
-            const childrenNames = feature.children?.getSeries('name').where(d => d);
-            if (childrenNames && childrenNames.count()) {
-                id = `${className}-${childrenNames.first()}`;
-            }
-        }
+        const showState = this.getShowState();
+        const isLeaf = !isGroupFeature(feature) || feature.children.count() === 0;
+        const featureValue = isNumericalFeature(feature) ? beautifulPrinter(feature.value) : feature.value;
+        const entityColor = colorManager && colorManager.entityColor(entityId);
+        const predColor = (target && prediction) ? colorManager?.labelColor(target, prediction) : undefined;
+        const whatifPredColor = (target && whatIfPred) ? colorManager?.labelColor(target, whatIfPred) : undefined;
+
+        const depthMargin = 10 * depth;
+        const nameCellWidth = 150 - depthMargin;
 
         return <div>
             <div className="feature-row" style={{
-                display: (showState === 'none') ? "none" : "flex", justifyContent: "flex-end", position: "relative",
-                width: `calc(100% - ${depth * 10}px)`, left: `${depth * 10}px`
+                display: (showState === 'none') ? "none" : "flex",
+                width: `calc(100% - ${depthMargin}px)`, left: `${depthMargin}px`
             }}>
                 <div style={{ width: 20 }}>
-                    {children && <CaretRightOutlined className="right-button"
+                    {isGroupFeature(feature) && <CaretRightOutlined className="right-button"
                         onClick={this.onClickButton} rotate={collapsed ? 0 : 90} />}
                 </div>
-                <div className={`feature-block ${showState}` + (collapsed ? "" : " expanded")}
-                    id={id}
-                    style={{
-                        height: heigth, borderRightWidth: 4,
-                        borderRightColor: colorManager && colorManager.entityColor(entityId)
-                    }}
-                    onClick={children ? this.onClickButton : this.onClickDiv}>
+                <div className={"feature-block"}
+                    id={this.getBlockId()}
+                    style={{ borderRightColor: entityColor }}
+                    onClick={isGroupFeature(feature) ? this.onClickButton : this.onClickDiv}>
                     <div className={`feature-block-inner`}>
-                        <Tooltip title={alias}>
-                            <div className="feature-block-cell feature-name" style={{ width: cellWidth(0) - 10 * depth }}>
-                                <span className={"feature-block-cell-text"}>{showDistibution ? alias : beautifulPrinter(alias, 22)}</span>
+                        <Tooltip title={id}>
+                            <div className="feature-block-cell feature-name" style={{ width: nameCellWidth }}>
+                                <span className={"feature-block-cell-text"}>{beautifulPrinter(alias, 22)}</span>
                             </div>
                         </Tooltip>
-                        <div className={"feature-block-cell" + (isLeaf ? " feature-value" : "")}
-                            style={{ width: showDistibution ? cellWidth(1) + 40 : cellWidth(1) }}>
-                            {showDistibution ?
-                                (typeof (value) === 'number') ? <AreaChart
-                                    data={contextFeatureValues?.map(mat => mat.getSeries(name).toArray()) as number[][]}
-                                    height={70}
-                                    width={cellWidth(1) + 40}
-                                    drawBottomAxis={true}
-                                    margin={{ left: 10, bottom: 20 }}
-                                    referenceValue={value as number}
+                        <div className={"feature-block-cell feature-value" + (isLeaf ? " leaf" : "")}>
+                            {showDistibution && referenceMat ?
+                                isNumericalFeature(feature) ? <AreaChart
+                                    {...defaultChartStyle}
+                                    data={referenceMat[id]}
+                                    referenceValue={feature.value}
                                     whatIfValue={showWhatIf ? whatIfValue : undefined}
-                                    mode="side-by-side"
-                                /> : (typeof (value) === 'string') ? <BarChart
-                                    data={contextFeatureValues?.map(mat => mat.getSeries(name).toArray()) as string[][]}
-                                    height={70}
-                                    width={cellWidth(1) + 40}
-                                    drawBottomAxis={true}
-                                    margin={{ left: 10, bottom: 20 }}
-                                    // referenceValue={value}
-                                    // whatIfValue={showWhatIf ? whatIfValue : undefined}
+                                    tickNum={20}
+                                /> : isCategoricalFeature(feature) ? <BarChart
+                                    {...defaultChartStyle}
+                                    data={referenceMat[id]}
                                     mode="side-by-side"
                                 /> : <div />
-                                : <Tooltip title={typeof (value) == typeof (0.0) ? beautifulPrinter(value) : value}>
+                                : <Tooltip title={featureValue}>
                                     <span className={"feature-block-cell-text"}>
                                         {outofRange === 'low' && <ArrowDownOutlined />}
-                                        {beautifulPrinter(value)}
+                                        {beautifulPrinter(featureValue)}
                                         {outofRange === 'high' && <ArrowUpOutlined />}
                                     </span>
                                 </Tooltip>}
                         </div>
-                        <div className={"feature-block-cell feature-contribution"} style={{ width: cellWidth(2) }}>
+                        <div className={"feature-block-cell feature-contribution"}>
                             {SHAPContributions({
-                                contribution: feature.shap, 
-                                contributionIfNormal: showWhatIf ? feature.whatIfShap : undefined, 
+                                contribution: feature.shap,
+                                contributionIfNormal: (showWhatIf && showDistibution) ? whatIfShap : undefined,
                                 x, height: 14,
                                 posRectStyle: { fill: !collapsed ? '#f8a3bf' : undefined },
                                 negRectStyle: { fill: !collapsed ? '#9abce4' : undefined }
@@ -181,23 +194,18 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                             {(shap > x.domain()[1]) && <ArrowRightOutlined className="overflow-notation-right" />}
                             {(shap < x.domain()[0]) && <ArrowLeftOutlined className="overflow-notation-left" />}
                             {showWhatIf && whatIfValue && <div className={"what-if-label"}>
-                                {prediction && <div className={"label-circle"} style={{ backgroundColor: 
-                                    target && colorManager?.labelColor(target, prediction) }}>
+                                {prediction && <div className={"label-circle"} style={{ backgroundColor: predColor }}>
                                     {prediction > 0.5 ? 'High' : 'Low'}
                                 </div>}
                                 <ArrowRightOutlined />
-                                {predictionIfNormal && <div className={"label-circle"} style={{ backgroundColor: 
-                                    target && colorManager?.labelColor(target, predictionIfNormal) }}>
-                                    {predictionIfNormal > 0.5 ? 'High' : 'Low'}
+                                {whatIfPred && <div className={"label-circle"} style={{ backgroundColor: whatifPredColor }}>
+                                    {whatIfPred > 0.5 ? 'High' : 'Low'}
                                 </div>}
                             </div>}
                         </div>
                     </div>
                 </div>
-                {(isLeaf || collapsed) && <span className={`feature-block-annote ${showState}`} style={{
-                    backgroundColor: colorManager?.entityColor(entityId),
-                    height: heigth
-                }} />}
+                {(isLeaf || collapsed) && <span className={`feature-block-annote ${showState}`} />}
                 <Button size="small" type="primary" shape="circle"
                     icon={<LineChartOutlined />} onClick={() => inspectFeatureInSignal && inspectFeatureInSignal(feature)}
                     className={"feature-button-linechart"}
@@ -210,10 +218,9 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                     icon={<QuestionOutlined />} onClick={() => this.setState({ showWhatIf: !showWhatIf })}
                     className={"feature-button-what-if"}
                 />}
-
             </div>
 
-            {(!collapsed) && children?.toArray().map(feature =>
+            {(!collapsed) && isGroupFeature(feature) && feature.children.toArray().map(feature =>
                 <FeatureBlock
                     {...this.props}
                     key={feature.id || `${feature.entityId}-${feature.alias}`}
@@ -222,4 +229,11 @@ export class FeatureBlock extends React.Component<FeatureBlockProps, FeatureBloc
                 />)}
         </div>
     }
+}
+
+const defaultChartStyle = {
+    height: 70,
+    width: 140,
+    margin: { left: 10, bottom: 20 },
+    drawBottomAxis: true
 }

@@ -15,11 +15,11 @@ import CohortSelector from "./components/CohortSelector"
 import API from "./router/api"
 import {
   EntitySetSchema, ReferenceValueResponse, Task, FeatureSchemaResponse,
-  SelectorVariable
+  SelectorVariable, PredictionResponse
 } from 'type/resource';
 import {
   Feature, buildFeatures, PatientInfo, buildPatientInfo, SignalMeta,
-  buildSignalsByFeature, buildRecordByPeriod
+  buildSignalsByFeature, buildRecordByPeriod, isGroupFeature
 } from './type';
 
 import { DataFrame, IDataFrame, fromCSV } from 'data-forge';
@@ -52,6 +52,7 @@ interface AppStates {
   // Cohort information
   cohortIds?: string[],
   featureMat?: IDataFrame<number, any>,
+  predictions?: PredictionResponse,
   referenceValues?: ReferenceValueResponse,
 
   // For table view
@@ -78,7 +79,7 @@ class App extends React.Component<AppProps, AppStates>{
    * ProfileView: (w1 * h1)    TimelineView: (W-w1 * h2)  
    * FeatureView: (w1 * H-h1)  TemporalView: (W-w1 * H-h2)
    */
-  private layout = { w1: 520, h1: 280, h2: 240, headerHeight: 64 };
+  private layout = { w1: 540, h1: 280, h2: 240, headerHeight: 64 };
 
   constructor(props: AppProps) {
     super(props);
@@ -167,7 +168,8 @@ class App extends React.Component<AppProps, AppStates>{
   private async lasyLoading() {
     const featureMatResponse = await API.featureValues.all();
     const featureMat = featureMatResponse ? fromCSV(featureMatResponse) : undefined;
-    this.setState({ featureMat })
+    const predictions = await API.predictions.all();
+    this.setState({ featureMat, predictions })
   }
 
   /******************************************************************************************/
@@ -269,7 +271,7 @@ class App extends React.Component<AppProps, AppStates>{
     const getItemList = (feature: Feature) => {
       const item = feature.item?.itemId;
       let items = item ? [item] : [];
-      if (feature.children)
+      if (isGroupFeature(feature))
         for (const child of feature.children) {
           items = items.concat(getItemList(child));
         }
@@ -286,7 +288,7 @@ class App extends React.Component<AppProps, AppStates>{
 
     const { directIds, entitySetSchema, patientInfo, featureSchema, features, showTableView, featureMat, task,
       colorManager, focusedFeatures, pinnedfocusedFeatures, target, tableViewMeta, signalMetas, cohortIds,
-      showCohortSelector: visible, referenceValues, dynamicViewLink } = this.state;
+      predictions, showCohortSelector: visible, referenceValues, dynamicViewLink } = this.state;
     const { headerHeight, w1: featureViewWidth, h2: timelineViewHeight, h1: profileHeight } = this.layout;
 
     return (
@@ -332,9 +334,10 @@ class App extends React.Component<AppProps, AppStates>{
                 <FeatureView
                   className={"feature-view-element"}
                   features={features}
-                  // featureMat={featureMat}
+                  featureMat={featureMat}
                   prediction={patientInfo.prediction[target]}
-                  // selectedIds={patientGroup && patientGroup.ids}
+                  predictions={predictions}
+                  // selectedIds={cohortIds}
                   focusedFeatures={[...pinnedfocusedFeatures, ...focusedFeatures]}
                   inspectFeatureInSignal={this.updateSignalsByFeature}
                   inspectFeatureInTable={this.updateTableViewFromFeatures}

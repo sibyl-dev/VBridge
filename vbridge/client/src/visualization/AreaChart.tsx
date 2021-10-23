@@ -36,6 +36,7 @@ export function drawAreaChart(param: {
         data: data,
         width: width,
         height: height,
+        mode: 'stacked'
     });
 
     const root = d3.select(param.root);

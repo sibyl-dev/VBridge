@@ -2,13 +2,38 @@ import _ from "lodash";
 import { DataFrame, IDataFrame } from "data-forge";
 import { FeatureSchema, FeatureSchemaResponse, FeatureValue, SHAP, WhatIfSHAP } from "./resource";
 
-export interface Feature extends FeatureSchema {
-    value?: number | string,
+export interface BaseFeature extends FeatureSchema {
     shap: number,
     whatIfShap?: number,
     whatIfPred?: number,
-    children?: IDataFrame<number, Feature>,
 }
+
+export interface CategoricalFeature extends BaseFeature {
+    value: string,
+}
+
+export interface NumericalFeature extends BaseFeature {
+    value: number,
+}
+
+export interface GroupFeature extends BaseFeature {
+    value: undefined,
+    children: IDataFrame<number, Feature>,
+}
+
+export function isGroupFeature(feature: Feature): feature is GroupFeature {
+    return feature.value === undefined;
+}
+
+export function isCategoricalFeature(feature: Feature): feature is CategoricalFeature {
+    return (!isGroupFeature(feature) && typeof (feature.value) === 'string');
+}
+
+export function isNumericalFeature(feature: Feature): feature is NumericalFeature {
+    return (!isGroupFeature(feature) && typeof (feature.value) === 'number');
+}
+
+export type Feature = CategoricalFeature | NumericalFeature | GroupFeature;
 
 export function buildFeatures(
     featureSchema: FeatureSchemaResponse,
@@ -24,7 +49,7 @@ export function buildFeatures(
             shap: shap ? shap[featureId] : 0,
             whatIfShap: whatIfShap && whatIfShap[featureId]?.shap,
             whatIfPred: whatIfShap && whatIfShap[featureId]?.prediction,
-        }
+        } as Feature
     });
     const topFeatures = features.filter(feat => feat.parentId === undefined);
     // TODO: sum the contribution
@@ -38,8 +63,8 @@ function featureArray2DF(topFeats: Feature[], allFeats: Feature[]): IDataFrame<n
         return {
             ...feat,
             children: children,
-            shap: _.sum(children?.getSeries('shap').toArray()) || feat.shap
-        }
+            shap: children ? _.sum(children?.getSeries('shap').toArray()) : feat.shap
+        } as Feature
     })
     return new DataFrame(featuresWithChildren)
 }
@@ -58,20 +83,37 @@ export function getRelatedFeatures(params: {
     return candidates.map(f => f.id);
 }
 
-export interface VFeature extends Feature {
+interface VCategoricalFeature extends CategoricalFeature {
     show: boolean,
-    children?: IDataFrame<number, VFeature>,
-    parent?: VFeature,
+    parent?: VGroupFeature,
 }
 
-function buildShowState(feature: Feature, parent?: VFeature): VFeature {
-    const nodeState: VFeature = {
+interface VNumericalFeature extends NumericalFeature {
+    show: boolean,
+    parent?: VGroupFeature,
+}
+
+interface VGroupFeature extends GroupFeature {
+    show: boolean,
+    parent?: VGroupFeature,
+    children: IDataFrame<number, VFeature>,
+}
+
+export type VFeature = VCategoricalFeature | VNumericalFeature | VGroupFeature;
+
+function buildShowState(feature: Feature, parent?: VGroupFeature): VFeature {
+    const featWithState = {
         ...feature,
         show: false,
-        parent: parent,
-        children: feature.children?.select<VFeature>(f => buildShowState(f))
+        parent: parent
     };
-    return nodeState;
+    if (isGroupFeature(feature)) {
+        return {...featWithState, 
+            children: feature.children.select(f => buildShowState(f))} as VGroupFeature;
+    }
+    else {
+        return featWithState as VFeature
+    }
 }
 
 export function buildShowStateList(features: IDataFrame<number, Feature>):

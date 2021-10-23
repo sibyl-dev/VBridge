@@ -35,9 +35,9 @@ export const AppHeader = (params: {
                         )}
                         <div className="legend-block">
                             <div className='legend-rect' style={{
-                                backgroundColor: colorManager?.entityColor('ADMISSIONS')
+                                backgroundColor: task && colorManager?.entityColor(task.forwardEntities[0])
                             }} />
-                            <span className='legend-name'>{"Patient & Surgery info"}</span>
+                            <span className='legend-name'>{"Demographics Info"}</span>
                         </div>
                     </div>
                     <div className='label-legend-container'>
@@ -65,8 +65,8 @@ export const AppHeader = (params: {
                         const predProb: number | undefined = prediction && prediction[d];
                         const pred = prediction && prediction[d] > 0.5000;
                         const labelExtent = task.labels[d].label_extent;
-                        return <Tooltip title={`The patient's ${d} is predicted as ${pred === undefined ? '-' : 
-                        labelExtent![+ pred]} (${predProb === undefined ? '-' : _.round(predProb, 3)}).`}
+                        return <Tooltip title={`The patient's ${d} is predicted as ${pred === undefined ? '-' :
+                            labelExtent![+ pred]} (${predProb === undefined ? '-' : _.round(predProb, 3)}).`}
                             placement="top" key={d}>
                             <div className={'prediction-icon' + (d === target ? " selected" : "") +
                                 (pred ? " active" : " inactive")}>
@@ -79,7 +79,8 @@ export const AppHeader = (params: {
                 <span className='header-name'>#Group:</span>
                 <span className="header-name"> {`${cohortIds ? cohortIds.length : 0}`} </span>
                 <Tooltip title="Cohort Selector">
-                    <Button type="primary" shape="circle" icon={<FilterOutlined />} onClick={openCohortSelector} style={{ zIndex: 1 }} />
+                    <Button type="primary" shape="circle" icon={<FilterOutlined />}
+                        onClick={openCohortSelector} style={{ zIndex: 1 }} />
                 </Tooltip>
             </div>
         </div>
