@@ -38,7 +38,6 @@ class SelectorExtent(Resource):
         try:
             args = self.parser_get.parse_args()
             extents = json.loads(args.get('extents', '[]'))
-            print(extents)
         except Exception as e:
             LOGGER.exception(str(e))
             return {'message', str(e)}, 400
@@ -46,7 +45,6 @@ class SelectorExtent(Resource):
         try:
             current_app.settings['selector_vars'] = extents
             current_app.settings['selector'].extents = extents
-            print(current_app.settings['selector'].index.tolist())
             return jsonify(current_app.settings['selector'].index.tolist())
         except Exception as e:
             LOGGER.exception(e)
