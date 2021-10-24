@@ -6,8 +6,11 @@ from flask_restful import Resource
 LOGGER = logging.getLogger(__name__)
 
 
-def get_prediction_values(models, direct_id=None):
-    predictions = models.predict_proba(direct_id)
+def get_prediction_values(models, fm, direct_id=None):
+    if direct_id is None:
+        predictions = models.predict_proba(fm)
+    else:
+        predictions = models.predict_proba(fm.loc[direct_id].to_frame().T)
     return predictions
 
 
@@ -43,7 +46,8 @@ class Prediction(Resource):
         """
         try:
             settings = current_app.settings
-            res = get_prediction_values(settings["models"], direct_id)
+            res = get_prediction_values(settings["models"], settings['feature_matrix'], 
+                direct_id)
             res = jsonify(res)
         except Exception as e:
             LOGGER.exception(e)
@@ -68,7 +72,10 @@ class AllPrediction(Resource):
                 schema:
                   type: object
                   additionalProperties:
-                    type: number
+                    type: array
+                    items:
+                      type: number
+                    
           400:
             $ref: '#/components/responses/ErrorMessage'
           500:
@@ -76,7 +83,7 @@ class AllPrediction(Resource):
         """
         try:
             settings = current_app.settings
-            res = get_prediction_values(settings["models"])
+            res = get_prediction_values(settings["models"], settings['feature_matrix'])
             res = jsonify(res)
         except Exception as e:
             LOGGER.exception(e)

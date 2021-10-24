@@ -140,20 +140,8 @@ class ModelManager:
                   for target_name, model in self._models.items()}
         return pd.DataFrame(scores).T
 
-    def predict_proba(self, id=None, X=None):
+    def predict_proba(self, X):
         scores = {}
-        if id is not None:
-            if id in self.X_train.index:
-                X = self.X_train.loc[id]
-            elif id in self.X_test.index:
-                X = self.X_test.loc[id]
-            else:
-                raise ValueError("Invalid id {}".format(id))
-            X = X.to_frame().T
-        elif X is not None:
-            X = X
-        else:
-            X = pd.concat([self.X_train, self.X_test])
         for target_name, model in self._models.items():
             scores[target_name] = model.transform(X)[:, 1]
         return scores
