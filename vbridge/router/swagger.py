@@ -1,15 +1,162 @@
 import os
 
+_dataframe_schema = {
+    'type': 'object',
+    'properties': {
+        'index': {
+            'type': 'array',
+            'items': {'type': 'string'}
+        },
+        'column': {
+            'type': 'array',
+            'items': {'type': 'string'}
+        },
+        'data': {
+            'type': 'array',
+            'items': {
+                'type': 'object',
+                'additionalProperties': {}
+            }
+        }
+    }
+}
+
 schemas = {
-    'PatientStatic': {
+    'DataFrame': _dataframe_schema,
+    'Task': {
         'type': 'object',
         'properties': {
-            'SUBJECT_ID': {'type': 'string'},
-            'ADMITTIME': {'type': 'string'},
-            'SURGERY_BEGIN_TIME': {'type': 'string'},
-            'SURGERY_END_TIME': {'type': 'string'},
+            'taskId': {'type': 'string'},
+            'shortDesc': {'type': 'string'},
+            'targetEntity': {'type': 'string'},
+            'backwardEntities': {
+                'type': 'array',
+                'items': {'type': 'string'},
+            },
+            'forwardEntities': {
+                'type': 'array',
+                'items': {'type': 'string'},
+            },
+            'label': {
+                'type': 'object',
+                'additionalProperties': {
+                    'type': 'object',
+                    'properties': {
+                        'label_type': {'type': 'string'},
+                        'label_extent': {
+                            'type': 'array',
+                            'items': {'type': 'string'},
+                        },
+                    }
+                }
+            },
+            'selectorVars': {
+                'type': 'array',
+                'items': {
+                    'type': 'object',
+                    'properties': {
+                        'name': {'type': 'string'},
+                        'type': {'type': 'string'},
+                        'extent': {
+                            'type': 'array',
+                            'items': {'type': 'string'},
+                        },
+                    }
+                }
+            }
         },
-        'additionalProperties': {}
+        'example': {
+            "taskId": "48h in-admission mortality",
+            "shortDesc": "Prediction whether the patient will die or survive within this "
+                         "admission according the health records from the first 48 hours of the "
+                         "admission",
+            "targetEntity": "ADMISSIONS",
+            "backwardEntities": [
+                "LABEVENTS",
+                "SURGERY_VITAL_SIGNS",
+                "CHARTEVENTS"
+            ],
+            "forwardEntities": [
+                "PATIENTS",
+                "ADMISSIONS"
+            ],
+            "labels": {
+                "mortality": {
+                    "label_type": "boolean",
+                    "label_extent": [
+                        "low-risk",
+                        "high-risk"
+                    ]
+                }
+            },
+            "selectorVars": [
+                {
+                    "name": "Gender",
+                    "type": "categorical",
+                    "extent": [
+                        "F",
+                        "M"
+                    ]
+                },
+                {
+                    "name": "Age Range",
+                    "type": "categorical",
+                    "extent": [
+                        "newborn (0–4 weeks)",
+                        "infant (4 weeks - 1 year)",
+                        "toddler (1-2 years)",
+                        "preschooler or above(>2 years)"
+                    ]
+                }
+            ]
+        }
+    },
+    'PatientStatic': {
+        'type': 'array',
+        'items': {
+            'type': 'object',
+            'required': [
+                'entityId'
+            ],
+            'properties': {
+                'entityId': {'type': 'string'},
+            },
+            'additionalProperties': {
+                'oneOf': [
+                    {'type': 'string'},
+                    {'type': 'number'},
+                ]
+            }
+        },
+        'example': [{
+            "DOB": "2065-09-01 15:44:00",
+            "GENDER": "M",
+            "entityId": "PATIENTS"
+        }],
+    },
+    'PatientTemporal': {
+        **_dataframe_schema,
+        'example': {
+            "CHARTEVENTS": {
+                "columns": [
+                    "SUBJECT_ID",
+                    "HADM_ID",
+                    "ITEMID",
+                    "CHARTTIME",
+                    "VALUE",
+                    "VALUEUOM"
+                ],
+                "data": [[
+                    "3718",
+                    "103784",
+                    "1003",
+                    "2065-10-15 21:50:02",
+                    160.0,
+                    "bpm"
+                ]],
+                "index": ["9138752"]
+            }
+        }
     },
     'ColumnExtent': {
         'type': 'object',
@@ -33,7 +180,7 @@ schemas = {
     'FeatureSchema': {
         'type': 'object',
         'properties': {
-            'name': {'type': 'string'},
+            'id': {'type': 'string'},
             'alias': {'type': 'string'},
             'type': {'type': 'string'},
             'item': {
@@ -59,7 +206,7 @@ schemas = {
     'EntitySchema': {
         'type': 'object',
         'properties': {
-            'name': {'type': 'string'},
+            'entityId': {'type': 'string'},
             'alias': {'type': 'string'},
             'time_index': {'type': 'string'},
             'item_index': {'type': 'string'},
@@ -69,7 +216,16 @@ schemas = {
                     'type': 'string',
                 },
             },
-            'type': {'type': 'string'}  # todo: enumerate
+            'item_dict': {
+                'type': 'object',
+                'properties': {
+                    'type': 'string'
+                }
+            },
+            'types': {
+                'type': 'array',
+                'items': {'type': 'string'}  # todo: enumerate
+            }
         }
     },
     'ReferenceValues': {
@@ -87,6 +243,31 @@ schemas = {
                     },
                     'maxItems': 2
                 },
+            }
+        },
+        'example': {
+            "LABEVENTS": {
+                "5002": {
+                    "VALUENUM": {
+                        "mean": 1.63,
+                        "std": 2.20,
+                        "count": 16785,
+                        "ci95": [-2.68, 5.96]
+                    }
+                }
+            }
+        }
+    },
+    'WhatIfSHAP': {
+        'type': 'object',
+        'additionalProperties': {
+            'type': 'object',
+            'additionalProperties': {
+                'type': 'object',
+                'properties': {
+                    'prediction': {'type': 'number'},
+                    'shap': {'type': 'number'},
+                }
             }
         }
     },
@@ -124,16 +305,16 @@ schemas = {
 
 tags = [
     {
-        'name': 'patient',
-        'description': 'Everything about individual patients.'
+        'name': 'entity set',
+        'description': 'Everything about the entity set.'
     }, {
         'name': 'feature',
         'description': 'Everything about features.'
     }, {
-        'name': 'entity set',
-        'description': 'Everything about the entity set.'
+        'name': 'patient',
+        'description': 'Everything about the health records on individual patients.'
     }, {
-        'name': 'model',
+        'name': 'prediction',
         'description': 'Everything about model predictions.'
     }, {
         'name': 'explanation',

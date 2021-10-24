@@ -1,6 +1,6 @@
 import * as _ from "lodash"
 import { AssertionError } from "assert";
-import { StatValues } from "../type/entity";
+import { StatValues } from "../type/resource/entitySet";
 import { Index } from "react-virtualized";
 import { IDataFrame } from "data-forge";
 

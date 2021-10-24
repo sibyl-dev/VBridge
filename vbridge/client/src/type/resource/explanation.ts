@@ -1,6 +1,6 @@
-export type ShapValues = Record<string, number>;
+export type SHAP = Record<string, number>;
 
-export type CfShapValues = Record<string, { prediction: number, shap: number }>;
+export type WhatIfSHAP = Record<string, { prediction: number, shap: number }>;
 
 export type Segment = {
     startTime: Date,

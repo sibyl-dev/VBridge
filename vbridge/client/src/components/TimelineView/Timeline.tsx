@@ -5,9 +5,9 @@ import { Button } from "antd";
 import { LineChartOutlined, TableOutlined } from "@ant-design/icons";
 
 import { IEventBin } from "type/event";
-import { getChildOrAppend, getScaleLinear, getScaleTime, getMargin, ChartOptions } from "./common";
+import { getChildOrAppend, getScaleLinear, getScaleTime, getMargin, ChartOptions } from "visualization/common";
 import "./Timeline.scss"
-import Chart, { ChartProps } from "./Chart";
+import Chart, { ChartProps } from "visualization/Chart";
 
 export interface TimelineData {
     events: IEventBin[],
@@ -123,10 +123,10 @@ export function drawTimeline(params: TimelineParam & { node: SVGElement | SVGGEl
                 .attr("class", "timeline-cell-inner"),
             update => update,
             exit => exit.remove())
-        .attr("transform", d => `translate(${cellWidth * (1 - d.abnormalItems!.length / d.items!.length) / 2}, 
-            ${cellHeight * (1 - d.abnormalItems!.length / d.items!.length) / 2})`)
-        .attr('width', d => cellWidth * (d.abnormalItems!.length / d.items!.length))
-        .attr("height", d => cellHeight * (d.abnormalItems!.length / d.items!.length))
+        .attr("transform", d => `translate(${cellWidth * (1 - d.abnormalItems.length / d.items.length) / 2}, 
+            ${cellHeight * (1 - d.abnormalItems!.length / d.items.length) / 2})`)
+        .attr('width', d => cellWidth * (d.abnormalItems.length / d.items.length))
+        .attr("height", d => cellHeight * (d.abnormalItems.length / d.items.length))
         .attr("rx", 2);
 
     /* Brushing Actions */

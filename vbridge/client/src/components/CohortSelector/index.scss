@@ -1,0 +1,26 @@
+.cohort-selector {
+    margin: 20px, 10px;
+    width: 100%;
+    height: 100%;
+    overflow: scroll;
+    font-size: 14px;
+    .selector-button-group {
+        position: absolute;
+        bottom: 30px;
+        right: 30px;
+        .selector-button {
+            position: relative;
+            margin: 10px;
+            width: 100px;
+            border-radius: 2px;
+        }
+    }
+}
+
+.selector-widget {
+    width: 100%;
+    margin-bottom: 20px;
+    .widget-title {
+        font-weight: bold;
+    }
+}

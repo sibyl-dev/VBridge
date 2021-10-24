@@ -1,97 +1,46 @@
 import logging
 
-from flask import Response, current_app, jsonify
+from flask import current_app, jsonify
 from flask_restful import Resource
 
-from vbridge.modeling.modeler import Modeler
-from vbridge.router.resources.entity_set import get_item_dict
+from vbridge.utils import get_item_dict, get_feature_description, group_features_by_entity, \
+    group_features_by_where_item
 
 LOGGER = logging.getLogger(__name__)
 
 
-def get_feature_schemas(fl, es):
-    def get_leaf(feature):
-        if len(feature.base_features) > 0:
-            return get_leaf(feature.base_features[0])
-        else:
-            return feature
+def get_feature_descriptions(fl, es=None, in_hierarchy=True):
+    """Get the descriptions of each feature.
 
-    def get_level2_leaf(feature):
-        if len(feature.base_features) == 0:
-            return None
-        elif len(feature.base_features) > 0 and len(feature.base_features[0].base_features) == 0:
-            return feature
-        else:
-            return get_level2_leaf(feature.base_features[0])
+    Args:
+        fl: list, a list of objects defining each features
+        es: featuretools.EntitySet, the entity set that includes all patients' health records.
+        in_hierarchy: boolean, whether to group the features
 
-    features = []
-    targets = []
-    target_names = Modeler.prediction_targets()
-    for f in fl:
-        leaf_node = get_leaf(f)
-        leve2_leaf_node = get_level2_leaf(f)
-        info = {
-            'id': f.get_name(),
-            'primitive': leve2_leaf_node and leve2_leaf_node.primitive.name,
-            'entityId': leaf_node.entity_id,
-            'columnId': leaf_node.get_name(),
-        }
-
-        if leve2_leaf_node and ('where' in leve2_leaf_node.__dict__):
-            entity_dict = get_item_dict(es, info['entityId'])
-            filter_name = leve2_leaf_node.where.get_name()
-            info['item'] = {
-                'columnId': filter_name.split(' = ')[0],
-                'itemId': filter_name.split(' = ')[1],
-                'itemAlias': entity_dict.get(filter_name.split(' = ')[1], None)
-            }
-            info['alias'] = leve2_leaf_node.primitive.name
-        else:
-            info['alias'] = leaf_node.get_name()
-
-        if '#' in f.get_name():
-            period = f.get_name().split('#')[0]
-            info['period'] = period
-        else:
-            info['period'] = 'others'
-
-        if info['period'] == 'in-surgery':
-            feature_type = 'In-surgery'
-        elif info['period'] == 'pre-surgery':
-            feature_type = 'Pre-surgery'
-        else:
-            if f.get_name() in ['Height', 'Weight', 'Age',
-                                'ADMISSIONS.ICD10_CODE_CN',
-                                'ADMISSIONS.PATIENTS.GENDER']:
-                feature_type = 'Pre-surgery'
-            else:
-                feature_type = 'In-surgery'
-
-        info['type'] = feature_type
-        if info['id'] in target_names:
-            targets.append(info)
-        else:
-            features.append(info)
-    return {
-        'targets': targets,
-        'features': features
-    }
+    Returns:
+        A list of dicts describing features.
+    """
+    item_dict = get_item_dict(es) if es is not None else None
+    features = [get_feature_description(f, item_dict) for f in fl]
+    if in_hierarchy:
+        # TODO: A sample grouping schema: entity (e.g., Vital Signs) -> items (e.g., Pulse)
+        #  -> specific feature (e.g., mean of Pulse)
+        features = group_features_by_where_item(features)
+        features = group_features_by_entity(features)
+    return features
 
 
-def get_feature_matrix(fm):
-    return Response(fm.to_csv(), mimetype="text/csv")
+def get_feature_values(fm):
+    entries = fm.to_csv()
+    return entries
 
 
-def get_feature_values(fm, subject_id):
-    subject_id = int(subject_id)
-    entry = fm.loc[subject_id].fillna('N/A').to_dict()
-    return jsonify(entry)
+def get_feature_value(fm, direct_id):
+    entry = fm.loc[direct_id].fillna('N/A').to_dict()
+    return entry
 
 
-class FeatureMeta(Resource):
-    def __init__(self):
-        self.fl = current_app.fl
-        self.es = current_app.es
+class FeatureSchema(Resource):
 
     def get(self):
         """
@@ -112,7 +61,8 @@ class FeatureMeta(Resource):
             $ref: '#/components/responses/ErrorMessage'
         """
         try:
-            res = get_feature_schemas(self.fl, self.es)
+            settings = current_app.settings
+            res = get_feature_descriptions(settings['feature_list'], settings['entityset'])
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500
@@ -121,8 +71,6 @@ class FeatureMeta(Resource):
 
 
 class FeatureMatrix(Resource):
-    def __init__(self):
-        self.fm = current_app.fm
 
     def get(self):
         """
@@ -132,16 +80,18 @@ class FeatureMatrix(Resource):
           - feature
         responses:
           200:
-            description: A csv file containing feature values of all patients.
+            description: The values of features for all patients.
             content:
-              text/csv:
+              application/json:
                 schema:
                   type: string
           500:
             $ref: '#/components/responses/ErrorMessage'
         """
         try:
-            res = get_feature_matrix(self.fm)
+            settings = current_app.settings
+            res = get_feature_values(settings['feature_matrix'])
+            res = jsonify(res)
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500
@@ -150,25 +100,24 @@ class FeatureMatrix(Resource):
 
 
 class FeatureValues(Resource):
-    def __init__(self):
-        self.fm = current_app.fm
 
-    def get(self, subject_id):
+    def get(self, direct_id):
         """
         Get the feature values of a patient.
         ---
         tags:
           - feature
         parameters:
-          - name: subject_id
+          - name: direct_id
             in: path
             schema:
-              type: integer
+              type: string
             required: true
-            description: ID of the target patient.
+            description: the identifier of the patient's related entry in the target entity
+                (e.g., the admission id).
         responses:
           200:
-            description: The schema of the features.
+            description: The value of features for the required patient.
             content:
               application/json:
                 schema:
@@ -181,7 +130,9 @@ class FeatureValues(Resource):
             $ref: '#/components/responses/ErrorMessage'
         """
         try:
-            res = get_feature_values(self.fm, subject_id)
+            settings = current_app.settings
+            res = get_feature_value(settings['feature_matrix'], direct_id)
+            res = jsonify(res)
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500

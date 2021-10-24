@@ -1,24 +1,16 @@
 import argparse
-import sys
 
 from flask import Flask
 from flask_cors import CORS
 
-from vbridge import modeling
-from vbridge.data_loader.data import load_pic
-from vbridge.data_loader.utils import load_entityset, load_fm
+from vbridge.data_loader.data import create_entityset
 from vbridge.explainer.explanation import Explainer
-from vbridge.featurization import featurization
-from vbridge.featurization.featurization import Featurization, generate_cutoff_times
-from vbridge.modeling import model_manager, modeler
-from vbridge.modeling.model_manager import ModelManager
+from vbridge.featurization import Featurization
+from vbridge.modeling import ModelManager
+from vbridge.patient_selector import PatientSelector
+from vbridge.task import pic_48h_in_admission_mortality_task
 from vbridge.router.routes import add_routes
-from vbridge.router.utils import NpEncoder
-
-sys.modules['model'] = modeling
-sys.modules['model.model_manager'] = model_manager
-sys.modules['model.modeler'] = modeler
-sys.modules['model.featurization'] = featurization
+from vbridge.utils import load_fm, NpEncoder
 
 
 def create_app():
@@ -29,40 +21,55 @@ def create_app():
         template_folder='../../apidocs'
     )
 
+    settings = {
+        'entityset': None,
+        'task': None,
+        'target_entity': None,
+        'cutoff_time': None,
+        'feature_matrix': None,
+        'feature_list': None,
+        'models': None,
+        'selected_ids': None,
+        'signal_explainer': None
+    }
+
+    # create task
+    task = pic_48h_in_admission_mortality_task()
+    settings['task'] = task
+
     # load dataset
-    try:
-        es = load_entityset()
-    except FileNotFoundError:
-        es = load_pic(verbose=False)
-    app.es = es
-    app.cutoff_times = generate_cutoff_times(es)
+    es = create_entityset('pic', verbose=False)
+    settings['entityset'] = es
+
+    settings['target_entity'] = task.target_entity
+    settings['cutoff_time'] = task.get_cutoff_times(es)
 
     # load features
-    try:
-        fm, fl = load_fm()
-    except FileNotFoundError:
-        featurization = Featurization(es)
-        fm, fl = featurization.generate_features()
-
-    fm['SURGERY_NAME'] = fm['SURGERY_NAME'].apply(lambda row: row.split('+'))
-    app.fm = fm
-    app.fl = fl
+    feat = Featurization(es, task)
+    fm, fl = feat.generate_features(load_exist=True)
+    fm.index = fm.index.astype('str')
+    settings['feature_matrix'] = fm
+    settings['feature_list'] = fl
 
     # load model
     try:
         model_manager = ModelManager.load()
     except FileNotFoundError:
-        model_manager = ModelManager(fm)
+        model_manager = ModelManager(fm, es, task)
         model_manager.fit_all()
         print(model_manager.evaluate())
-    app.model_manager = model_manager
+        model_manager.save()
+    settings['models'] = model_manager
 
     # load similar patient group
-    app.selected_subject_ids = fm.index
+    settings['selector_vars'] = task.get_selector_vars(es)
+    selector = PatientSelector(es, settings['selector_vars'], settings['cutoff_time'])
+    settings['selector'] = selector
 
     # load explainer
-    app.ex = Explainer(es, fm, model_manager)
+    settings["explainer"] = Explainer(es, task, settings['cutoff_time'])
 
+    app.settings = settings
     app.json_encoder = NpEncoder
     CORS(app, resources={r"/api/*": {"origins": "*"}})
     add_routes(app)

@@ -5,7 +5,7 @@ import "./lineChart.css"
 
 import { getChildOrAppend, getScaleLinear, getScaleTime, IMargin, getMargin } from "./common";
 import { ISeries } from "data-forge";
-import { Segment, StatValues } from "type";
+import { Segment, StatValues } from "type/resource";
 
 export type PointLayout = {
     x: number,
@@ -71,7 +71,6 @@ export function drawLineChart(params: LineChartParams) {
         .call(d3.axisLeft(y).ticks(3))
         .attr("display", drawYAxis ? 'block' : 'none');
 
-    const line = d3.line().curve(d3.curveMonotoneX);
     const points: PointLayout[] = dates.map((date, i) => {
         return {
             x: t(date),

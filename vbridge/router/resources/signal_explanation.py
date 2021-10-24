@@ -1,72 +1,55 @@
 import logging
 
-import featuretools as ft
-from flask import current_app, jsonify
+from flask import current_app
 from flask_restful import Resource, reqparse
 
 LOGGER = logging.getLogger(__name__)
 
 
-def get_explain_signal(fm, ex, subject_id, item_id, selected_subject_ids=None):
-    if selected_subject_ids is not None:
-        reference_fm = fm.loc[selected_subject_ids]
-        reference_fm = reference_fm[reference_fm['complication'] == 0]
+def get_explain_signal(features, direct_id, fm, ex, selected_ids=None):
+    if selected_ids is not None:
+        reference_fm = fm.loc[selected_ids]
     else:
         reference_fm = fm
     important_segs = []
-    for primitive in ['mean', 'std', 'trend']:
-        if primitive.lower() == 'mean':
-            primitive_fn = ft.primitives.Mean()
-            feature_name = "in-surgery#MEAN(SURGERY_VITAL_SIGNS.VALUE WHERE ITEMID = %s)" % (
-                item_id)
-        elif primitive.lower() == 'std':
-            primitive_fn = ft.primitives.Std()
-            feature_name = "in-surgery#STD(SURGERY_VITAL_SIGNS.VALUE WHERE ITEMID = %s)" % (
-                item_id)
-        elif primitive.lower() == 'trend':
-            primitive_fn = ft.primitives.Trend()
-            feature_name = "in-surgery#TREND(SURGERY_VITAL_SIGNS.VALUE, MONITOR_TIME WHERE " \
-                           "ITEMID = %s)" % item_id
-        else:
-            raise ValueError("Unsupported feature name")
-        mean, std = reference_fm[feature_name].agg(['mean', 'std'])
-        target_value = fm.loc[subject_id, feature_name]
+    for f in features:
+        mean, std = reference_fm[f.get_name()].agg(['mean', 'std'])
+        target_value = fm.loc[direct_id, f.get_name()]
         important_segs.append({
-            'featureName': feature_name,
-            'segments': ex.occlusion_explain(item_id, "SURGERY_VITAL_SIGNS",
-                                             primitive_fn, subject_id,
-                                             flip=target_value < mean)})
+            'featureName': f.get_name(),
+            'segments': ex.occlusion_explain(f, direct_id, flip=target_value < mean)
+        })
 
-    return jsonify(important_segs)
+    return important_segs
 
 
 class SignalExplanation(Resource):
     def __init__(self):
 
-        parser_get = reqparse.RequestParser(bundle_errors=True)
-        parser_get.add_argument('subject_id', type=int, required=True, location='args')
-        parser_get.add_argument('item_id', type=str, required=True, location='args')
+        parser_get = reqparse.RequestParser()
+        parser_get.add_argument('features', type=str, required=True, location='args')
         self.parser_get = parser_get
 
-    def get(self):
+    def get(self, direct_id):
         """
         Get the important record segments contributing to related features with the given item ID.
         ---
         tags:
           - explanation
         parameters:
-          - name: subject_id
-            in: query
+          - name: direct_id
+            in: path
             schema:
-              type: integer
+              type: string
             required: true
-            description: ID of the target patient.
-          - name: item_id
+            description: The identifier of the patient's related entry in the target entity
+                (e.g., the admission id).
+          - name: features
             in: query
             schema:
               type: string
             required: true
-            description: ID of the item.
+            description: A list of feature names concatenated with comma.
         responses:
           200:
             description: The important time segments.
@@ -81,15 +64,19 @@ class SignalExplanation(Resource):
         """
         try:
             args = self.parser_get.parse_args()
+            feature_names = args.get('features', '').split(',')
         except Exception as e:
             LOGGER.exception(str(e))
             return {'message', str(e)}, 400
 
-        subject_id = args['subject_id']
-        item_id = args['item_id']
         try:
-            res = get_explain_signal(current_app.fm, current_app.ex, subject_id, item_id,
-                                     current_app.selected_subject_ids)
+            settings = current_app.settings
+            fm = settings["feature_matrix"]
+            fl = settings["feature_list"]
+            ex = settings["explainer"]
+            ids = settings.get('selected_ids', None)
+            features = [next(f for f in fl if f.get_name() == f_name) for f_name in feature_names]
+            res = get_explain_signal(features, direct_id, fm, ex, ids)
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500

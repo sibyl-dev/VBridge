@@ -5,10 +5,11 @@ import {
     CSSPropertiesFn,
     ChartOptions,
     getChildOrAppend,
-    defaultCategoricalColor,
 } from "./common";
+import { defaultCategoricalColor } from "./color";
 import HistogramLayout, { BinLayout, HistogramLayoutStyle } from './HistogramLayout'
 import Chart, { ChartProps } from "./Chart";
+
 import "./Histogram.scss";
 
 export type IHistogramOptions = Partial<HistogramLayoutStyle> & ChartOptions & {

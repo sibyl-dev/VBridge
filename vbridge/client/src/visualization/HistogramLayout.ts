@@ -13,6 +13,7 @@ export interface HistogramLayoutStyle {
     xScale?: d3.ScaleLinear<number, number>,
     yScale?: d3.ScaleLinear<number, number>,
     ticks?: number[],
+    tickNum?: number
 }
 
 const defaultHistogramLayoutStyle: HistogramLayoutStyle = {
@@ -62,7 +63,7 @@ export default class HistogramLayout {
     }
 
     private getTicks() {
-        const tickNum = d3.thresholdSturges(_.flatten(this._data));
+        const tickNum = this._style.tickNum || d3.thresholdSturges(_.flatten(this._data));
         return this.x.ticks(tickNum);
     }
 

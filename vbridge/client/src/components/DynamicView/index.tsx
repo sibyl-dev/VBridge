@@ -1,43 +1,28 @@
-import { Button, Card, Divider, Select, Spin } from "antd";
-import { PatientStatics } from "type/patient";
-import { Entity, ItemDict, ReferenceValueResponse, ReferenceValues, StatValues } from "type/entity";
 import * as React from "react";
 import * as _ from "lodash"
-import { DataFrame, IDataFrame, ISeries } from "data-forge";
-import { defaultMargin, getMargin, getScaleLinear, getScaleTime, IMargin } from "visualization/common";
+import { Button, Divider, Spin } from "antd";
+import { DataFrame, IDataFrame } from "data-forge";
+import { defaultMargin, getScaleLinear, getScaleTime, IMargin } from "visualization/common";
 import { CloseOutlined, ExpandAltOutlined, PushpinOutlined, ShrinkOutlined } from "@ant-design/icons";
 import { arrayShallowCompare } from "utils/common";
-import API from "router/api";
 import LineChart from "visualization/lineChart";
 
+import { SignalExplanation } from "type/resource";
+import { Entity, SignalMeta, Signal } from "type";
+import API from "../../router/api"
+
 import "./index.scss";
-import { FeatureSchema } from "type/feature";
-import { SignalExplanation } from "type/explanation";
-
-export interface SignalMeta {
-    entityId: string,
-    columnId: string,
-    itemId: string,
-    startTime: Date,
-    endTime: Date,
-    relatedFeatureNames: string[],
-    statValues?: StatValues,
-    featurePeriods?: (name: string) => [Date, Date]
-}
-
-export interface Signal extends SignalMeta {
-    data?: { dates: ISeries<number, Date>, values: ISeries<number, number> }
-}
+import { ColorManager } from "visualization/color";
 
 export interface DynamicViewProps {
     className: string,
-    patientStatics: PatientStatics,
-    patientTemporals: Entity<number, any>[],
+    directId: string,
+    patientTemporals: Entity<string, any>[],
     signalMetas: SignalMeta[],
-    featureSchemas: IDataFrame<number, FeatureSchema>,
-    align?: boolean,
+
     width: number,
-    color?: (entityName: string) => string,
+    colorManager?: ColorManager,
+
     updateFocusedFeatures?: (featureNames: string[]) => void,
     updatePinnedFocusedFeatures?: (featureNames: string[]) => void,
     pinSignal: (signalMeta: SignalMeta) => void;
@@ -59,7 +44,6 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
         };
 
         this.onPin = this.onPin.bind(this);
-        this.tableNamesChange = this.tableNamesChange.bind(this);
     }
     componentDidMount() {
         this.initSignals();
@@ -98,17 +82,6 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
         }
     }
 
-    private tableNamesChange(name: string){
-        if(name == 'LABEVENTS')
-          return 'Lab Tests'
-        if(name == 'SURGERY_VITAL_SIGNS')
-          return 'Vital Signs'
-        if(name == 'CHARTEVENTS')
-          return 'Chart Events'
-        return 'Prescriptions'
-    
-      }
-
     private onPin(signal: SignalMeta) {
         const { updatePinnedFocusedFeatures, pinSignal } = this.props;
         updatePinnedFocusedFeatures && updatePinnedFocusedFeatures(signal.relatedFeatureNames);
@@ -116,11 +89,11 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
     }
 
     public render() {
-        const { patientStatics: patientMeta, color, updateFocusedFeatures, removeSignal, className, align, width } = this.props;
+        const { colorManager, removeSignal, className, width, directId } = this.props;
         const { signalGroups, globalStartTime, globalEndTime } = this.state;
         const margin = { bottom: 20, left: 30, top: 15, right: 10 };
         let xScale: d3.ScaleTime<number, number> | undefined = undefined;
-        if (align && globalStartTime && globalEndTime) {
+        if (globalStartTime && globalEndTime) {
             const paddingTime = (globalEndTime.getTime() - globalStartTime.getTime()) * 0.05;
             const paddedStartTime = new Date(globalStartTime.getTime() - paddingTime);
             const paddedEndTime = new Date(globalEndTime.getTime() + paddingTime);
@@ -128,28 +101,23 @@ export default class DynamicView extends React.PureComponent<DynamicViewProps, D
         }
         return (
             <div>
-                <div>
-                    {signalGroups.map(group => <div key={group.first().entityId}>
-                        <Divider style={{margin: 8}}>{this.tableNamesChange(group.first().entityId)}</Divider>
-                        {group.toArray().map((signal, i) =>
-                            <DynamicCard
-                                className={className}
-                                patientStatics={patientMeta}
-                                signal={signal}
-                                key={signal.itemId}
-                                align={true}
-                                xScale={xScale}
-                                width={width}
-                                margin={margin}
-                                color={color && color(signal.entityId)}
-                                // onHover={updateFocusedFeatures && (() => updateFocusedFeatures(signal.relatedFeatureNames))}
-                                // onLeave={updateFocusedFeatures && (() => updateFocusedFeatures([]))}
-                                onRemove={removeSignal && (() => removeSignal(signal))}
-                                onPin={() => this.onPin(signal)}
-                            />)}
-                    </div>
-                    )}
+                {signalGroups.map(group => <div key={group.first().entityId}>
+                    <Divider style={{ margin: 8 }}>{group.first().entityId}</Divider>
+                    {group.toArray().map((signal) =>
+                        <DynamicCard
+                            className={className}
+                            directId={directId}
+                            signal={signal}
+                            key={signal.itemId}
+                            xScale={xScale}
+                            width={width}
+                            margin={margin}
+                            color={colorManager && colorManager.entityColor(signal.entityId)}
+                            onRemove={removeSignal && (() => removeSignal(signal))}
+                            onPin={() => this.onPin(signal)}
+                        />)}
                 </div>
+                )}
             </div>
         )
     }
@@ -170,13 +138,10 @@ const defaultTimeSeriesStyle: TimeSeriesStyle = {
 }
 
 export interface DynamicCardProps extends Partial<TimeSeriesStyle> {
-    signal: Signal,
-    patientStatics: PatientStatics,
     className: string,
-    align?: boolean,
-    // timeSeriesStyle: Partial<TimeSeriesStyle>,
+    signal: Signal,
+    directId: string,
     xScale?: d3.ScaleTime<number, number>,
-    itemDicts?: ItemDict,
     updateFocusedFeatures?: (featureNames: string[]) => void,
     updatePinnedFocusedFeatures?: (featureName: string) => void,
     onHover?: () => void;
@@ -190,7 +155,7 @@ export interface DynamicCardStates {
     pinned: boolean,
     explain: boolean,
     loading: boolean,
-    segmentExplanation?: SignalExplanation[]
+    segmentExplanation?: SignalExplanation
 }
 
 export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardStates> {
@@ -203,7 +168,7 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
             explain: false,
             loading: false,
         };
-        // this.loadSegmentExplanation = this.loadSegmentExplanation.bind(this);
+        this.loadExplanation = this.loadExplanation.bind(this);
 
         this.onExpand = this.onExpand.bind(this);
         this.onCollapse = this.onCollapse.bind(this);
@@ -211,16 +176,14 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
         this.onExplain = this.onExplain.bind(this);
     }
 
-    // private async loadSegmentExplanation() {
-    //     this.setState({ loading: true });
-    //     const { signal, patientMeta } = this.props;
-    //     const { itemName, tableName } = signal;
-    //     if (tableName === 'SURGERY_VITAL_SIGNS') {
-    //         const segmentExplanation = await API.signalExplanation.find({ subject_id: patientMeta.id, item_id: itemName });
-    //         this.setState({ segmentExplanation, loading: false });
-    //     }
-    //     this.setState({ loading: false });
-    // }
+    private async loadExplanation() {
+        this.setState({ loading: true });
+        const { signal, directId } = this.props;
+        const { relatedFeatureNames } = signal;
+        console.log(relatedFeatureNames);
+        const segmentExplanation = await API.signalExplanation.find(directId, {}, {features: relatedFeatureNames.join(',')});
+        this.setState({ segmentExplanation, loading: false });
+    }
 
     private onExpand() {
         this.setState({ expand: true });
@@ -239,21 +202,17 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
         const { explain, segmentExplanation } = this.state;
         if (explain) this.setState({ explain: false })
         else {
-            // if (!segmentExplanation)
-            //     this.loadSegmentExplanation();
+            if (!segmentExplanation)
+                this.loadExplanation();
             this.setState({ explain: true });
         }
     }
 
     public render() {
-        const { className, signal, itemDicts, width, height, color, margin, xScale, onHover, onLeave, onRemove } =
+        const { className, signal, width, height, color, margin, xScale, onHover, onLeave, onRemove } =
             { ...defaultTimeSeriesStyle, ...this.props };
-        const { expand, pinned, segmentExplanation, explain } = this.state;
-        const { entityId, itemId, data, startTime, endTime, statValues } = signal;
-
-        // const itemLabel = itemDicts && itemDicts(tableName, itemName)?.LABEL;
-
-        console.log('DynamicView', margin, height);
+        const { expand, pinned, explain, segmentExplanation } = this.state;
+        const { itemId, itemAlias, data, statValues } = signal;
 
         return <div className={"ts-card"} id={`${className}-${signal.itemId}`}
             style={{ borderLeftColor: color || '#aaa', borderLeftWidth: 4 }}
@@ -261,11 +220,11 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
             <Spin spinning={this.state.loading} delay={500}>
                 {data && <LineChart
                     data={data}
-                    // segments={explain ? segmentExplanation && _.flatten(segmentExplanation.map(d => d.segments)) : []}
+                    segments={explain ? segmentExplanation && _.flatten(segmentExplanation.map(d => d.segments)) : []}
                     height={expand ? height : 32}
                     width={width}
                     xScale={xScale}
-                    margin={expand ? margin : { ...margin, top: 4, bottom: 0}}
+                    margin={expand ? margin : { ...margin, top: 4, bottom: 0 }}
                     color={color}
                     expand={expand}
                     yScale={expand ? undefined : getScaleLinear(15, 15, undefined, [-1, 1])}
@@ -277,16 +236,17 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
                 />}
             </Spin>
             <div className={"ts-title-float"} style={{ width: width }}>
-                {/* <span className={"ts-title-float-text"}>{`${itemLabel || itemName} (${timeDeltaPrinter(startTime, endTime)})`}</span> */}
-                <span className={"ts-title-float-text"}>{`${itemId}`}</span>
+                <span className={"ts-title-float-text"}>{`${itemAlias || itemId}`}</span>
 
                 <Button size="small" type="primary" shape="circle" icon={<PushpinOutlined />} className={"ts-title-button"}
                     style={{ display: pinned ? 'block' : undefined }} onClick={this.onPin}
                 />
                 <Button size="small" type="primary" shape="circle" icon={<CloseOutlined />} className={"ts-title-button"}
                     onClick={onRemove} />
-                {expand ? <Button size="small" type="primary" shape="circle" icon={<ShrinkOutlined />} className={"ts-title-button"} onClick={this.onCollapse} />
-                    : <Button size="small" type="primary" shape="circle" icon={<ExpandAltOutlined />} className={"ts-title-button"} onClick={this.onExpand} />}
+                {expand ? <Button size="small" type="primary" shape="circle" icon={<ShrinkOutlined />}
+                    className={"ts-title-button"} onClick={this.onCollapse} />
+                    : <Button size="small" type="primary" shape="circle" icon={<ExpandAltOutlined />}
+                        className={"ts-title-button"} onClick={this.onExpand} />}
                 <Button size="small" type="primary" shape="circle" className={"ts-title-button"} onClick={this.onExplain}>E</Button>
             </div>
         </div>

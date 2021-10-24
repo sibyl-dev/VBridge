@@ -1,86 +1,35 @@
 import * as React from "react";
 import { Row, Col, Divider, Button } from "antd"
-import { beautifulPrinter, defaultCategoricalColor } from "visualization/common";
-import "./index.scss"
-import { IDataFrame } from "data-forge";
-import { FeatureSchema } from "type/feature";
+import { FeatureSchema, PatientStatics } from "type/resource";
 import { PushpinOutlined } from "@ant-design/icons";
+
+import "./index.scss"
+import _ from "lodash";
+import { ColorManager } from "visualization/color";
 
 export interface MetaViewProps {
     className?: string,
-    patientIds?: number[],
-    patientInfoMeta?: { [key: string]: any },
-    days?: number,
-    featureMeta: IDataFrame<number, FeatureSchema>,
+    patientStatics?: PatientStatics,
+    featureSchema: FeatureSchema[],
     updateFocusedFeatures?: (featureNames: string[]) => void,
     updatePinnedFocusedFeatures?: (featureNames: string[]) => void,
-    entityCategoricalColor?: (entityName: string | undefined) => string,
+    colorManager?: ColorManager,
 }
 
-export interface MetaViewStates { }
-
-export type MetaItems = {
-    name: string,
-    itemNames: string[],
-}
-
-export default class MetaView extends React.PureComponent<MetaViewProps, MetaViewStates> {
-
-    private metaItems: MetaItems[];
-    private leftMetaItems: MetaItems[];
-    private rightMetaItems: MetaItems[];
-    private layout: number[] = [1, 10, 1, 11, 1];
+export default class MetaView extends React.PureComponent<MetaViewProps> {
 
     constructor(props: MetaViewProps) {
         super(props);
-        this.metaItems = [
-            {
-                name: 'Demographic',
-                itemNames: ['Age', 'GENDER', 'Height', 'Weight', 'LANGUAGE', 'ETHNICITY']
-            },
-            {
-                name: 'Admission',
-                itemNames: ['ADMISSION_DEPARTMENT', 'DIAGNOSIS', 'ICD10_CODE_CN', 'INSURANCE']
-            },
-            {
-                name: 'Surgery',
-                itemNames: ['SURGERY_NAME', 'SURGERY_POSITION', 'ANES_METHOD',
-                    // 'ANES_START_TIME', 'ANES_END_TIME', 'SURGERY_BEGIN_TIME', 'SURGERY_END_TIME',
-                    'Surgical time (minutes)', 'CPB time (minutes)', 'Aortic cross-clamping time (times)'
-                ]
-            }
-        ]
-
-        this.leftMetaItems = [
-            {
-                name: 'Patient Info',
-                itemNames: ['Age', 'GENDER', 'Height', 'Weight', 'ADMISSION_DEPARTMENT', 'DIAGNOSIS', 'ICD10_CODE_CN']
-            },
-            // {
-            //     name: 'Admission',
-            //     itemNames: ['ADMISSION_DEPARTMENT', 'DIAGNOSIS', 'ICD10_CODE_CN']
-            // },
-        ]
-        this.rightMetaItems = [
-
-            {
-                name: 'Surgery Info',
-                itemNames: ['SURGERY_NAME', 'SURGERY_POSITION',
-                    // 'ANES_START_TIME', 'ANES_END_TIME', 'SURGERY_BEGIN_TIME', 'SURGERY_END_TIME',
-                    'Surgical time (minutes)', 'CPB time (minutes)'
-                ]
-            }
-        ]
         this.onHover = this.onHover.bind(this);
         this.onLeave = this.onLeave.bind(this);
         this.onPin = this.onPin.bind(this);
     }
 
     private onHover(name: string) {
-        const { updateFocusedFeatures, featureMeta } = this.props;
-        const targetFeature = featureMeta.where(row => row.alias === name);
-        if (targetFeature.count() > 0)
-            updateFocusedFeatures && updateFocusedFeatures([targetFeature.first().id!]);
+        const { updateFocusedFeatures, featureSchema: featureMeta } = this.props;
+        const targetFeature = featureMeta.find(row => row.alias === name);
+        if (targetFeature)
+            updateFocusedFeatures && updateFocusedFeatures([targetFeature.id]);
     }
 
     private onLeave() {
@@ -89,70 +38,104 @@ export default class MetaView extends React.PureComponent<MetaViewProps, MetaVie
     }
 
     private onPin(name: string) {
-        const { updatePinnedFocusedFeatures, featureMeta } = this.props;
-        const targetFeature = featureMeta.where(row => row.alias === name);
-        if (targetFeature.count() > 0)
-            updatePinnedFocusedFeatures && updatePinnedFocusedFeatures([targetFeature.first().id!]);
+        const { updatePinnedFocusedFeatures, featureSchema: featureMeta } = this.props;
+        const targetFeature = featureMeta.find(row => row.alias === name);
+        if (targetFeature)
+            updatePinnedFocusedFeatures && updatePinnedFocusedFeatures([targetFeature.id]);
+    }
+
+    private balanceItems(patientStatics?: PatientStatics): [PatientStatics, PatientStatics] {
+        const left: PatientStatics = [];
+        const right: PatientStatics = [];
+        patientStatics?.forEach(entity => {
+            if (_.sum(left.map(e => Object.keys(e.items)))
+                <= _.sum(right.map(e => Object.keys(e.items)))) {
+                left.push(entity);
+            }
+            else {
+                right.push(entity);
+            }
+        })
+        return [left, right];
     }
 
     public render() {
-        const { patientInfoMeta, featureMeta, days, className, entityCategoricalColor } = this.props;
-        const featureAlias = featureMeta.getSeries('alias').toArray();
+        const { patientStatics, featureSchema, className, colorManager } = this.props;
+        const featureAlias = featureSchema.map(f => f.alias);
+        const [left, right] = this.balanceItems(patientStatics);
         return (
             <div className={"meta-view"}>
-                {patientInfoMeta && this.metaItems.map(metaItem => <div key={metaItem.name}>
-                    <Divider className='metaInfoTitle' orientation="center" style={{ margin: 6 }}> {metaItem.name} </Divider>
-                    {metaItem.itemNames.map(name => {
-                        var value = patientInfoMeta[name]
-                        if (name.indexOf("TIME") != -1) {
-                            // console.log('TIME', name);
-                            value = value.substr(11, 8);
-                        }
-                        // if(name.indexOf('(minutes)'))
-                        //     name = name.replace(/minutes/g, 'mins')
-                        if (name == 'Height')
-                            name = name + ' (cm)'
-                        if (name == 'Weight')
-                            name = name + ' (kg)'
-                        if (name == 'Age' && days) {
-                            let y = Math.floor(days / 360)
-                            let m = Math.floor((days % 360) / 30)
-                            let d = (days % 360 % 30)
-                            value = (y ? y + 'Y ' : '') + (m || y ? m + 'M ' : '') + d + 'D'
-                        }
-
-                        return <MetaItem
-                            className={className}
-                            category={metaItem.name}
-                            name={name}
-                            key={name}
-                            value={value}
-                            featureAlias={featureAlias}
-                            layout={this.layout}
-                            onHover={() => this.onHover(name)}
-                            onLeave={this.onLeave}
-                            onPin={() => this.onPin(name)}
-                            entityCategoricalColor={entityCategoricalColor}
-                        />
-                    })}
-                </div>
-                )}
+                <MetaColumn
+                    entities={left}
+                    className={className}
+                    featureAlias={featureAlias}
+                    onHover={this.onHover}
+                    onLeave={this.onLeave}
+                    onPin={this.onPin}
+                    colorManager={colorManager}
+                />
+                <MetaColumn
+                    entities={right}
+                    className={className}
+                    featureAlias={featureAlias}
+                    onHover={this.onHover}
+                    onLeave={this.onLeave}
+                    onPin={this.onPin}
+                    colorManager={colorManager}
+                />
             </div>
         )
     }
 }
 
-export interface MetaItemProps {
+interface MetaColumnProps extends MetaItemParams {
     className?: string,
-    category: string,
+    entities: PatientStatics,
+
+    onHover: (name: string) => void,
+    onLeave: () => void,
+    onPin?: (name: string) => void,
+}
+
+const MetaColumn = (params: MetaColumnProps) => {
+    const { entities, onHover, onPin, ...rest } = params;
+    return (<div className={"meta-view-column"}>
+        {entities.map(items => <div key={items.entityId}>
+            <Divider orientation="center" style={{ margin: 6 }}> {items.entityId} </Divider>
+            {Object.keys(items.items).map(name => {
+                let value = items.items[name];
+                if (name.indexOf("TIME") != -1) {
+                    value = value.substr(11, 8);
+                }
+
+                return <MetaItem
+                    key={name}
+                    name={name}
+                    value={value}
+                    entityId={items.entityId}
+                    onHover={() => onHover(name)}
+                    onPin={onPin && (() => onPin(name))}
+                    {...rest}
+                />
+            })}
+        </div>
+        )}
+    </div>)
+}
+
+export interface MetaItemParams {
+    featureAlias: string[],
+    colorManager?: ColorManager,
+}
+
+export interface MetaItemProps extends MetaItemParams {
+    className?: string,
     name: string,
     value: any,
-    featureAlias: string[],
+    entityId: string,
     onHover: () => void,
     onLeave: () => void,
     onPin?: () => void,
-    layout: number[],
-    entityCategoricalColor?: (entityName: string | undefined) => string,
 }
 
 export interface MetaItemStates {
@@ -174,32 +157,25 @@ export class MetaItem extends React.PureComponent<MetaItemProps, MetaItemStates>
     }
 
     public render() {
-        const { category, name, value, featureAlias, layout, onHover, onLeave, className, entityCategoricalColor } = this.props;
+        const { entityId, name, value, featureAlias, onHover, onLeave, className, colorManager } = this.props;
         const { pinned } = this.state;
         let displayName = name.replace(/_/g, " ");
-        if (!['CPB time (minutes)', 'ICD10 CODE CN'].includes(displayName)) {
-            displayName = displayName.toLocaleLowerCase();
-            displayName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
-        }
-        if (name === 'Aortic cross-clamping time (times)') {
-            displayName = 'Aortic cross-clamping time (minutes)';
-        }
 
         return <Row className={'meta-item'} id={`${className}-${name}`}
             style={{
                 borderLeftWidth: featureAlias.includes(name) ? 4 : 0,
-                borderLeftColor: entityCategoricalColor ? entityCategoricalColor(category) : defaultCategoricalColor(0)
+                borderLeftColor: colorManager?.entityColor(entityId)
             }}
             onMouseOver={onHover} onMouseOut={onLeave}>
-            <Col span={layout[0]} />
-            <Col span={layout[1]}>
+            <Col span={1} />
+            <Col span={10}>
                 <span className="details-title"> {displayName}: </span>
             </Col>
-            <Col span={layout[2]} />
-            <Col span={layout[3]}>
-                <div className={`value ${category}`} >{displayName === 'Diagnosis' ? 'CHD' : value}</div>
+            <Col span={1} />
+            <Col span={11}>
+                <div className={`value`} >{displayName === 'Diagnosis' ? 'CHD' : value}</div>
             </Col>
-            <Col span={layout[4]}>
+            <Col span={1}>
                 {(featureAlias.includes(name)) && <Button size="small" type="primary"
                     shape="circle"
                     icon={<PushpinOutlined />} onClick={this.pin}

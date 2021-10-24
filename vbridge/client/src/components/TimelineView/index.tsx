@@ -1,36 +1,32 @@
 import * as React from "react";
 import * as d3 from "d3";
 import * as _ from "lodash"
-import { PatientStatics } from "type/patient";
-import { Entity, ReferenceValueResponse } from "type/entity";
 import {
-    QUATER_IN_MILI, defaultCategoricalColor, getScaleTime, IMargin, calIntervalsByQuarter,
-    getRefinedStartEndTime, getQuarter
+    QUATER_IN_MILI, getScaleTime, IMargin, calIntervalsByQuarter,
+    getRefinedStartEndTime
 } from "visualization/common";
-import { IEvent, IEventBin } from "type/event";
-import { FeatureSchema } from "type/feature";
-import { IDataFrame, ISeries } from "data-forge";
+import { Entity } from "type/entity";
+import { IEventBin, groupCoinEvents, binEvents } from "type/event";
+import { FeatureSchema, ReferenceValueResponse } from "type/resource";
 import { isDefined } from "utils/common";
+import { ColorManager } from "visualization/color";
+import Timeline from "./Timeline";
 
 import "./index.scss"
-import Timeline from "visualization/Timeline";
 
 export interface TimelineViewProps {
     tableNames: string[],
-    patientStatics: PatientStatics,
-    featureSchema: IDataFrame<number, FeatureSchema>,
-    patientTemporals: Entity<number, any>[],
+    featureSchema: FeatureSchema[],
+    entities: Entity<string, any>[],
     onSelectEvents?: (entityName: string, startDate: Date, endDate: Date) => void,
-    entityCategoricalColor?: (entityName?: string) => string,
     referenceValues?: ReferenceValueResponse,
+    colorManager?: ColorManager,
 }
 
 export interface TimelineViewStates {
-    timeScale?: d3.ScaleTime<number, number>,
     eventBins?: IEventBin[][],
-    intervalByQuarter?: number,
-    startTime?: Date,
-    endTime?: Date,
+    interval: number,
+    extent: [Date, Date]
 }
 
 export default class TimelineView extends React.Component<TimelineViewProps, TimelineViewStates> {
@@ -40,135 +36,83 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
     private rowHeight: number = 40;
     constructor(props: TimelineViewProps) {
         super(props);
-        this.state = {};
 
-        this._extractEvents = this._extractEvents.bind(this);
-        this.color = this.color.bind(this);
+        this.state = { ...this.getTimeScale(props.entities) };
+
+        this.extractEvents = this.extractEvents.bind(this);
+        this.getTimeScale = this.getTimeScale.bind(this);
     }
 
     public componentDidMount() {
-        this.init();
+        this.updateTimeScale();
+        this.extractEvents();
     }
 
-    public init() {
-        const { patientStatics } = this.props
-        let startDate = new Date(patientStatics.ADMITTIME);
-        let endDate = new Date(patientStatics.SURGERY_END_TIME);
-        if (startDate && endDate) {
-            const intervalByQuarter = calIntervalsByQuarter(startDate, endDate, 9, 16);
-            const extent = getRefinedStartEndTime(startDate, endDate, intervalByQuarter);
-            const timeScale = getScaleTime(0, this.ref.current!.offsetWidth - this.margin.left
-                - this.margin.right - this.titleWidth, undefined, extent);
-            this.setState({ startTime: extent[0], endTime: extent[1], timeScale: timeScale, intervalByQuarter },
-                () => this._extractEvents());
+    public componentDidUpdate(prevProps: TimelineViewProps) {
+        if (prevProps.entities !== this.props.entities) {
+            this.updateTimeScale();
+        }
+        if (prevProps.referenceValues !== this.props.referenceValues) {
+            this.extractEvents();
         }
     }
 
-    public componentDidUpdate(prevProps: TimelineViewProps, prevStates: TimelineViewStates) {
-        if (prevProps.patientStatics !== this.props.patientStatics) {
-            this.init()
-        }
-        if (prevStates.timeScale !== this.state.timeScale) {
-            // this.calIntervals()
-        }
+    private getTimeScale(entities: Entity<string, any>[]) {
+        const recordTimes: Date[] = _.flatten(entities.map(entity => {
+            const { time_index } = entity.schema;
+            const _recordTimes = entity.getSeries(time_index!).parseDates().toArray();
+            return [_.min(_recordTimes), _.max(_recordTimes)]
+        })).filter(isDefined);
+
+        const earlest = _.min(recordTimes)!;
+        const latest = _.max(recordTimes)!;
+        const interval = calIntervalsByQuarter(earlest, latest, 9, 16);
+        const extent = getRefinedStartEndTime(earlest, latest, interval);
+        return { extent, interval };
     }
 
-    private _extractEvents() {
-        const { patientTemporals: tableRecords, referenceValues } = this.props
-        const { intervalByQuarter, startTime, endTime } = this.state
+    private updateTimeScale() {
+        const { entities } = this.props;
+        const { extent, interval } = this.getTimeScale(entities);
+        this.setState({ extent, interval });
+    }
 
-        if (tableRecords && intervalByQuarter && startTime) {
-            const eventBins: IEventBin[][] = [];
-            for (const entity of tableRecords) {
-                const { time_index, id, value_indexes } = entity.schema;
-                const referenceValueDict = referenceValues && referenceValues[id]
+    private extractEvents() {
+        const { entities, referenceValues } = this.props
+        const { interval, extent } = this.state
 
-                const eventSeries: ISeries<number, IEvent> = entity.groupBy(row => row[time_index!]).select(group => {
-                    const { item_index, value_indexes } = entity.schema;
-                    const sample = group.first();
-                    const items = _.uniq(group.getSeries(item_index!).toArray());
-                    const abnormalItems: string[] = [];
-                    let abnormalyCount = undefined;
-                    if (referenceValueDict && value_indexes) {
-                        abnormalyCount = group.where(row => {
-                            const item = row[item_index!]
-                            if (item_index) {
-                                const value_index = value_indexes[0];
-                                const StatValues = referenceValueDict && referenceValueDict[item][value_index];
-                                if (StatValues) {
-                                    const outOfRange = (row[value_index] > StatValues?.ci95[1]) ||
-                                        (row[value_index] < StatValues?.ci95[0]);
-                                    if (outOfRange) {
-                                        abnormalItems.push(item);
-                                    }
-                                    return outOfRange
-                                }
-                            }
-                            return false
-                        }).count()
-                    }
-                    return {
-                        entityName: id,
-                        timestamp: new Date(sample[time_index!]),
-                        count: group.count(),
-                        abnormalyCount: abnormalyCount,
-                        items: items,
-                        abnormalItems: abnormalItems
-                    }
-                });
-
-                const eventBinSeries: ISeries<number, IEventBin> = eventSeries
-                    .groupBy(row => Math.floor(getQuarter(row.timestamp) / intervalByQuarter))
-                    .select(group => {
-                        const sample = group.first();
-                        const binId = Math.floor((getQuarter(sample.timestamp) - getQuarter(startTime)) / intervalByQuarter);
-                        const binStartTime = new Date(startTime.getTime() + binId * (QUATER_IN_MILI * intervalByQuarter));
-                        const binEndTime = new Date(startTime.getTime() + (binId + 1) * (QUATER_IN_MILI * intervalByQuarter));
-                        const groupArray = group.toArray();
-                        const items: string[] = _.uniq(_.flatten(groupArray.map(d => d.items).filter(isDefined)));
-                        const abnormalItems: string[] = _.uniq(_.flatten(groupArray.map(d => d.abnormalItems).filter(isDefined)));
-                        return {
-                            entityName: sample.entityName,
-                            binStartTime, binEndTime, binId,
-                            count: _.sum(groupArray.map(d => d.count)),
-                            abnormalyCount: _.sum(groupArray.map(d => d.abnormalyCount).filter(isDefined)),
-                            items: items,
-                            abnormalItems: abnormalItems
-                        }
-                    });
-                eventBins.push(eventBinSeries.toArray());
+        const eventBins: IEventBin[][] = [];
+        for (const entity of entities) {
+            const refVal = referenceValues && referenceValues[entity.id];
+            const eventGroups = groupCoinEvents(entity, refVal);
+            const eventBin = interval && extent && binEvents(eventGroups, interval, extent[0]);
+            if (eventBin) {
+                eventBins.push(eventBin.toArray());
             }
-            this.setState({ eventBins });
         }
-    }
-
-    private color(id: number) {
-        const { entityCategoricalColor, patientTemporals: tableRecords } = this.props;
-        if (entityCategoricalColor && tableRecords) {
-            return entityCategoricalColor(tableRecords[id].id);
-        }
-        else {
-            return defaultCategoricalColor(id);
-        }
+        this.setState({ eventBins });
     }
 
     public render() {
-        const { patientTemporals: tableRecords, onSelectEvents } = this.props;
-        const { timeScale, eventBins, startTime, endTime, intervalByQuarter } = this.state;
+        const { entities, onSelectEvents, colorManager } = this.props;
+        const { eventBins, interval, extent } = this.state;
 
         return (
             <div className="timeline-view-container" ref={this.ref}>
                 {timeLineLegend()}
                 {eventBins && eventBins.map((events, i) => {
-                    const title = tableRecords[i].schema?.alias;
+                    const entity = entities[i];
                     const width = this.ref.current!.offsetWidth;
+                    const timeScale = getScaleTime(0, width - this.margin.left
+                        - this.margin.right - this.titleWidth, undefined, extent);
                     return <div className={"timeline-container"} key={i}>
                         <div className={"timeline-title"}
                             style={{
-                                height: this.rowHeight, width: this.titleWidth, borderLeftColor: this.color(i),
+                                height: this.rowHeight, width: this.titleWidth,
+                                borderLeftColor: colorManager?.entityColor(entity.id),
                                 marginTop: i === 0 ? 20 : 0
-                            }} key={title}>
-                            <span className={"timeline-title-text"}>{title === 'Chart Signs' ? 'Chart Events' : title}</span>
+                            }} key={entity.id}>
+                            <span className={"timeline-title-text"}>{entity.schema.alias}</span>
                         </div>
                         <Timeline
                             events={events}
@@ -178,8 +122,8 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
                             height={this.rowHeight + (i === 0 ? 20 : 0)}
                             style={{ position: 'absolute', 'left': this.titleWidth + 15 }}
                             onSelectEvents={(startDate: Date, endDate: Date) =>
-                                onSelectEvents && onSelectEvents(tableRecords[i].id!, startDate, endDate)}
-                            binTime={intervalByQuarter! * QUATER_IN_MILI}
+                                onSelectEvents && onSelectEvents(entity.id!, startDate, endDate)}
+                            binTime={interval! * QUATER_IN_MILI}
                             drawTicks={i === 0}
                         />
                     </div>

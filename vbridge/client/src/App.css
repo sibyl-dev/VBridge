@@ -11,6 +11,7 @@
 
 .app-header {
     line-height: 38px;
+    background: '#001529';
 }
 
 .system-name {
@@ -22,20 +23,6 @@
     justify-content: center;
     align-items: center;
     margin-top: 7px;
-}
-
-.view-title {
-    display: flex;
-    width: 100%;
-    justify-content: center;
-    align-items: center;
-}
-
-.view-title-text {
-    position: absolute;
-    color: #fff;
-    left: 10px;
-    top: 0px;
 }
 
 .system-info {
@@ -55,22 +42,6 @@
 
 .group-count {
     margin-right: 10px
-}
-
-.widget {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: absolute;
-    right: 10px;
-    top: 0px;
-}
-
-.widget-text {
-    margin-left: 10px;
-    margin-right: 5px;
-    /* color: #7fa5ec; */
-    color: #fff;
 }
 
 .ant-switch-inner {
@@ -149,14 +120,24 @@
 }
 
 .ant-drawer-header {
-    background-color: #e8f0fa;
-    height: 50px;
+    height: 30px;
+    /* background-color: #e8f0fa; */
+    background-color: #97c4d0;
+    cursor: move;
+    line-height: 30px;
+    border-radius: 2px;
 }
 
 .ant-drawer-title {
+    position: absolute;
+    color: #fff;
+    left: 10px;
+    top: 5px;
     font-weight: bold;
-    float: left;
-    margin-left: 10px;
+}
+
+.ant-drawer-close {
+    padding-top: 8px;
 }
 
 .patient-selector-title {
@@ -202,19 +183,15 @@
     opacity: 0.4;
 }
 
-.healthy-legend {
+.label-legend-container {
     width: 120px;
     height: 100%;
-    /*height: calc(100% - 20px);*/
-    /*max-height: 40px;*/
-    /*background-color: #fff;*/
     border-radius: 2px;
     justify-content: center;
     align-items: center;
     float: left;
     padding-left: 15px;
     border-left: #fff 2px solid;
-    /*border-right: #fff 2px solid;*/
 }
 
 .category-legend-container {
