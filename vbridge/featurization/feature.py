@@ -22,12 +22,12 @@ class Featurization:
     @staticmethod
     def select_features(fm, fl=None):
         if fl is None:
-            fm = remove_highly_null_features(fm, pct_null_threshold=0.9)
+            fm = remove_highly_null_features(fm, pct_null_threshold=0.7)
             fm = remove_low_information_features(fm)
             fm = remove_highly_correlated_features(fm)
             return fm
         else:
-            fm, fl = remove_highly_null_features(fm, fl, pct_null_threshold=0.9)
+            fm, fl = remove_highly_null_features(fm, fl, pct_null_threshold=0.7)
             fm, fl = remove_low_information_features(fm, fl)
             fm, fl = remove_highly_correlated_features(fm, fl)
             return fm, fl
@@ -85,18 +85,18 @@ class Featurization:
             fm, fl = load_fm()
         else:
             fp = []
-            cutoff_times = self.task.get_cutoff_times(self.es)
+            cutoff_time = self.task.get_cutoff_times(self.es)
             if 'PATIENTS' in self.entity_ids:
-                fp.append(self._patients(cutoff_times=cutoff_times,
+                fp.append(self._patients(cutoff_time=cutoff_time,
                                          save=save, load_exist=load_exist, verbose=verbose))
             if 'CHARTEVENTS' in self.entity_ids:
-                fp.append(self._chart_events(cutoff_times=cutoff_times,
+                fp.append(self._chart_events(cutoff_time=cutoff_time,
                                              save=save, load_exist=load_exist, verbose=verbose))
             if 'SURGERY_VITAL_SIGNS' in self.entity_ids:
-                fp.append(self._vital_signs(cutoff_times=cutoff_times,
+                fp.append(self._vital_signs(cutoff_time=cutoff_time,
                                             save=save, load_exist=load_exist, verbose=verbose))
             if 'LABEVENTS' in self.entity_ids:
-                fp.append(self._lab_tests(cutoff_times=cutoff_times,
+                fp.append(self._lab_tests(cutoff_time=cutoff_time,
                                           save=save, load_exist=load_exist, verbose=verbose))
 
             fm, fl = Featurization.merge_features([f[0] for f in fp], [f[1] for f in fp])
@@ -107,13 +107,13 @@ class Featurization:
                 save_fm(fm, fl)
         return fm, fl
 
-    def _generate_features(self, target_entity=None, cutoff_times=None,
+    def _generate_features(self, target_entity=None, cutoff_time=None,
                            add_prefix=True, save=True, load_exist=True, **kwargs):
 
-        if cutoff_times is None:
+        if cutoff_time is None:
             target = self.es[self.target_entity]
-            cutoff_times = target.df.loc[:, [target.index, target.time_index]]
-            cutoff_times.columns = ['instance_id', 'time']
+            cutoff_time = target.df.loc[:, [target.index, target.time_index]]
+            cutoff_time.columns = ['instance_id', 'time']
 
         if load_exist and exist_fm(target_entity):
             fm, fl = load_fm(target_entity)
@@ -122,7 +122,7 @@ class Featurization:
                             target_entity=self.target_entity,
                             allowed_paths=find_path(self.es, self.target_entity, target_entity),
                             ignore_variables=ignore_variables,
-                            cutoff_times=cutoff_times,
+                            cutoff_time=cutoff_time,
                             **kwargs)
             # if add_prefix:
             #     fm, fl = Featurization.add_prefix(fm, fl, cutoff_times)
