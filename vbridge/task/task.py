@@ -19,6 +19,20 @@ class Task:
         # For Cohort Selection
         self._selector_fn = selector_fn
 
+    def __repr__(self):
+        desc = "[desc]\n"
+        desc += "{:16}: {}\n".format("id", self.task_id)
+        desc += "{:16}: {}\n".format("short desc", self.short_desc)
+        desc += "[feature]\n"
+        desc += "{:16}: {}\n".format("target entity", self.target_entity)
+        desc += "{:16}: {}\n".format("feature entity", ', '.join(self.forward_entities
+                                                                 + self.backward_entities))
+        desc += "[model]\n"
+        desc += "{:16}\n".format("labels")
+        for label, info in self._label_fns.items():
+            desc += "- {:14}: {}\n".format(label, info['label_extent'])
+        return desc
+
     @property
     def task_id(self):
         return self._task_id
@@ -65,8 +79,7 @@ def pic_48h_in_admission_mortality_task():
 
     return Task(
         task_id='48h in-admission mortality',
-        short_desc='Prediction whether the patient will die or survive within this admission '
-                   'according the health records from the first 48 hours of the admission',
+        short_desc='Prediction whether the patient will die or survive within this admission.',
         target_entity=target_entity,
         cutoff_times_fn=get_cutoff_times,
         backward_entities=['LABEVENTS', 'SURGERY_VITAL_SIGNS', 'CHARTEVENTS'],
