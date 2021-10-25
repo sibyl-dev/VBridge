@@ -21,7 +21,7 @@ def create_entityset(name, load_exist=True, save=True, verbose=True):
             table_df = pd.read_csv(os.path.join(PIC_dir, '{}.csv'.format(table_name)),
                                    date_parser=pd.to_datetime)
             # Remove entries with missing identifiers
-            index = info.get('index', 'ROW_ID')
+            index = info.get('index', table_df.columns[0])
             index_columns = info.get('identifiers', []) + [index]
             table_df = remove_nan_entries(table_df, index_columns, verbose=verbose)
 
