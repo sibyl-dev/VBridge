@@ -15,7 +15,8 @@ install_requires = [
     'scikit-learn>=0.24.0,<1.0',
     'featuretools>=0.23,<0.24',
     'xgboost>=1.4.1,<1.5',
-    'shap>=0.39.0,<0.40',
+    'shap>=0.40.0,<0.41',
+    'matplotlib>=3.4.0,<3.5'
 
     # Flask
     'flask>=1.1.0,<1.2',
