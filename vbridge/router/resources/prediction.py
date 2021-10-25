@@ -46,8 +46,8 @@ class Prediction(Resource):
         """
         try:
             settings = current_app.settings
-            res = get_prediction_values(settings["models"], settings['feature_matrix'], 
-                direct_id)
+            res = get_prediction_values(settings["models"], settings['feature_matrix'],
+                                        direct_id)
             res = jsonify(res)
         except Exception as e:
             LOGGER.exception(e)
@@ -75,7 +75,7 @@ class AllPrediction(Resource):
                     type: array
                     items:
                       type: number
-                    
+
           400:
             $ref: '#/components/responses/ErrorMessage'
           500:

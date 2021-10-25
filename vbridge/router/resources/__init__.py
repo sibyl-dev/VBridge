@@ -1,5 +1,6 @@
-from . import entityset, cohort_selector, feature_explanation, feature, prediction, patient, \
-    reference_value, signal_explanation, task
+from . import (
+    cohort_selector, entityset, feature, feature_explanation, patient, prediction, reference_value,
+    signal_explanation, task,)
 
 __all__ = [
     'patient',

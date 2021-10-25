@@ -62,7 +62,7 @@ def find_path(entityset, source_entity, target_entity):
         if parent_node == source_entity:
             break
         child_nodes = [e[0] for e in entityset.get_backward_entities(parent_node)] \
-                      + [e[0] for e in entityset.get_forward_entities(parent_node)]
+            + [e[0] for e in entityset.get_forward_entities(parent_node)]
         for child in child_nodes:
             if child not in parent_dict:
                 parent_dict[child] = parent_node
@@ -80,10 +80,10 @@ def transfer_cutoff_times(entityset, cutoff_times, source_entity, target_entity,
     path = find_path(entityset, source_entity, target_entity)[-1]
     for i, source in enumerate(path[:-1]):
         target = path[i + 1]
-        options = list(filter(lambda r: (r.child_entity.id == source and
-                                         r.parent_entity.id == target) or
-                                        (r.parent_entity.id == source and
-                                         r.child_entity.id == target),
+        options = list(filter(lambda r: (r.child_entity.id == source
+                                         and r.parent_entity.id == target)
+                              or (r.parent_entity.id == source
+                                  and r.child_entity.id == target),
                               entityset.relationships))
         if len(options) == 0:
             raise ValueError("No Relationship between {} and {}".format(source, target))

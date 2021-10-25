@@ -3,8 +3,9 @@ import logging
 from flask import current_app, jsonify
 from flask_restful import Resource
 
-from vbridge.utils import get_item_dict, get_feature_description, group_features_by_entity, \
-    group_features_by_where_item
+from vbridge.utils import (
+    get_feature_description, get_item_dict, group_features_by_entity,
+    group_features_by_where_item,)
 
 LOGGER = logging.getLogger(__name__)
 

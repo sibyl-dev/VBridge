@@ -3,10 +3,10 @@ import numpy as np
 import pandas as pd
 from featuretools.selection import (
     remove_highly_correlated_features, remove_highly_null_features,
-    remove_low_information_features, )
+    remove_low_information_features,)
 
 from vbridge.data_loader.pic_schema import ignore_variables
-from vbridge.utils import exist_fm, load_fm, save_fm, find_path
+from vbridge.utils import exist_fm, find_path, load_fm, save_fm
 
 
 class Featurization:
