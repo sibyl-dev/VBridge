@@ -89,7 +89,7 @@ def get_what_if_shap_values(fm, model_manager, direct_id, target=None):
                                       'prediction': predictions[i]}
         shap_values[target] = shap_task
     if target is not None:
-      shap_values = shap_values[target]
+        shap_values = shap_values[target]
     return shap_values
 
 

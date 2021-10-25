@@ -24,7 +24,7 @@ def get_relevant_column_id(feature):
     entity_id = get_relevant_entity_id(feature)
     column_ids = list(set([leaf.variable.id for leaf in leave_nodes]))
     invalid_columns = list(META_INFO[entity_id].get('secondary_index', {}).keys()) \
-                      + [META_INFO[entity_id].get('time_index', None)]
+        + [META_INFO[entity_id].get('time_index', None)]
     column_ids = [col for col in column_ids if col not in invalid_columns]
     if len(column_ids) > 1:
         raise UserWarning("The system do not support features constructed with data from "

@@ -56,7 +56,7 @@ class Model:
         X_train = self._scaler.fit_transform(X_train)
 
         weights = class_weight.compute_class_weight('balanced', [0, 1], y_train)
-        sample_weight = [weights[l] for l in y_train]
+        sample_weight = [weights[instance] for instance in y_train]
         self._model.fit(X_train, y_train, sample_weight=sample_weight, verbose=False)
         if explain:
             self._explainer = shap.TreeExplainer(self._model)

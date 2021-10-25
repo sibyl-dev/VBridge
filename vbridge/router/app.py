@@ -8,9 +8,9 @@ from vbridge.explainer.explanation import Explainer
 from vbridge.featurization import Featurization
 from vbridge.modeling import ModelManager
 from vbridge.patient_selector import PatientSelector
-from vbridge.task import pic_48h_in_admission_mortality_task
 from vbridge.router.routes import add_routes
-from vbridge.utils import load_fm, NpEncoder
+from vbridge.task import pic_48h_in_admission_mortality_task
+from vbridge.utils import NpEncoder
 
 
 def create_app():

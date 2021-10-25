@@ -1,7 +1,7 @@
 import datetime
+import json
 
 import numpy as np
-import json
 
 
 # From https://stackoverflow.com/questions/50916422/python-typeerror-object-of-type-int64-is-not

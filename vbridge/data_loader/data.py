@@ -4,8 +4,7 @@ import featuretools as ft
 import pandas as pd
 
 from vbridge.data_loader.pic_schema import META_INFO, RELATIONSHIPS
-from vbridge.utils import load_entityset, exist_entityset, \
-    remove_nan_entries, save_entityset
+from vbridge.utils import exist_entityset, load_entityset, remove_nan_entries, save_entityset
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 PIC_dir = os.path.join(ROOT, 'data/raw/PIC_mini/')
