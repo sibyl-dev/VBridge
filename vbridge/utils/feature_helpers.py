@@ -39,6 +39,7 @@ def get_feature_description(feature, item_dict=None):
         'entityId': get_relevant_entity_id(feature),
         'columnId': get_relevant_column_id(feature),
         'alias': get_relevant_column_id(feature),
+        'desc': get_relevant_column_id(feature),
     }
 
     if 'where' in feature.__dict__:
@@ -47,10 +48,12 @@ def get_feature_description(feature, item_dict=None):
             'columnId': filter_name.split(' = ')[0],
             'itemId': filter_name.split(' = ')[1],
         }
-        item_dict = None if item_dict is None else item_dict.get(info['entityId'])
-        if item_dict is not None:
-            info['item']['itemAlias'] = item_dict.get(str(info['item']['itemId']), None)
         info['alias'] = feature.primitive.name
+        info['desc'] = "{}({})".format(feature.primitive.name, info['item']['itemId'])
+        if item_dict is not None:
+            item_dict = item_dict.get(info['entityId'])
+            info['item']['itemAlias'] = item_dict.get(str(info['item']['itemId']), None)
+            info['desc'] = "{}({})".format(feature.primitive.name, info['item']['itemAlias'])
     return info
 
 

@@ -82,7 +82,7 @@ def pic_48h_in_admission_mortality_task():
         short_desc='Prediction whether the patient will die or survive within this admission.',
         target_entity=target_entity,
         cutoff_times_fn=get_cutoff_times,
-        backward_entities=['LABEVENTS', 'SURGERY_VITAL_SIGNS', 'CHARTEVENTS'],
+        backward_entities=['LABEVENTS', 'CHARTEVENTS'],
         forward_entities=['PATIENTS', 'ADMISSIONS'],
         label_fns={
             'mortality': {

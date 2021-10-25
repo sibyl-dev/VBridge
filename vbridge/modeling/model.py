@@ -111,12 +111,12 @@ class Model:
 class ModelManager:
     def __init__(self, fm, es=None, task=None):
         self._models = {}
-        self.X_train, self.X_test = train_test_split(fm)
+        self.X_train, self.X_test = train_test_split(fm, random_state=0)
         self.y_train = pd.DataFrame(index=self.X_train.index)
         self.y_test = pd.DataFrame(index=self.X_test.index)
         if task is not None and es is not None:
-            for name, label_fn in task.get_labels():
-                self.add_model(label_fn(es), name=name)
+            for name, labels in task.get_labels(es).items():
+                self.add_model(labels, name=name)
 
     def add_model(self, label, model=None, name=None):
         if name is None:
