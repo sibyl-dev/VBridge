@@ -80,7 +80,7 @@ class Featurization:
         lab_count = self.es['LABEVENTS'].df['ITEMID'].value_counts()
         self.es['LABEVENTS']['ITEMID'].interesting_values = lab_count[:45].index
 
-    def generate_features(self, select=True, save=True, load_exist=True, verbose=True):
+    def generate_features(self, save=True, load_exist=False, verbose=True):
         if load_exist and exist_fm():
             fm, fl = load_fm()
         else:
@@ -101,10 +101,11 @@ class Featurization:
 
             fm, fl = Featurization.merge_features([f[0] for f in fp], [f[1] for f in fp])
             fm, fl = Featurization.remove_uninterpretable_features(fm, fl)
-            if select:
-                fm, fl = Featurization.select_features(fm, fl)
-            if save:
-                save_fm(fm, fl)
+            fm, fl = Featurization.select_features(fm, fl)
+
+        fm.index = fm.index.astype('str')
+        if save:
+            save_fm(fm, fl)
         return fm, fl
 
     def _generate_features(self, target_entity=None, cutoff_time=None,
