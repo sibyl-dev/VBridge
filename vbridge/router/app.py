@@ -5,12 +5,12 @@ from flask_cors import CORS
 
 from vbridge.data_loader.data import create_entityset
 from vbridge.explainer.explanation import Explainer
-from vbridge.featurization import Featurization
-from vbridge.modeling import ModelManager
-from vbridge.patient_selector import PatientSelector
+from vbridge.featurization.feature import Featurization
+from vbridge.modeling.model import ModelManager
+from vbridge.patient_selector.patient_selector import PatientSelector
 from vbridge.router.routes import add_routes
-from vbridge.task import pic_48h_in_admission_mortality_task
-from vbridge.utils import NpEncoder
+from vbridge.task.task import pic_48h_in_admission_mortality_task
+from vbridge.utils.router_helpers import NpEncoder
 
 
 def create_app():

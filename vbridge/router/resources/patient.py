@@ -3,7 +3,7 @@ import logging
 from flask import current_app, jsonify
 from flask_restful import Resource, reqparse
 
-from vbridge.utils import get_forward_attributes, get_records
+from vbridge.utils.entityset_helpers import get_forward_attributes, get_records
 
 LOGGER = logging.getLogger(__name__)
 
