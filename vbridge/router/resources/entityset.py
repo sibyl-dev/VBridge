@@ -4,7 +4,7 @@ from flask import current_app
 from flask_restful import Resource
 
 from vbridge.data_loader.pic_schema import META_INFO
-from vbridge.utils import get_item_dict
+from vbridge.utils.entityset_helpers import get_item_dict
 
 LOGGER = logging.getLogger(__name__)
 

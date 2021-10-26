@@ -11,7 +11,7 @@ from sklearn.utils import class_weight
 from xgboost import XGBClassifier
 
 from vbridge.modeling.primitive.onehotencoder import OneHotEncoder
-from vbridge.utils import output_workspace
+from vbridge.utils.directory_helpers import output_workspace
 
 classification_metrics = {
     'Accuracy': sklearn.metrics.accuracy_score,

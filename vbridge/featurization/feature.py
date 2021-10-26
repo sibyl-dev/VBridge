@@ -6,7 +6,8 @@ from featuretools.selection import (
     remove_low_information_features,)
 
 from vbridge.data_loader.pic_schema import ignore_variables
-from vbridge.utils import exist_fm, find_path, load_fm, save_fm
+from vbridge.utils.directory_helpers import exist_fm, load_fm, save_fm
+from vbridge.utils.entityset_helpers import find_path
 
 
 class Featurization:

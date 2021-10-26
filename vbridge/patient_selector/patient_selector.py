@@ -1,6 +1,7 @@
 import featuretools as ft
 
-from vbridge.utils import exist_selector_mat, load_selector_mat, save_selector_mat
+from vbridge.utils.directory_helpers import exist_selector_mat, load_selector_mat, \
+    save_selector_mat
 
 
 class PatientSelector:
