@@ -4,12 +4,12 @@ from flask import Flask
 from flask_cors import CORS
 
 from vbridge.data_loader.data import create_entityset
+from vbridge.dataset.pic.mortality.pic_task import pic_48h_in_admission_mortality_task
 from vbridge.explainer.explanation import Explainer
 from vbridge.featurization.feature import Featurization
 from vbridge.modeling.model import ModelManager
 from vbridge.patient_selector.patient_selector import PatientSelector
 from vbridge.router.routes import add_routes
-from vbridge.task.task import pic_48h_in_admission_mortality_task
 from vbridge.utils.router_helpers import NpEncoder
 
 
@@ -38,7 +38,8 @@ def create_app():
     settings['task'] = task
 
     # load dataset
-    es = create_entityset('pic', verbose=False)
+    es = create_entityset('pic', task.entity_configs, task.relationships,
+                          task.ignore_variables, verbose=False)
     settings['entityset'] = es
 
     settings['target_entity'] = task.target_entity

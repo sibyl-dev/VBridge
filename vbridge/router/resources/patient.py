@@ -44,11 +44,13 @@ def get_temporal(es, task, direct_id, entity_id, cutoff_times=None):
     cutoff_time = cutoff_times.loc[direct_id, 'time']
     if entity_id is None:
         records = {entity_id: get_records(es, subject_id, entity_id,
+                                          task.entity_configs[entity_id].get('time_index', None),
                                           cutoff_time=cutoff_time).fillna('N/A').to_csv()
                    for entity_id in task.backward_entities}
     else:
-        records = get_records(es, subject_id, entity_id, cutoff_time=cutoff_time).fillna('N/A').\
-            to_csv()
+        time_index = task.entity_configs[entity_id].get('time_index', None)
+        records = get_records(es, subject_id, entity_id, time_index,
+                              cutoff_time=cutoff_time).fillna('N/A').to_csv()
     return records
 
 

@@ -56,6 +56,7 @@ def exist_fm(token='', name=''):
 
 def save_selector_mat(mat, name=''):
     output_dir = os.path.join(output_workspace, name)
+    pathlib.Path(output_dir).mkdir(parents=True, exist_ok=True)
     mat.to_csv(os.path.join(output_dir, 'selector_fm.csv'))
 
 
@@ -68,12 +69,3 @@ def load_selector_mat(name=''):
     output_dir = os.path.join(output_workspace, name)
     mat = pd.read_csv(os.path.join(output_dir, 'selector_fm.csv'), index_col=0)
     return mat
-
-
-def remove_nan_entries(df, key_columns, verbose=True):
-    n_row = len(df)
-    for column in key_columns:
-        df = df[df[column] == df[column]]
-    if verbose:
-        print("Prune ({}/{}) rows.".format(n_row - len(df), n_row))
-    return df

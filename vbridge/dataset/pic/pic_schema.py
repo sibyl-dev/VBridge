@@ -1,4 +1,4 @@
-RELATIONSHIPS = [
+relationships = [
     # PATIENTS
     ('PATIENTS', 'SUBJECT_ID', 'ADMISSIONS', 'SUBJECT_ID'),
     # ADMISSIONS
@@ -26,7 +26,7 @@ RELATIONSHIPS = [
     ('D_ICD_DIAGNOSES', 'ICD10_CODE_CN', 'DIAGNOSES_ICD', 'ICD10_CODE_CN'),
 ]
 
-META_INFO = {
+entity_configs = {
     'PATIENTS': {
         'index': 'SUBJECT_ID',
     },
@@ -152,36 +152,3 @@ ignore_variables = {
     'D_LABITEMS': ['ROW_ID', 'ITEMID', 'LABEL_CN'],
     'D_ICD_DIAGNOSES': ['ROW_ID']
 }
-
-filter_variables = [
-    {
-        'entityId': 'SURGERY_INFO',
-        'columnId': 'Height',
-        'type': 'Numerical'
-    },
-    {
-        'entityId': 'SURGERY_INFO',
-        'columnId': 'Weight',
-        'type': 'Numerical'
-    },
-    {
-        'entityId': 'PATIENTS',
-        'columnId': 'GENDER',
-        'type': 'Categorical'
-    },
-    {
-        'entityId': 'SURGERY_INFO',
-        'columnId': 'SURGERY_NAME',
-        'type': 'Multi-hot'
-    },
-    {
-        'entityId': 'SURGERY_INFO',
-        'columnId': 'Surgical time (minutes)',
-        'type': 'Numerical'
-    },
-    {
-        'entityId': 'SURGERY_INFO',
-        'columnId': 'Age',
-        'type': 'Numerical'
-    },
-]
