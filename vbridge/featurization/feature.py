@@ -5,7 +5,6 @@ from featuretools.selection import (
     remove_highly_correlated_features, remove_highly_null_features,
     remove_low_information_features,)
 
-from vbridge.data_loader.pic_schema import ignore_variables
 from vbridge.utils.directory_helpers import exist_fm, load_fm, save_fm
 from vbridge.utils.entityset_helpers import find_path
 
@@ -123,7 +122,7 @@ class Featurization:
             fm, fl = ft.dfs(entityset=self.es,
                             target_entity=self.target_entity,
                             allowed_paths=find_path(self.es, self.target_entity, target_entity),
-                            ignore_variables=ignore_variables,
+                            ignore_variables=self.task.ignore_variables,
                             cutoff_time=cutoff_time,
                             **kwargs)
             # if add_prefix:

@@ -1,7 +1,5 @@
 from copy import deepcopy
 
-from vbridge.data_loader.pic_schema import META_INFO
-
 
 def get_leaves(feature):
     if len(feature.base_features) > 0:
@@ -19,28 +17,28 @@ def get_relevant_entity_id(feature):
     return entity_ids[0]
 
 
-def get_relevant_column_id(feature):
+def get_relevant_column_id(feature, ignore_columns=None):
     leave_nodes = get_leaves(feature)
-    entity_id = get_relevant_entity_id(feature)
     column_ids = list(set([leaf.variable.id for leaf in leave_nodes]))
-    invalid_columns = list(META_INFO[entity_id].get('secondary_index', {}).keys()) \
-        + [META_INFO[entity_id].get('time_index', None)]
-    column_ids = [col for col in column_ids if col not in invalid_columns]
+    if ignore_columns is not None:
+        column_ids = [col for col in column_ids if col not in ignore_columns]
     if len(column_ids) > 1:
         raise UserWarning("The system do not support features constructed with data from "
                           "multiple variables. Will choose the first variable instead.")
     return column_ids[0]
 
 
-def get_feature_description(feature, item_dict=None):
+def get_feature_description(feature, item_dict=None, ignore_columns=None):
+    if ignore_columns is None:
+        ignore_columns = ['CHARTTIME']
     info = {
         'id': feature.get_name(),
         'primitive': feature.primitive.name,
         'entityId': get_relevant_entity_id(feature),
-        'columnId': get_relevant_column_id(feature),
-        'alias': get_relevant_column_id(feature),
-        'desc': get_relevant_column_id(feature),
+        'columnId': get_relevant_column_id(feature, ignore_columns=ignore_columns),
     }
+    info['alias'] = info['columnId']
+    info['desc'] = info['columnId']
 
     if 'where' in feature.__dict__:
         filter_name = feature.where.get_name()

@@ -1,4 +1,10 @@
-from vbridge.data_loader.pic_schema import META_INFO
+def remove_nan_entries(df, key_columns, verbose=True):
+    n_row = len(df)
+    for column in key_columns:
+        df = df[df[column] == df[column]]
+    if verbose:
+        print("Prune ({}/{}) rows.".format(n_row - len(df), n_row))
+    return df
 
 
 def parse_relationship_path(relationship_path):
@@ -108,7 +114,7 @@ def transfer_cutoff_times(entityset, cutoff_times, source_entity, target_entity,
     return cutoff_times
 
 
-def get_records(entityset, subject_id, entity_id, other_ids=None, cutoff_time=None):
+def get_records(entityset, subject_id, entity_id, time_index=None, cutoff_time=None):
     entity = entityset[entity_id].df
 
     # select records by SUBJECT_ID
@@ -117,16 +123,7 @@ def get_records(entityset, subject_id, entity_id, other_ids=None, cutoff_time=No
     else:
         entity_df = entity
 
-    # select records by other ids, e.g., HADM_ID
-    if other_ids is not None:
-        for id_column, id_value in other_ids.items():
-            if id_column in entity.columns:
-                entity_df = entity_df[entity_df[id_column] == id_value]
-            else:
-                return None
-
     # select records before or at the cutoff_time
-    time_index = META_INFO[entity_id].get('time_index')
     if cutoff_time is not None and time_index is not None:
         entity_df = entity_df[entity_df[time_index] <= cutoff_time]
     # TODO filter records according to secondary time index

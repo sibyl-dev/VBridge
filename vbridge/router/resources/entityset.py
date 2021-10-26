@@ -3,17 +3,17 @@ import logging
 from flask import current_app
 from flask_restful import Resource
 
-from vbridge.data_loader.pic_schema import META_INFO
 from vbridge.utils.entityset_helpers import get_item_dict
 
 LOGGER = logging.getLogger(__name__)
 
 
-def get_entity_description(es, entity_id):
+def get_entity_description(es, schema, entity_id):
     """Get the descriptions to the required entity by id.
 
     Args:
         es: featuretools.EntitySet, the entity set that includes all patients' health records.
+        schema: dict, the schema of the entities.
         entity_id: string, the identifier of the required entity.
 
     Returns:
@@ -21,8 +21,8 @@ def get_entity_description(es, entity_id):
     """
     info = {'entityId': entity_id}
     item_dict = get_item_dict(es)
-    if entity_id in META_INFO:
-        table_info = META_INFO[entity_id]
+    if entity_id in schema:
+        table_info = schema[entity_id]
         info['time_index'] = table_info.get('time_index')
         info['item_index'] = table_info.get('item_index')
         info['value_indexes'] = table_info.get('value_indexes')
@@ -39,17 +39,18 @@ def get_entity_description(es, entity_id):
     return info
 
 
-def get_entity_descriptions(es, entity_ids):
+def get_entity_descriptions(es, schema, entity_ids):
     """Get the descriptions to the required entities by id.
 
     Args:
         es: featuretools.EntitySet, the entity set that includes all patients' health records.
+        schema: dict, the schema of the entities.
         entity_ids: list, the identifiers of the required entities.
 
     Returns:
         A list including the descriptions of the required entities.
     """
-    schema = [get_entity_description(es, entity_id) for entity_id in entity_ids]
+    schema = [get_entity_description(es, schema, entity_id) for entity_id in entity_ids]
     return schema
 
 
@@ -79,7 +80,8 @@ class EntitySchema(Resource):
         """
         try:
             settings = current_app.settings
-            res = get_entity_description(settings['entityset'], entity_id)
+            res = get_entity_description(settings['entityset'],
+                                         settings['task'].entity_configs, entity_id)
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500
@@ -110,6 +112,7 @@ class EntitySetSchema(Resource):
         try:
             settings = current_app.settings
             res = get_entity_descriptions(settings['entityset'],
+                                          settings['task'].entity_configs,
                                           settings['task'].backward_entities)
         except Exception as e:
             LOGGER.exception(e)

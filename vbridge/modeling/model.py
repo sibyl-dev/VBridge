@@ -172,6 +172,12 @@ class ModelManager:
             pickle.dump(self, pickle_file)
 
     @staticmethod
+    def exist(path=None):
+        if path is None:
+            path = os.path.join(output_workspace, 'model_manager.pkl')
+        return os.path.exists(path)
+
+    @staticmethod
     def load(path=None):
         if path is None:
             path = os.path.join(output_workspace, 'model_manager.pkl')

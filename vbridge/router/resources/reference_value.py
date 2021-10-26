@@ -4,24 +4,23 @@ import numpy as np
 from flask import current_app, jsonify
 from flask_restful import Resource
 
-from vbridge.data_loader.pic_schema import META_INFO
-
 LOGGER = logging.getLogger(__name__)
 
 
-def get_reference_values_by_entity(es, entity_id, subject_ids=None):
+def get_reference_values_by_entity(es, entity_id, schema, subject_ids=None):
     """Get the reference values for each item in the required entity.
 
     Args:
         es: featuretools.EntitySet, the entity set that includes all patients' health records.
         entity_id: string, the identifier of the required entity
+        schema: dict, the schema of the entities.
         subject_ids: list, the indexes of the relevant cohort where the reference values are
             derived.
 
     Returns:
         A dict describing the reference values for each item in the required entity.
     """
-    entity_info = META_INFO[entity_id]
+    entity_info = schema[entity_id]
     df = es[entity_id].df
     # TODO: filter by time
     if subject_ids is not None:
@@ -56,7 +55,7 @@ def get_reference_values(es, task, subject_ids=None):
     Returns:
         A list including dicts of the reference values for each item in the required entity.
     """
-    return {e_id: get_reference_values_by_entity(es, e_id, subject_ids)
+    return {e_id: get_reference_values_by_entity(es, e_id, task.entity_configs, subject_ids)
             for e_id in task.backward_entities}
 
 
@@ -89,8 +88,9 @@ class ReferenceValue(Resource):
         """
         try:
             settings = current_app.settings
-            res = get_reference_values_by_entity(settings['entityset'],
-                                                 entity_id, settings['selected_ids'])
+            res = get_reference_values_by_entity(settings['entityset'], entity_id,
+                                                 settings['task'].entity_configs,
+                                                 settings['selected_ids'])
             res = jsonify(res)
         except Exception as e:
             LOGGER.exception(e)

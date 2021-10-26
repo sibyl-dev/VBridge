@@ -1,8 +1,6 @@
 import featuretools as ft
 import numpy as np
 
-from vbridge.data_loader.pic_schema import META_INFO
-
 from .anomaly import find_anomalies
 
 
@@ -81,7 +79,7 @@ def extract_signal(es, entity_id, variable_id, filters=None,
     return df[variable_id].values
 
 
-def run_occlusion(es, feature, filters=None, start_time=None,
+def run_occlusion(es, feature, target_var, time_var=None, filters=None, start_time=None,
                   end_time=None, algorithm="full_linear_fit", window_size=5):
     # Run the occlusion algorithm on the signal
     base_features = feature.base_features
@@ -95,8 +93,6 @@ def run_occlusion(es, feature, filters=None, start_time=None,
 
     # Find the time and value columns of the entity
     entity_id = base_features[0].entity_id
-    time_var = META_INFO[entity_id].get('time_index', None)
-    target_var = META_INFO[entity_id].get('value_indexes', [])[0]
 
     signal_params = {'filters': filters, 'time_var': time_var,
                      'start_time': start_time, 'end_time': end_time}
@@ -158,8 +154,12 @@ class Explainer:
         # Calculate signal contributions using the occlusion algorithm
         subject_id = self.es[self.task.target_entity].df.loc[direct_id]['SUBJECT_ID']
         filters = [lambda df: df["SUBJECT_ID"] == subject_id]
-        signal, timestamps, v = run_occlusion(self.es, feature, filters=filters,
-                                              start_time=None,
+
+        entity_id = feature.base_features[0].entity_id
+        time_var = self.task.entity_configs[entity_id].get('time_index', None)
+        target_var = self.task.entity_configs[entity_id].get('value_indexes', [])[0]
+        signal, timestamps, v = run_occlusion(self.es, feature, target_var, time_var,
+                                              filters=filters, start_time=None,
                                               end_time=self.cutoff_times.loc[direct_id, 'time'],
                                               algorithm=self.algorithm,
                                               window_size=self.window_size)
