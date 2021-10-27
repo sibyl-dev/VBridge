@@ -1,31 +1,3 @@
-relationships = [
-    # PATIENTS
-    ('PATIENTS', 'SUBJECT_ID', 'ADMISSIONS', 'SUBJECT_ID'),
-    # ADMISSIONS
-    ('ADMISSIONS', 'HADM_ID', 'ICUSTAYS', 'HADM_ID'),
-    ('ADMISSIONS', 'HADM_ID', 'DIAGNOSES_ICD', 'HADM_ID'),
-    ('ADMISSIONS', 'HADM_ID', 'EMR_SYMPTOMS', 'HADM_ID'),
-    ('ADMISSIONS', 'HADM_ID', 'LABEVENTS', 'HADM_ID'),
-    ('ADMISSIONS', 'HADM_ID', 'MICROBIOLOGYEVENTS', 'HADM_ID'),
-    ('ADMISSIONS', 'HADM_ID', 'OR_EXAM_REPORTS', 'HADM_ID'),
-    ('ADMISSIONS', 'HADM_ID', 'SURGERY_INFO', 'HADM_ID'),
-    ('ADMISSIONS', 'HADM_ID', 'CHARTEVENTS', 'HADM_ID'),
-    ('ADMISSIONS', 'HADM_ID', 'OUTPUTEVENTS', 'HADM_ID'),
-    ('ADMISSIONS', 'HADM_ID', 'PRESCRIPTIONS', 'HADM_ID'),
-    ('ADMISSIONS', 'HADM_ID', 'SURGERY_VITAL_SIGNS', 'HADM_ID'),
-    # ICUSTAYS
-    ('ICUSTAYS', 'ICUSTAY_ID', 'INPUTEVENTS', 'ICUSTAY_ID'),
-    # DICTS
-    ('D_ITEMS', 'ITEMID', 'CHARTEVENTS', 'ITEMID'),
-    ('D_ITEMS', 'ITEMID', 'OUTPUTEVENTS', 'ITEMID'),
-    ('D_ITEMS', 'ITEMID', 'MICROBIOLOGYEVENTS', 'SPEC_ITEMID'),
-    ('D_ITEMS', 'ITEMID', 'MICROBIOLOGYEVENTS', 'ORG_ITEMID'),
-    ('D_ITEMS', 'ITEMID', 'MICROBIOLOGYEVENTS', 'AB_ITEMID'),
-    ('D_ITEMS', 'ITEMID', 'SURGERY_VITAL_SIGNS', 'ITEMID'),
-    ('D_LABITEMS', 'ITEMID', 'LABEVENTS', 'ITEMID'),
-    ('D_ICD_DIAGNOSES', 'ICD10_CODE_CN', 'DIAGNOSES_ICD', 'ICD10_CODE_CN'),
-]
-
 entity_configs = {
     'PATIENTS': {
         'index': 'SUBJECT_ID',
@@ -65,6 +37,7 @@ entity_configs = {
         'identifiers': ['SUBJECT_ID', 'HADM_ID', 'ITEMID', 'OPER_ID'],
         'time_index': 'MONITOR_TIME',
         'item_index': 'ITEMID',
+        'interesting_values': 'ALL',
         'value_indexes': ['VALUE'],
         'alias': 'Vital Signs',
     },
@@ -77,6 +50,7 @@ entity_configs = {
         'time_index': 'CHARTTIME',
         'item_index': 'ITEMID',
         'value_indexes': ['VALUENUM'],
+        'interesting_values': 45,
         'alias': 'Lab Tests',
     },
     'MICROBIOLOGYEVENTS': {
@@ -93,6 +67,7 @@ entity_configs = {
         'time_index': 'CHARTTIME',
         'item_index': 'ITEMID',
         'value_indexes': ['VALUENUM'],
+        'interesting_values': 'ALL',
         'alias': 'Chart Events',
     },
     'INPUTEVENTS': {
@@ -127,6 +102,34 @@ entity_configs = {
         'index': 'ICD10_CODE_CN',
     }
 }
+
+relationships = [
+    # PATIENTS
+    ('PATIENTS', 'SUBJECT_ID', 'ADMISSIONS', 'SUBJECT_ID'),
+    # ADMISSIONS
+    ('ADMISSIONS', 'HADM_ID', 'ICUSTAYS', 'HADM_ID'),
+    ('ADMISSIONS', 'HADM_ID', 'DIAGNOSES_ICD', 'HADM_ID'),
+    ('ADMISSIONS', 'HADM_ID', 'EMR_SYMPTOMS', 'HADM_ID'),
+    ('ADMISSIONS', 'HADM_ID', 'LABEVENTS', 'HADM_ID'),
+    ('ADMISSIONS', 'HADM_ID', 'MICROBIOLOGYEVENTS', 'HADM_ID'),
+    ('ADMISSIONS', 'HADM_ID', 'OR_EXAM_REPORTS', 'HADM_ID'),
+    ('ADMISSIONS', 'HADM_ID', 'SURGERY_INFO', 'HADM_ID'),
+    ('ADMISSIONS', 'HADM_ID', 'CHARTEVENTS', 'HADM_ID'),
+    ('ADMISSIONS', 'HADM_ID', 'OUTPUTEVENTS', 'HADM_ID'),
+    ('ADMISSIONS', 'HADM_ID', 'PRESCRIPTIONS', 'HADM_ID'),
+    ('ADMISSIONS', 'HADM_ID', 'SURGERY_VITAL_SIGNS', 'HADM_ID'),
+    # ICUSTAYS
+    ('ICUSTAYS', 'ICUSTAY_ID', 'INPUTEVENTS', 'ICUSTAY_ID'),
+    # DICTS
+    ('D_ITEMS', 'ITEMID', 'CHARTEVENTS', 'ITEMID'),
+    ('D_ITEMS', 'ITEMID', 'OUTPUTEVENTS', 'ITEMID'),
+    ('D_ITEMS', 'ITEMID', 'MICROBIOLOGYEVENTS', 'SPEC_ITEMID'),
+    ('D_ITEMS', 'ITEMID', 'MICROBIOLOGYEVENTS', 'ORG_ITEMID'),
+    ('D_ITEMS', 'ITEMID', 'MICROBIOLOGYEVENTS', 'AB_ITEMID'),
+    ('D_ITEMS', 'ITEMID', 'SURGERY_VITAL_SIGNS', 'ITEMID'),
+    ('D_LABITEMS', 'ITEMID', 'LABEVENTS', 'ITEMID'),
+    ('D_ICD_DIAGNOSES', 'ICD10_CODE_CN', 'DIAGNOSES_ICD', 'ICD10_CODE_CN'),
+]
 
 ignore_variables = {
     'PATIENTS': ['ROW_ID', 'EXPIRE_FLAG', 'DOD', 'SUBJECT_ID'],
