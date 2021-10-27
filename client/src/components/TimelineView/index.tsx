@@ -25,8 +25,8 @@ export interface TimelineViewProps {
 
 export interface TimelineViewStates {
     eventBins?: IEventBin[][],
-    interval: number,
-    extent: [Date, Date]
+    interval?: number,
+    extent?: [Date, Date]
 }
 
 export default class TimelineView extends React.Component<TimelineViewProps, TimelineViewStates> {
@@ -37,7 +37,7 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
     constructor(props: TimelineViewProps) {
         super(props);
 
-        this.state = { ...this.getTimeScale(props.entities) };
+        this.state = {};
 
         this.extractEvents = this.extractEvents.bind(this);
         this.getTimeScale = this.getTimeScale.bind(this);
@@ -45,7 +45,6 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
 
     public componentDidMount() {
         this.updateTimeScale();
-        this.extractEvents();
     }
 
     public componentDidUpdate(prevProps: TimelineViewProps) {
@@ -64,17 +63,21 @@ export default class TimelineView extends React.Component<TimelineViewProps, Tim
             return [_.min(_recordTimes), _.max(_recordTimes)]
         })).filter(isDefined);
 
-        const earlest = _.min(recordTimes)!;
-        const latest = _.max(recordTimes)!;
-        const interval = calIntervalsByQuarter(earlest, latest, 9, 16);
-        const extent = getRefinedStartEndTime(earlest, latest, interval);
+        let interval = undefined;
+        let extent = undefined;
+        if (recordTimes.length > 0) {
+            const earlest = _.min(recordTimes)!;
+            const latest = _.max(recordTimes)!;
+            interval = calIntervalsByQuarter(earlest, latest, 9, 16);
+            extent = getRefinedStartEndTime(earlest, latest, interval);
+        }
         return { extent, interval };
     }
 
     private updateTimeScale() {
         const { entities } = this.props;
         const { extent, interval } = this.getTimeScale(entities);
-        this.setState({ extent, interval });
+        this.setState({ extent, interval }, this.extractEvents);
     }
 
     private extractEvents() {

@@ -76,7 +76,7 @@ interface AppStates {
 class App extends React.Component<AppProps, AppStates>{
   /**
    * The layout of the four views:
-   * ProfileView: (w1 * h1)    TimelineView: (W-w1 * h2)  
+   * ProfileView: (w1 * h1)    TimelineView: (W-w1 * h2)
    * FeatureView: (w1 * H-h1)  TemporalView: (W-w1 * H-h2)
    */
   private layout = { w1: 540, h1: 280, h2: 240, headerHeight: 64 };
@@ -118,7 +118,7 @@ class App extends React.Component<AppProps, AppStates>{
   }
 
   public async init() {
-    const directIds = ["103784"]; //TODO - fetch it from backend
+    const directIds = _.sortBy(await API.directIds.all());
     const task = await API.task.all();
     const target = task && Object.keys(task.labels)[0];
     const colorManager = task && new ColorManager(task);
@@ -137,6 +137,7 @@ class App extends React.Component<AppProps, AppStates>{
     const prediction = await API.predictions.find(directId);
     if (entitySetSchema && patient && prediction) {
       const patientInfo = buildPatientInfo(directId, patient, entitySetSchema, prediction);
+      console.log(patientInfo);
       this.setState({ patientInfo });
     }
   }

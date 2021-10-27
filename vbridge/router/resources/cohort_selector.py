@@ -49,3 +49,37 @@ class SelectorExtent(Resource):
         except Exception as e:
             LOGGER.exception(e)
             return {'message': str(e)}, 500
+
+
+class PatientIds(Resource):
+    def get(self):
+        """
+        Get the identifiers of patients.
+        ---
+        tags:
+          - entity set
+        responses:
+          200:
+            description: The identifiers of patients.
+            content:
+              application/json:
+                schema:
+                  type: array,
+                  items:
+                    type: string
+          400:
+            $ref: '#/components/responses/ErrorMessage'
+          500:
+            $ref: '#/components/responses/ErrorMessage'
+        """
+        try:
+            settings = current_app.settings
+            es = settings['entityset']
+            task = settings['task']
+            if task.dataset_id == 'mimic-demo':
+                # TODO: Provide an example for the mimic-demo case
+                return ["112662"]
+            return jsonify(es[task.target_entity].df.index.tolist())
+        except Exception as e:
+            LOGGER.exception(e)
+            return {'message': str(e)}, 500
