@@ -64,7 +64,7 @@ class SignalExplanation(Resource):
         """
         try:
             args = self.parser_get.parse_args()
-            feature_names = args.get('features', '').split(',')
+            feature_names = args.get('features', '').split('#')
         except Exception as e:
             LOGGER.exception(str(e))
             return {'message', str(e)}, 400
