@@ -30,7 +30,7 @@ def get_relevant_column_id(feature, ignore_columns=None):
 
 def get_feature_description(feature, item_dict=None, ignore_columns=None):
     if ignore_columns is None:
-        ignore_columns = ['CHARTTIME']
+        ignore_columns = ['CHARTTIME', 'chartime']
     info = {
         'id': feature.get_name(),
         'primitive': feature.primitive.name,
