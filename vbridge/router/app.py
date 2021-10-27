@@ -4,7 +4,8 @@ from flask import Flask
 from flask_cors import CORS
 
 from vbridge.data_loader.data import create_entityset
-from vbridge.dataset.pic.mortality.pic_task import pic_48h_in_admission_mortality_task
+# from vbridge.dataset.pic.tasks.mortality import pic_48h_in_admission_mortality_task
+from vbridge.dataset.mimic_demo.tasks.mortality import mimic_48h_in_admission_mortality_task
 from vbridge.explainer.explanation import Explainer
 from vbridge.featurization.feature import Featurization
 from vbridge.modeling.model import ModelManager
@@ -34,28 +35,27 @@ def create_app():
     }
 
     # create task
-    task = pic_48h_in_admission_mortality_task()
+    # task = pic_48h_in_admission_mortality_task()
+    task = mimic_48h_in_admission_mortality_task()
     settings['task'] = task
 
     # load dataset
-    es = create_entityset('pic', task.entity_configs, task.relationships,
+    es = create_entityset('mimic-demo', task.entity_configs, task.relationships,
                           task.ignore_variables, verbose=False)
     settings['entityset'] = es
-
     settings['target_entity'] = task.target_entity
     settings['cutoff_time'] = task.get_cutoff_times(es)
 
     # load features
     feat = Featurization(es, task)
     fm, fl = feat.generate_features(load_exist=True)
-    fm.index = fm.index.astype('str')
     settings['feature_matrix'] = fm
     settings['feature_list'] = fl
 
     # load model
-    try:
-        model_manager = ModelManager.load()
-    except FileNotFoundError:
+    if ModelManager.exist(task):
+        model_manager = ModelManager.load(task)
+    else:
         model_manager = ModelManager(fm, es, task)
         model_manager.fit_all()
         print(model_manager.evaluate())
