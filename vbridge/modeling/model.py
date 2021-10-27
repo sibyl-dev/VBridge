@@ -41,14 +41,17 @@ class Model:
         self._one_hot_encoder = OneHotEncoder(topk=topk)
         self._imputer = SimpleImputer()
         self._scaler = MinMaxScaler()
-        self._model = XGBClassifier(use_label_encoder=False, **kwargs)
+        self._model = XGBClassifier(
+            use_label_encoder=False,
+            eval_metric="binary:logistic",
+            **kwargs)
         self._explainer = None
 
     @property
     def model(self):
         return self._model
 
-    def fit(self, X, y, explain=True):
+    def fit(self, X, y):
         y_train = y.values
 
         X_train = self._one_hot_encoder.fit_transform(X)
@@ -57,9 +60,7 @@ class Model:
 
         weights = class_weight.compute_class_weight('balanced', [0, 1], y_train)
         sample_weight = [weights[instance] for instance in y_train]
-        self._model.fit(X_train, y_train, sample_weight=sample_weight, verbose=False)
-        if explain:
-            self._explainer = shap.TreeExplainer(self._model)
+        self._model.fit(X_train, y_train, sample_weight=sample_weight)
 
     def transform(self, X):
         X = self._one_hot_encoder.transform(X)
@@ -75,6 +76,8 @@ class Model:
         return test(self.model, X_test, y_test)
 
     def SHAP(self, X):
+        if self._explainer is None:
+            self._explainer = shap.TreeExplainer(self._model)
         columns = X.columns
         X = self._one_hot_encoder.transform(X)
         X = self._imputer.transform(X)
@@ -90,28 +93,13 @@ class Model:
             shap_values[original_col] = shap_values.loc[:, sub_dummy_column].sum(axis=1)
         return shap_values.reindex(columns=columns)
 
-    def save(self, path=None):
-        if path is None:
-            path = os.path.join(output_workspace, 'model.pkl')
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, 'wb') as pickle_file:
-            pickle.dump(self, pickle_file)
-
-    @staticmethod
-    def load(path=None):
-        if path is None:
-            path = os.path.join(output_workspace, 'model.pkl')
-        with open(path, 'rb') as pickle_file:
-            obj = pickle.load(pickle_file)
-        if not isinstance(obj, Model):
-            raise ValueError('Serialized object is not a Modeler instance')
-        return obj
-
 
 class ModelManager:
     def __init__(self, fm, es=None, task=None):
         self._models = {}
-        self.X_train, self.X_test = train_test_split(fm, random_state=0)
+        self.dataset_id = task.dataset_id
+        self.task_id = task.task_id
+        self.X_train, self.X_test = train_test_split(fm, random_state=3)
         self.y_train = pd.DataFrame(index=self.X_train.index)
         self.y_test = pd.DataFrame(index=self.X_test.index)
         if task is not None and es is not None:
@@ -164,23 +152,20 @@ class ModelManager:
         else:
             return self.models[target].SHAP(X)
 
-    def save(self, path=None):
-        if path is None:
-            path = os.path.join(output_workspace, 'model_manager.pkl')
+    def save(self):
+        path = os.path.join(output_workspace, self.dataset_id, self.task_id, 'model.pkl')
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, 'wb') as pickle_file:
             pickle.dump(self, pickle_file)
 
     @staticmethod
-    def exist(path=None):
-        if path is None:
-            path = os.path.join(output_workspace, 'model_manager.pkl')
+    def exist(task):
+        path = os.path.join(output_workspace, task.dataset_id, task.task_id, 'model.pkl')
         return os.path.exists(path)
 
     @staticmethod
-    def load(path=None):
-        if path is None:
-            path = os.path.join(output_workspace, 'model_manager.pkl')
+    def load(task):
+        path = os.path.join(output_workspace, task.dataset_id, task.task_id, 'model.pkl')
         with open(path, 'rb') as pickle_file:
             obj = pickle.load(pickle_file)
         if not isinstance(obj, ModelManager):
