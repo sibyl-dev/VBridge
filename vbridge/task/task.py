@@ -22,14 +22,18 @@ class Task:
         self._selector_fn = selector_fn
 
     def __repr__(self):
-        desc = "[desc]\n"
-        desc += "{:16}: {}\n".format("id", self.task_id)
-        desc += "{:16}: {}\n".format("short desc", self.short_desc)
-        desc += "[feature]\n"
+        desc = "[dataset]\n"
+        desc += "{:16}: {}\n".format("dataset id", self.dataset_id)
+        desc += "{:16}: {}\n".format("table dir", self.table_dir)
+
+        desc += "\n[feature]\n"
         desc += "{:16}: {}\n".format("target entity", self.target_entity)
         desc += "{:16}: {}\n".format("feature entity", ', '.join(self.forward_entities
                                                                  + self.backward_entities))
-        desc += "[model]\n"
+
+        desc += "\n[model]\n"
+        desc += "{:16}: {}\n".format("task id", self.task_id)
+        desc += "{:16}: {}\n".format("short desc", self.short_desc)
         desc += "{:16}\n".format("labels")
         for label, info in self._label_fns.items():
             desc += "- {:14}: {}\n".format(label, info['label_extent'])
