@@ -34,6 +34,10 @@ class SelectorExtent(Resource):
                   type: array
                   items:
                     type: string
+          400:
+            $ref: '#/components/responses/ErrorMessage'
+          500:
+            $ref: '#/components/responses/ErrorMessage'
         """
         try:
             args = self.parser_get.parse_args()
@@ -64,7 +68,7 @@ class PatientIds(Resource):
             content:
               application/json:
                 schema:
-                  type: array,
+                  type: array
                   items:
                     type: string
           400:
