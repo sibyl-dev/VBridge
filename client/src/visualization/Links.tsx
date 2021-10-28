@@ -100,12 +100,12 @@ export default class Links extends React.PureComponent<LinkProps> {
         const headerHeight = document.getElementById('header')?.offsetHeight || 0;
         const positions = signalMetas.map(signal => {
             const end = getOffsetById(`temporal-view-element-${signal.itemId}`);
-            if (end && end.top > (headerHeight + 220 + 30)
+            if (end && end.top > (headerHeight + 250)
                 && end.bottom < window.innerHeight) {
                 const starts = signal.relatedFeatureNames.map(featureName =>
                     getOffsetById(`feature-view-element-${featureName}`))
                     .filter(isDefined)
-                    .filter(start => (start.top > 30 + headerHeight) &&
+                    .filter(start => (start.top > 300 + headerHeight) &&
                         (start.bottom < window.innerHeight + 20))
                     ;
                 return starts.map((start, i) => ({
