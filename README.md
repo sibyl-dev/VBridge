@@ -53,12 +53,9 @@ npm install
 ```
 
 ## Quickstart
+In this short tutorial we will help you get started with VBridge.
 
-### How to use `vbridge-core`
-In this short tutorial we will guide you through a series of steps that will help you
-get started with `vbridge-core`. You can also check `notebooks/Getting Started.ipynb` for this example.
-
-**0. Download Dataset**. Before starting, we first download a sample dataset [mimic-iii-demo](https://physionet.org/content/mimiciii-demo/1.4/) (13.4MB)
+Before starting, we first download a sample dataset [mimic-iii-demo](https://physionet.org/content/mimiciii-demo/1.4/) (13.4MB)
 by running the following command in the root directory of this project (`VBridge/`).
 ```bash
 wget -r -N -c -np https://physionet.org/files/mimiciii-demo/1.4/ -P data/
@@ -67,59 +64,12 @@ You can also directly go to the dataset webpage and download the `.zip` file.
 Unzip and move it to `VBridge/data/`.
 Ensure that the table files (.csv) exist in `data/physionet.org/files/mimiciii-demo/1.4/`.
 
-**1. Load Task and Initialization**. We then load a predefined task called *mimic_48h_in_admission_mortality*.
 
-```python
-from vbridge.core import VBridge
-from vbridge.dataset.mimic_demo.tasks.mortality import mimic_48h_in_admission_mortality_task
-
-task = mimic_48h_in_admission_mortality_task()
-vbridge = VBridge(task)
-```
-
-This task aims to predict the patient's **mortality risk** (i.e., die or survive) during the hospital admission according to the patient's demographics, label tests, and vital signs in the first 48 hours after being admitted.
-
-**2. Load Entity Set**. We load the tables and organize them into an `Entityset`.
-```python
-vbridge.load_entity_set()
-```
-In brief, an `Entityset` is a collection of dataframes and the relationships between them. Check [featuretools](https://featuretools.alteryx.com/en/stable/getting_started/using_entitysets.html) for more details.
-
-**3. Generate Features**. Then we use [Deep Feature Synthesis](https://featuretools.alteryx.com/en/stable/getting_started/afe.html)
-to generate features.
-```python
-feature_matrix, feature_list = vbridge.generate_features()
-feature_matrix.head()
-```
-```
-        ADMISSION_TYPE         ADMISSION_LOCATION  ...  MEAN(CHARTEVENTS.VALUENUM
-                                                             WHERE ITEMID = 220181)
-HADM_ID
-171878        ELECTIVE  PHYS REFERRAL/NORMAL DELI  ...                          NaN
-172454       EMERGENCY       EMERGENCY ROOM ADMIT  ...                    73.046512
-167021       EMERGENCY       EMERGENCY ROOM ADMIT  ...                    80.250000
-164869       EMERGENCY  CLINIC REFERRAL/PREMATURE  ...                          NaN
-158100       EMERGENCY  CLINIC REFERRAL/PREMATURE  ...                    81.916667
-
-```
-
-**4. Train Models**. We train a sample machine learning model (i.e., xgboost) for the mortality prediction task.
-```python
-vbridge.train_model()
-```
-
-**5. Generate Explanations**. At last, we explain the model predictions.
-In VBridge, we develop three types of explanations: *feature contributions* (i.e., [SHAP](https://github.com/slundberg/shap) values),
-*what-if-analysis*, and *influential records*.
-We take feature contributions as an example.
-```python
-shap_values = vbridge.feature_explain(X=feature_matrix, target='mortality')
-```
+### How to use `vbridge-core`
+Check [`notebooks/Getting Started.ipynb`](notebooks/Getting Started.ipynb) for a step-by-step example.
 
 ### How to use `vbridge-api`
-First, ensure that you have downloaded the sample dataset [mimic-iii-demo](https://physionet.org/content/mimiciii-demo/1.4/) (13.4MB) correctly.
-
-Then, start the VBridge server by
+Start the VBridge server by
 ```bash
 python vbridge/router/app.py
 ```
