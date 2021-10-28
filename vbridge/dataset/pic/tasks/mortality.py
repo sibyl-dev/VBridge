@@ -33,7 +33,7 @@ def pic_48h_in_admission_mortality_task():
         forward_entities=['PATIENTS', 'ADMISSIONS'],
 
         task_id='in-admission mortality',
-        short_desc='Prediction whether the patient will die or survive within this admission.',
+        short_desc='Whether the patient will die or survive within this admission.',
         label_fns={
             'mortality': {
                 'label_values': lambda es: es['ADMISSIONS'].df['HOSPITAL_EXPIRE_FLAG'],
