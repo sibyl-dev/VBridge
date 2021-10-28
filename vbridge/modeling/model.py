@@ -37,14 +37,11 @@ def test(model, X, y):
 
 
 class Model:
-    def __init__(self, topk=10, **kwargs):
+    def __init__(self, topk=10):
         self._one_hot_encoder = OneHotEncoder(topk=topk)
         self._imputer = SimpleImputer()
         self._scaler = MinMaxScaler()
-        self._model = XGBClassifier(
-            use_label_encoder=False,
-            eval_metric="binary:logistic",
-            **kwargs)
+        self._model = XGBClassifier(use_label_encoder=False)
         self._explainer = None
 
     @property
@@ -95,16 +92,15 @@ class Model:
 
 
 class ModelManager:
-    def __init__(self, fm, es=None, task=None):
+    def __init__(self, fm, labels=None, task=None):
         self._models = {}
         self.dataset_id = task.dataset_id
         self.task_id = task.task_id
         self.X_train, self.X_test = train_test_split(fm, random_state=3)
         self.y_train = pd.DataFrame(index=self.X_train.index)
         self.y_test = pd.DataFrame(index=self.X_test.index)
-        if task is not None and es is not None:
-            for name, labels in task.get_labels(es).items():
-                self.add_model(labels, name=name)
+        for name, label in labels.items():
+            self.add_model(label, name=name)
 
     def add_model(self, label, model=None, name=None):
         if name is None:
