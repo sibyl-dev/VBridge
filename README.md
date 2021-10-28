@@ -66,7 +66,66 @@ Ensure that the table files (.csv) exist in `data/physionet.org/files/mimiciii-d
 
 
 ### How to use `vbridge-core`
-Check [`notebooks/Getting Started.ipynb`](notebooks/Getting Started.ipynb) for a step-by-step example.
+
+<details>
+  <summary>A step-by-step example</summary>
+    
+---
+    
+**1. Load Task and Initialization**. We then load a predefined task called *mimic_48h_in_admission_mortality*.
+
+```python
+from vbridge.core import VBridge
+from vbridge.dataset.mimic_demo.tasks.mortality import mimic_48h_in_admission_mortality_task
+
+task = mimic_48h_in_admission_mortality_task()
+vbridge = VBridge(task)
+```
+
+This task aims to predict the patient's **mortality risk** (i.e., die or survive) during the hospital admission according to the patient's demographics, label tests, and vital signs in the first 48 hours after being admitted.
+
+**2. Load Entity Set**. We load the tables and organize them into an `Entityset`.
+```python
+vbridge.load_entity_set()
+```
+In brief, an `Entityset` is a collection of dataframes and the relationships between them. Check [featuretools](https://featuretools.alteryx.com/en/stable/getting_started/using_entitysets.html) for more details.
+
+**3. Generate Features**. Then we use [Deep Feature Synthesis](https://featuretools.alteryx.com/en/stable/getting_started/afe.html)
+to generate features.
+```python
+feature_matrix, feature_list = vbridge.generate_features()
+feature_matrix.head()
+```
+```
+        ADMISSION_TYPE         ADMISSION_LOCATION  ...  MEAN(CHARTEVENTS.VALUENUM
+                                                             WHERE ITEMID = 220181)
+HADM_ID
+171878        ELECTIVE  PHYS REFERRAL/NORMAL DELI  ...                          NaN
+172454       EMERGENCY       EMERGENCY ROOM ADMIT  ...                    73.046512
+167021       EMERGENCY       EMERGENCY ROOM ADMIT  ...                    80.250000
+164869       EMERGENCY  CLINIC REFERRAL/PREMATURE  ...                          NaN
+158100       EMERGENCY  CLINIC REFERRAL/PREMATURE  ...                    81.916667
+
+```
+
+**4. Train Models**. We train a sample machine learning model (i.e., xgboost) for the mortality prediction task.
+```python
+vbridge.train_model()
+```
+
+**5. Generate Explanations**. At last, we explain the model predictions.
+In VBridge, we develop three types of explanations: *feature contributions* (i.e., [SHAP](https://github.com/slundberg/shap) values),
+*what-if-analysis*, and *influential records*.
+We take feature contributions as an example.
+```python
+shap_values = vbridge.feature_explain(X=feature_matrix, target='mortality')
+```
+    
+---
+    
+</details>
+
+You can also check `notebooks/Getting Started.ipynb` for this example.
 
 ### How to use `vbridge-api`
 Start the VBridge server by
