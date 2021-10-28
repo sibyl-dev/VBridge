@@ -33,6 +33,7 @@ def add_routes(app):
     api.add_resource(res.patient.TemporalInfo, API + 'patient/temporal/<string:direct_id>')
 
     # patient selection
+    api.add_resource(res.cohort_selector.PatientIds, API + 'direct_ids/')
     api.add_resource(res.cohort_selector.SelectorExtent, API + 'selector_extents/')
     # api.add_resource(res.patient_filter.PatientSelection, API + 'patient_selection/')
 

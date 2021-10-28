@@ -38,25 +38,11 @@ def get_forward_attributes(entityset, target_entity, direct_id, interesting_ids=
         if interesting_ids is not None and entity_id not in interesting_ids:
             continue
         df = entityset[entity_id].df
-        info = [{'entityId': entity_id, 'items': df.loc[direct_id].to_dict()}] + info
+        info = [{'entityId': entity_id, 'items': df.loc[direct_id].fillna('N/A').to_dict()}] + info
         for child_id, relationship_path in entityset.get_forward_entities(entity_id):
             relation = parse_relationship_path(relationship_path)
             entity_id_pipe.append((child_id, df.loc[direct_id][relation['parent_variable_id']]))
     return info
-
-
-def is_grand_parent(entityset, parent_entity_id, child_entity_id):
-    return parent_entity_id in get_forward_entities(entityset, child_entity_id)
-
-
-def lowest_common_parent(entityset, entity_id1, entity_id2):
-    node = None
-    for p in get_forward_entities(entityset, entity_id1):
-        if p != entity_id1:
-            if is_grand_parent(entityset, p, entity_id2):
-                node = p
-                break
-    return node
 
 
 def find_path(entityset, source_entity, target_entity):

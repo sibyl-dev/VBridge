@@ -180,8 +180,7 @@ export class DynamicCard extends React.Component<DynamicCardProps, DynamicCardSt
         this.setState({ loading: true });
         const { signal, directId } = this.props;
         const { relatedFeatureNames } = signal;
-        console.log(relatedFeatureNames);
-        const segmentExplanation = await API.signalExplanation.find(directId, {}, {features: relatedFeatureNames.join(',')});
+        const segmentExplanation = await API.signalExplanation.find(directId, {}, {features: relatedFeatureNames.join('#')});
         this.setState({ segmentExplanation, loading: false });
     }
 

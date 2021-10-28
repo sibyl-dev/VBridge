@@ -1,53 +1,10 @@
-import datetime
-
 import featuretools as ft
 
-
-class Date(ft.primitives.TransformPrimitive):
-    name = 'date'
-    input_types = [ft.variable_types.Datetime or ft.variable_types.DatetimeTimeIndex]
-    return_type = ft.variable_types.Numeric
-
-    def __init__(self):
-        super().__init__()
-
-    def get_function(self):
-        def date(column):
-            if column is None:
-                return None
-            return column.apply(lambda row: (row.date() - datetime.date(1997, 1, 1)).days)
-
-        return date
+from vbridge.featurization.primitive.age_range import AgeRange
+from vbridge.featurization.primitive.date import Date
 
 
-class AgeRange(ft.primitives.TransformPrimitive):
-    name = 'age_range'
-    input_types = [ft.variable_types.Numeric]
-    return_type = ft.variable_types.Ordinal
-
-    def __init__(self):
-        super().__init__()
-
-    def get_function(self):
-        def age_range(day):
-            if day <= 4 * 7:
-                return "newborn (0–4 weeks)"
-            elif day <= 365:
-                return "infant (4 weeks - 1 year)"
-            elif day <= 365 * 2:
-                return "toddler (1-2 years)"
-            else:
-                return "preschooler or above(>2 years)"
-
-        def age(column):
-            if column is None:
-                return None
-            return column.apply(age_range)
-
-        return age
-
-
-def pic_48h_in_admission_mortality_selector(es=None):
+def pic_cohort_selector(es=None):
     selector_vars = [{
         'name': 'Gender',
         'type': 'categorical',

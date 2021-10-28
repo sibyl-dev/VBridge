@@ -26,7 +26,7 @@ export function isGroupFeature(feature: Feature): feature is GroupFeature {
 }
 
 export function isCategoricalFeature(feature: Feature): feature is CategoricalFeature {
-    return (!isGroupFeature(feature) && typeof (feature.value) === 'string');
+    return (!isGroupFeature(feature) && typeof (feature.value) === 'string') && feature.value !== 'N/A';
 }
 
 export function isNumericalFeature(feature: Feature): feature is NumericalFeature {

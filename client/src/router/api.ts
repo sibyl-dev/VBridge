@@ -32,6 +32,7 @@ export class RestClient {
     public referenceValues: Resource<ReferenceValues, ReferenceValueResponse>;
 
     // cohort selector
+    public directIds: Resource<null, string[]>;
     public cohortSelector: Resource<string[], string[]>;
 
     // feature
@@ -69,6 +70,7 @@ export class RestClient {
         this.patientTemporal = new Resource(this.server, 'patient/temporal/');
 
         // cohort selector
+        this.directIds = new Resource(this.server, 'direct_ids/')
         this.cohortSelector = new Resource(this.server, 'selector_extents')
 
         // prediction

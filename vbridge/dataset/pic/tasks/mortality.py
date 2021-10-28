@@ -1,9 +1,13 @@
+import os
 from datetime import timedelta
 
 from vbridge.task.task import Task
+from vbridge.utils.directory_helpers import ROOT
 
-from ..pic_schema import entity_configs, ignore_variables, relationships
-from ..pic_selector import pic_48h_in_admission_mortality_selector
+from ..schema import entity_configs, ignore_variables, relationships
+from ..selector_variable import pic_cohort_selector
+
+pic_dir = os.path.join(ROOT, 'data/raw/PIC')
 
 
 def pic_48h_in_admission_mortality_task():
@@ -18,6 +22,7 @@ def pic_48h_in_admission_mortality_task():
 
     return Task(
         dataset_id='pic',
+        table_dir=pic_dir,
         entity_configs=entity_configs,
         relationships=relationships,
         ignore_variables=ignore_variables,
@@ -36,5 +41,5 @@ def pic_48h_in_admission_mortality_task():
                 'label_extent': ['low-risk', 'high-risk']
             }
         },
-        selector_fn=pic_48h_in_admission_mortality_selector
+        selector_fn=pic_cohort_selector
     )
