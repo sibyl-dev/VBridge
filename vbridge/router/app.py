@@ -41,7 +41,7 @@ def create_app():
 
     # load dataset
     es = create_entityset('mimic-demo', task.entity_configs, task.relationships,
-                          task.ignore_variables, verbose=False)
+                          task.table_dir, verbose=False)
     settings['entityset'] = es
     settings['target_entity'] = task.target_entity
     settings['cutoff_time'] = task.get_cutoff_times(es)
@@ -56,7 +56,8 @@ def create_app():
     if ModelManager.exist(task):
         model_manager = ModelManager.load(task)
     else:
-        model_manager = ModelManager(fm, es, task)
+        labels = task.get_labels(es)
+        model_manager = ModelManager(fm, labels, task)
         model_manager.fit_all()
         print(model_manager.evaluate())
         model_manager.save()

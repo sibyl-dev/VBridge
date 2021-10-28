@@ -4,7 +4,8 @@ import pickle
 
 import pandas as pd
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+# ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+ROOT = os.getcwd()
 output_workspace = os.path.join(ROOT, 'output')
 
 
