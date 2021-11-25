@@ -21,6 +21,8 @@ The related paper, "VBridge: Connecting the Dots Between Features and Data to Ex
 has been accepted to TVCG ([IEEE VIS 2021](http://ieeevis.org/year/2021/welcome))
 with an **Honorable Mention Award** ([pdf](https://arxiv.org/abs/2108.02550)).
 
+Check our :movie_camera: [Video](https://www.youtube.com/watch?v=V7kfbnuBqFI).
+
 ![](docs/images/teaser.png)
 
 # Quickstart
