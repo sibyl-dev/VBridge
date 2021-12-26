@@ -148,10 +148,13 @@ Then navigate to `http://localhost:3000/` in your browser to see `vbridge-vis`.
 
 # Citations
 ```
-@article{cheng2021vbridge,
-  title={VBridge: Connecting the Dots Between Features and Data to Explain Healthcare Models},
+@ARTICLE{cheng2021vbridge,
   author={Cheng, Furui and Liu, Dongyu and Du, Fan and Lin, Yanna and Zytek, Alexandra and Li, Haomin and Qu, Huamin and Veeramachaneni, Kalyan},
-  journal={IEEE Transactions on Visualization and Computer Graphics},
-  year={2021},
-  publisher={IEEE}
-}
+  journal={IEEE Transactions on Visualization and Computer Graphics}, 
+  title={VBridge: Connecting the Dots Between Features and Data to Explain Healthcare Models}, 
+  year={2022},
+  volume={28},
+  number={1},
+  pages={378-388},
+  doi={10.1109/TVCG.2021.3114836}
+ }
